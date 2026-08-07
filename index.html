@@ -1887,11 +1887,73 @@ async function tmdbMovieRuntime(id){
   return data && data.runtime ? data.runtime : null;
 }
 
+// TMDb zwraca dla nieprzetłumaczonych odcinków nazwy generyczne ("Odcinek 5",
+// "Episode 5", "Folge 5"...). Traktujemy je jak brak nazwy, żeby móc pobrać
+// nazwę oryginalną.
+function isGenericEpisodeName(name, number){
+  const t = String(name||"").trim();
+  if (!t) return true;
+  const re = /^(odcinek|epizod|episode|ep\.?|épisode|folge|episodio|episódio|afsnit|jakso|serie|bölüm|эпизод|серия|第\s*\d+\s*話)\s*[nr.:#]*\s*(\d+)?$/i;
+  const m = t.match(re);
+  if (!m) return false;
+  if (m[2] == null) return true;
+  return number == null || Number(m[2]) === Number(number);
+}
+
+const tmdbSeriesOrigLangCache = new Map();
+async function tmdbSeriesOriginalLanguage(seriesId){
+  if (tmdbSeriesOrigLangCache.has(seriesId)) return tmdbSeriesOrigLangCache.get(seriesId);
+  let lang = "";
+  try {
+    const info = await tmdbFetch("/tv/" + seriesId, {});
+    lang = (info && info.original_language) ? String(info.original_language) : "";
+  } catch(err) { lang = ""; }
+  tmdbSeriesOrigLangCache.set(seriesId, lang);
+  return lang;
+}
+
 async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   const cacheKey = seriesId + ":" + seasonNumber;
   if (!forceRefresh && tmdbSeasonCache.has(cacheKey)) return tmdbSeasonCache.get(cacheKey);
   const data = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {});
-  const eps = (data && data.episodes) ? data.episodes : [];
+  let eps = (data && Array.isArray(data.episodes)) ? data.episodes : [];
+
+  // wyczyść generyczne nazwy, aby fallback mógł je zastąpić
+  for (const ep of eps) {
+    if (isGenericEpisodeName(ep.name, ep.episode_number)) ep.name = "";
+  }
+
+  const stillMissing = () => eps.length===0 || eps.some(e=>!e.name || !e.name.trim());
+
+  if (stillMissing()) {
+    // kolejność prób: angielski, język oryginalny serialu, bez języka (wersja domyślna TMDb)
+    const langs = ["en-US"];
+    const orig = await tmdbSeriesOriginalLanguage(seriesId);
+    if (orig && orig !== "en" && orig !== "pl") langs.push(orig);
+
+    for (const lang of langs) {
+      if (!stillMissing()) break;
+      try {
+        const alt = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {language: lang});
+        let epsAlt = (alt && Array.isArray(alt.episodes)) ? alt.episodes : [];
+        for (const ep of epsAlt) {
+          if (isGenericEpisodeName(ep.name, ep.episode_number)) ep.name = "";
+        }
+        if (eps.length===0 && epsAlt.length>0) {
+          eps = epsAlt;
+          continue;
+        }
+        for (const ep of eps) {
+          if (ep.name && ep.name.trim()) continue;
+          const match = epsAlt.find(e=>e.episode_number===ep.episode_number);
+          if (match && match.name && match.name.trim()) ep.name = match.name;
+        }
+      } catch(err) {
+        // brak danych w tym języku - próbuj dalej
+      }
+    }
+  }
+
   tmdbSeasonCache.set(cacheKey, eps);
   return eps;
 }
@@ -2321,7 +2383,7 @@ function openItemDialog({item, itemType}){
     let titlesBackfillDone = false;
     async function autoFillEpisodeTitles(){
       if (titlesBackfillDone) return;
-      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>!e.title));
+      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>isGenericEpisodeName(e.title, e.number)));
       if (missingSeasons.length===0) { titlesBackfillDone = true; return; }
       if (!tmdbId && !getStoredTmdbKey()) return;
       titlesBackfillDone = true;
@@ -2695,7 +2757,7 @@ async function fillAllEpisodeTitles(){
   if (!key) { setStatus("Brak klucza API TMDb — podaj go powyżej.", true); return; }
 
   const seriesItems = db.items.filter(i=>i.type===TYPE_SERIES && Array.isArray(i.seasons) &&
-    i.seasons.some(s=>(s.episodes||[]).some(e=>!e.title)));
+    i.seasons.some(s=>(s.episodes||[]).some(e=>isGenericEpisodeName(e.title, e.number))));
   if (seriesItems.length===0) { setStatus("Wszystkie odcinki mają już nazwy."); return; }
 
   btn.disabled = true;
@@ -2716,7 +2778,7 @@ async function fillAllEpisodeTitles(){
       if (!tid) { errors++; continue; }
       let itemFilled = 0;
       for (const season of item.seasons) {
-        const missing = (season.episodes||[]).filter(e=>!e.title);
+        const missing = (season.episodes||[]).filter(e=>isGenericEpisodeName(e.title, e.number));
         if (missing.length===0) continue;
         const eps = await tmdbSeasonEpisodes(tid, season.number);
         for (const ep of missing) {
