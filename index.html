@@ -306,6 +306,19 @@
     width:60px;flex-shrink:0;background:var(--bg-entry);color:var(--text-light);
     border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;font-weight:600;
   }
+  .episode-row .ep-title-static{
+    flex:1;min-width:0;
+    padding:4px 0;font-family:inherit;font-weight:600;font-size:13px;color:var(--text-light);
+    white-space:normal;word-break:break-word;
+  }
+  .episode-row .ep-duration-static{
+    flex-shrink:0;color:var(--text-light);font-weight:600;font-size:13px;
+  }
+  .episode-row .ep-delete-btn{
+    flex-shrink:0;background:none;border:none;color:var(--danger);
+    font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;font-family:inherit;
+  }
+  .episode-row .ep-delete-btn:hover{color:#fff;background:var(--danger);border-radius:6px;}
   #mark-next-ep-wrap{margin-top:6px;display:flex;align-items:center;gap:8px;}
   #mark-next-ep-btn{flex-shrink:0;}
   #mark-next-ep-title{min-width:0;flex:1 1 auto;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.3;}
@@ -435,7 +448,7 @@
     <div class="type-tab" id="tab-settings">
       <div class="stats-section">
         <h3>TMDb (The Movie Database)</h3>
-        <div class="muted" style="margin-bottom:10px;">Klucz API służy do automatycznego pobierania czasu trwania filmów i odcinków. Jest zapisywany w pliku bazy JSON oraz lokalnie w przeglądarce.</div>
+        <div class="muted" style="margin-bottom:10px;">Klucz API do automatycznego pobierania czasu trwania filmów i odcinków.</div>
         <div class="form-row"><label style="min-width:150px;">Aktualny klucz API:</label>
           <input class="entry" id="set-tmdb-key" type="text" style="flex:1;" placeholder="Wklej klucz API v3 lub token v4">
         </div>
@@ -453,13 +466,13 @@
       </div>
       <div class="stats-section">
         <h3>Nazwy odcinków</h3>
-        <div class="muted" style="margin-bottom:10px;">Pobiera z TMDb brakujące nazwy odcinków dla wszystkich seriali w bazie na raz. Nie zmienia statusu „obejrzane” ani zapisanych czasów trwania — uzupełnia tylko puste tytuły.</div>
+        <div class="muted" style="margin-bottom:10px;">Uzupełnia z TMDb brakujące nazwy odcinków we wszystkich serialach.</div>
         <div class="form-row">
           <label style="min-width:150px;"></label>
           <button class="btn small" id="set-fill-titles" type="button">Pobierz wszystkie nazwy odcinków</button>
         </div>
         <div class="tmdb-status" id="set-fill-titles-status"></div>
-        <div class="muted" style="margin:10px 0;">Sprawdza ponownie WSZYSTKIE odcinki (także te, które już mają nazwę) — przydatne, gdy TMDb nie miał jeszcze tytułów dla nowych sezonów przy pierwszym pobieraniu i dodał je później.</div>
+        <div class="muted" style="margin:10px 0;">Sprawdza ponownie WSZYSTKIE odcinki i aktualizuje ich nazwy.</div>
         <div class="form-row">
           <label style="min-width:150px;"></label>
           <button class="btn small secondary" id="set-refresh-titles" type="button">Sprawdź ponownie i zaktualizuj</button>
@@ -467,8 +480,16 @@
         <div class="tmdb-status" id="set-refresh-titles-status"></div>
       </div>
       <div class="stats-section">
+        <h3>Sezony i odcinki</h3>
+        <div class="muted" style="margin-bottom:10px;">Pozwala ręcznie edytować nazwy i czasy odcinków oraz dodawać/usuwać sezony i odcinki.</div>
+        <div class="form-row">
+          <label style="min-width:150px;"></label>
+          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="set-edit-seasons"> Edytuj sezony i odcinki</label>
+        </div>
+      </div>
+      <div class="stats-section">
         <h3>Aktualizacja aplikacji</h3>
-        <div class="muted" style="margin-bottom:10px;">Pobiera najnowszą wersję aplikacji z serwera. Przydatne, gdy aplikacja jest dodana do ekranu głównego i nie odświeża się automatycznie po aktualizacji na GitHub.</div>
+        <div class="muted" style="margin-bottom:10px;">Pobiera najnowszą wersję aplikacji z serwera.</div>
         <div class="form-row">
           <label style="min-width:150px;"></label>
           <button class="btn small" id="set-update-app" type="button">Aktualizacja</button>
@@ -531,7 +552,7 @@ const MIN_PER_YEAR = MIN_PER_DAY*365;
 
 const COL_LABELS = {lp:"Lp", title:"Tytuł", date:"Data", time:"Czas", progress:"Postęp", rating:"Ocena", days:"Do premiery", del:""};
 
-const DEFAULT_SETTINGS = {tmdb_key: "", tmdb_auto: true};
+const DEFAULT_SETTINGS = {tmdb_key: "", tmdb_auto: true, edit_seasons_episodes: false};
 const DEFAULT_NOTES = [];
 let db = {version: APP_VERSION, items: [], settings: {...DEFAULT_SETTINGS}, notes: [], upcoming: [], upcoming_ignored: []};
 
@@ -560,6 +581,7 @@ function normalizeSettings(s){
   if (s && typeof s === "object") {
     if (typeof s.tmdb_key === "string") out.tmdb_key = s.tmdb_key;
     if (typeof s.tmdb_auto === "boolean") out.tmdb_auto = s.tmdb_auto;
+    if (typeof s.edit_seasons_episodes === "boolean") out.edit_seasons_episodes = s.edit_seasons_episodes;
   }
   return out;
 }
@@ -1729,6 +1751,41 @@ function showConfirm(title, message){
   });
 }
 
+function showAddSeasonPrompt(suggestedNumber){
+  return new Promise(resolve=>{
+    const overlay = openOverlay(`
+      <div class="modal-header">Dodaj sezon</div>
+      <div class="modal-body">
+        <div class="form-row"><label style="min-width:150px;">Numer sezonu:</label>
+          <input class="entry" id="add-season-number" type="number" min="1" value="${suggestedNumber}" style="flex:1;">
+        </div>
+        <div class="form-row"><label style="min-width:150px;">Liczba odcinków:</label>
+          <input class="entry" id="add-season-count" type="number" min="0" value="1" style="flex:1;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" id="cancel-add-season-btn">Anuluj</button>
+        <button class="btn" id="confirm-add-season-btn">Dodaj</button>
+      </div>
+    `);
+    const numInput = overlay.querySelector("#add-season-number");
+    const countInput = overlay.querySelector("#add-season-count");
+    function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
+    function submit(){
+      const number = parseInt(numInput.value, 10);
+      const count = parseInt(countInput.value, 10);
+      if (!Number.isFinite(number) || number < 1) { numInput.focus(); return; }
+      if (!Number.isFinite(count) || count < 0) { countInput.focus(); return; }
+      finish({number, count});
+    }
+    function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); if (e.key==="Enter") submit(); }
+    overlay.querySelector("#confirm-add-season-btn").addEventListener("click", submit);
+    overlay.querySelector("#cancel-add-season-btn").addEventListener("click", ()=>finish(null));
+    document.addEventListener("keydown", onKey);
+    numInput.focus();
+  });
+}
+
 function askAddType(){
   return new Promise(resolve=>{
     const overlay = openOverlay(`
@@ -2205,6 +2262,7 @@ function openItemDialog({item, itemType}){
         ${type===TYPE_SERIES ? `
         <div id="pane-seasons" style="display:none;">
           <button class="btn small" id="btn-fetch-seasons" type="button">Pobierz</button>
+          <button class="btn small" id="btn-add-season" type="button" style="display:none;margin-left:6px;">Dodaj sezon</button>
           <div id="seasons-list" style="margin-top:10px;"></div>
         </div>` : ''}
       </div>
@@ -2516,6 +2574,8 @@ function openItemDialog({item, itemType}){
         paneBasic.style.display="none"; paneSeasons.style.display="";
         autoFillEpisodeTitles();
       });
+      const addSeasonBtn = overlay.querySelector("#btn-add-season");
+      if (addSeasonBtn) addSeasonBtn.style.display = (db.settings && db.settings.edit_seasons_episodes) ? "" : "none";
       renderSeasonsList();
     }
 
@@ -2541,6 +2601,8 @@ function openItemDialog({item, itemType}){
       const total = (season.episodes||[]).length;
       const seasonMinutes = (season.episodes||[]).filter(e=>e.watched).reduce((a,e)=>a+(e.duration||0),0);
 
+      const canEdit = !!(db.settings && db.settings.edit_seasons_episodes);
+
       const box = document.createElement("div");
       box.className = "season-box";
       box.innerHTML = `
@@ -2548,7 +2610,7 @@ function openItemDialog({item, itemType}){
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
           <button class="btn small" data-act="uncheck-all">Odznacz cały</button>
-          <button class="btn small secondary" data-act="remove-season">Usuń sezon</button>
+          ${canEdit ? '<button class="btn small secondary" data-act="remove-season">Usuń sezon</button>' : ''}
         </div>
         <div class="episodes-list"></div>
       `;
@@ -2572,7 +2634,8 @@ function openItemDialog({item, itemType}){
         for (const e of season.episodes) e.watched = false;
         renderSeasonsList();
       });
-      box.querySelector('[data-act="remove-season"]').addEventListener("click", async ()=>{
+      const removeBtn = box.querySelector('[data-act="remove-season"]');
+      if (removeBtn) removeBtn.addEventListener("click", async ()=>{
         const ok = await showConfirm("Usuń sezon", `Czy na pewno usunąć Sezon ${season.number} wraz ze wszystkimi odcinkami?`);
         if (!ok) return;
         seasons = seasons.filter(s=>s!==season);
@@ -2583,37 +2646,71 @@ function openItemDialog({item, itemType}){
     }
 
     function buildEpisodeRow(season, ep){
+      const canEdit = !!(db.settings && db.settings.edit_seasons_episodes);
       const row = document.createElement("div");
       row.className = "episode-row";
-      row.innerHTML = `
-        <label><input type="checkbox" ${ep.watched?"checked":""}><span class="ep-num">${ep.number}.</span><input type="text" class="ep-title-input" value="${escapeHtml(ep.title||"")}" placeholder="Odcinek ${ep.number}"></label>
-        <input type="number" min="0" value="${ep.duration||0}">
-        <span class="muted">min</span>
-      `;
+      if (canEdit) {
+        row.innerHTML = `
+          <label><input type="checkbox" ${ep.watched?"checked":""}><span class="ep-num">${ep.number}.</span><input type="text" class="ep-title-input" value="${escapeHtml(ep.title||"")}" placeholder="Odcinek ${ep.number}"></label>
+          <input type="number" min="0" value="${ep.duration||0}">
+          <span class="muted">min</span>
+          <button type="button" class="ep-delete-btn" title="Usuń odcinek">✕</button>
+        `;
+      } else {
+        row.innerHTML = `
+          <label><input type="checkbox" ${ep.watched?"checked":""}><span class="ep-num">${ep.number}.</span><span class="ep-title-static">${escapeHtml(ep.title || ("Odcinek " + ep.number))}</span></label>
+          <span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>
+        `;
+      }
       const checkbox = row.querySelector('input[type="checkbox"]');
-      const durInput = row.querySelector('input[type="number"]');
-      const titleInput = row.querySelector('.ep-title-input');
 
       checkbox.addEventListener("change", async ()=>{
         ep.watched = checkbox.checked;
         if (ep.watched && !ep.duration) {
+          const durInput = row.querySelector('input[type="number"]');
           await autoEpisodeDuration(season, ep, durInput);
         }
         renderSeasonsList();
       });
-      titleInput.addEventListener("input", ()=>{
-        ep.title = titleInput.value;
-      });
-      titleInput.addEventListener("keydown", (e)=>{ if (e.key==="Enter") titleInput.blur(); });
-      durInput.addEventListener("change", ()=>{
-        const v = parseInt(durInput.value,10);
-        ep.duration = Number.isFinite(v) && v>=0 ? v : 0;
-        durInput.value = ep.duration;
-      });
+
+      if (canEdit) {
+        const durInput = row.querySelector('input[type="number"]');
+        const titleInput = row.querySelector('.ep-title-input');
+        const deleteBtn = row.querySelector('.ep-delete-btn');
+        titleInput.addEventListener("input", ()=>{
+          ep.title = titleInput.value;
+        });
+        titleInput.addEventListener("keydown", (e)=>{ if (e.key==="Enter") titleInput.blur(); });
+        durInput.addEventListener("change", ()=>{
+          const v = parseInt(durInput.value,10);
+          ep.duration = Number.isFinite(v) && v>=0 ? v : 0;
+          durInput.value = ep.duration;
+        });
+        deleteBtn.addEventListener("click", async ()=>{
+          const ok = await showConfirm("Usuń odcinek", `Czy na pewno usunąć odcinek ${ep.number}?`);
+          if (!ok) return;
+          season.episodes = season.episodes.filter(e=>e!==ep);
+          renderSeasonsList();
+        });
+      }
       return row;
     }
 
     if (type===TYPE_SERIES) {
+      const addSeasonBtn2 = overlay.querySelector("#btn-add-season");
+      if (addSeasonBtn2) addSeasonBtn2.addEventListener("click", async ()=>{
+        const nextNumber = seasons.length ? Math.max(...seasons.map(s=>s.number||0))+1 : 1;
+        const result = await showAddSeasonPrompt(nextNumber);
+        if (!result) return;
+        if (seasons.some(s=>s.number===result.number)) {
+          await showAlert("Sezon istnieje", `Sezon ${result.number} już istnieje na liście.`, "error");
+          return;
+        }
+        const episodes = [];
+        for (let i=1; i<=result.count; i++) episodes.push({number:i, watched:false, duration:0, title:""});
+        seasons.push({number: result.number, episodes});
+        renderSeasonsList();
+      });
       overlay.querySelector("#btn-fetch-seasons").addEventListener("click", async ()=>{
         try {
           setTmdbStatus("Pobieranie sezonów i odcinków z TMDb…");
@@ -2728,6 +2825,8 @@ function renderSettingsTab(){
   input.value = (db.settings && db.settings.tmdb_key) || "";
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
+  const editSeasons = document.getElementById("set-edit-seasons");
+  if (editSeasons) editSeasons.checked = !!(db.settings && db.settings.edit_seasons_episodes);
 }
 
 function setSettingsStatus(msg, isErr){
@@ -2762,6 +2861,12 @@ function initSettingsTab(){
   document.getElementById("set-tmdb-auto").addEventListener("change", (e)=>{
     if (!db.settings) db.settings = {...DEFAULT_SETTINGS};
     db.settings.tmdb_auto = e.target.checked;
+    saveToLocalStorage();
+    setDirty(true);
+  });
+  document.getElementById("set-edit-seasons").addEventListener("change", (e)=>{
+    if (!db.settings) db.settings = {...DEFAULT_SETTINGS};
+    db.settings.edit_seasons_episodes = e.target.checked;
     saveToLocalStorage();
     setDirty(true);
   });
