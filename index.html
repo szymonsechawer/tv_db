@@ -272,6 +272,8 @@
   .view-row:last-child{border-bottom:none;}
   .view-row .vlabel{min-width:150px;color:var(--muted,#999);flex:none;}
   .view-row .vval{font-weight:600;flex:1;word-break:break-word;}
+  .desc-text{white-space:pre-wrap;line-height:1.55;font-size:14px;color:var(--text-light,#eee);}
+  .desc-text.muted{color:var(--text-muted);}
   .view-tags{display:flex;flex-wrap:wrap;gap:6px;}
   .view-tag{background:var(--chip-bg,#333);border-radius:12px;padding:2px 10px;font-size:12px;}
 
@@ -475,7 +477,19 @@
           <button class="btn small" id="set-fill-titles" type="button">Pobierz wszystkie nazwy odcinków</button>
         </div>
         <div class="tmdb-status" id="set-fill-titles-status"></div>
-        <div class="muted" style="margin:10px 0;">Sprawdza ponownie WSZYSTKIE odcinki i aktualizuje ich nazwy.</div>
+      </div>
+      <div class="stats-section">
+        <h3>Opisy filmów i seriali</h3>
+        <div class="muted" style="margin-bottom:10px;">Uzupełnia z TMDb brakujące opisy (streszczenia) wszystkich filmów i seriali.</div>
+        <div class="form-row">
+          <label style="min-width:150px;"></label>
+          <button class="btn small" id="set-fill-desc" type="button">Pobierz wszystkie opisy filmów i seriali</button>
+        </div>
+        <div class="tmdb-status" id="set-fill-desc-status"></div>
+      </div>
+      <div class="stats-section">
+        <h3>Aktualizacja danych</h3>
+        <div class="muted" style="margin:0 0 10px;">Sprawdza ponownie WSZYSTKIE nazwy odcinków oraz opisy filmów i seriali i aktualizuje je jednym kliknięciem.</div>
         <div class="form-row">
           <label style="min-width:150px;"></label>
           <button class="btn small secondary" id="set-refresh-titles" type="button">Sprawdź ponownie i zaktualizuj</button>
@@ -684,6 +698,7 @@ function migrateItems(items){
     if (typeof item !== "object" || item===null) continue;
     if (!item.id) item.id = uuidv4();
     if (!("title" in item)) item.title = item.title_pl || item.title_en || "";
+    if (typeof item.description !== "string") item.description = "";
     if (!item.original_title) {
       const split = splitOriginalTitle(item.title);
       if (split.original_title) { item.title = split.title; item.original_title = split.original_title; }
@@ -1968,6 +1983,18 @@ async function tmdbMovieRuntime(id){
   return data && data.runtime ? data.runtime : null;
 }
 
+async function tmdbOverview(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
+  const data = await tmdbFetch(path, {});
+  if (data && typeof data.overview === "string" && data.overview.trim()) return data.overview.trim();
+  // fallback do angielskiego opisu, gdy brak polskiego tłumaczenia w TMDb
+  try {
+    const alt = await tmdbFetch(path, {language: "en-US"});
+    if (alt && typeof alt.overview === "string" && alt.overview.trim()) return alt.overview.trim();
+  } catch(err) { /* brak alternatywy - ignoruj */ }
+  return "";
+}
+
 // TMDb zwraca dla nieprzetłumaczonych odcinków nazwy generyczne ("Odcinek 5",
 // "Episode 5", "Folge 5"...). Traktujemy je jak brak nazwy, żeby móc pobrać
 // nazwę oryginalną.
@@ -2127,15 +2154,28 @@ function openViewDialog(id){
 
     const overlay = openOverlay(`
       <div class="modal-body">
-        <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
-        <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
-        ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
-        <div class="view-row"><div class="vlabel">Czas:</div><div class="vval">${escapeHtml(timeTxt)}</div></div>
-        <div class="view-row"><div class="vlabel">Data (rok):</div><div class="vval">${escapeHtml(item.premiere_date||"—")}</div></div>
-        <div class="view-row" id="view-status-row"></div>
-        <div class="view-row" id="view-rating-row"></div>
-        <div class="view-row"><div class="vlabel">Tagi:</div><div class="vval"><div class="view-tags">${item.tags&&item.tags.length ? item.tags.map(t=>`<span class="view-tag">${escapeHtml(t)}</span>`).join("") : '<span class="muted">—</span>'}</div></div></div>
-        ${bodyExtra}
+        <div class="inner-tabs">
+          <button class="tab-btn active" id="vtab-info" type="button">Informacje</button>
+          <button class="tab-btn" id="vtab-desc" type="button">Opis</button>
+        </div>
+        <div id="vpane-info">
+          <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
+          <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
+          ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
+          <div class="view-row"><div class="vlabel">Czas:</div><div class="vval">${escapeHtml(timeTxt)}</div></div>
+          <div class="view-row"><div class="vlabel">Data (rok):</div><div class="vval">${escapeHtml(item.premiere_date||"—")}</div></div>
+          <div class="view-row" id="view-status-row"></div>
+          <div class="view-row" id="view-rating-row"></div>
+          <div class="view-row"><div class="vlabel">Tagi:</div><div class="vval"><div class="view-tags">${item.tags&&item.tags.length ? item.tags.map(t=>`<span class="view-tag">${escapeHtml(t)}</span>`).join("") : '<span class="muted">—</span>'}</div></div></div>
+          ${bodyExtra}
+        </div>
+        <div id="vpane-desc" style="display:none;">
+          <div class="tmdb-status" id="view-desc-status"></div>
+          <div class="desc-text" id="view-desc-text"></div>
+          <div style="margin-top:12px;">
+            <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
@@ -2171,6 +2211,75 @@ function openViewDialog(id){
         if (titleEl) titleEl.textContent = "";
       }
     }
+
+    function refreshDescPane(){
+      const cur = findItem(id) || item;
+      const textEl = overlay.querySelector("#view-desc-text");
+      const fetchBtn = overlay.querySelector("#view-desc-fetch-btn");
+      if (cur.description && cur.description.trim()) {
+        textEl.textContent = cur.description;
+        textEl.classList.remove("muted");
+        fetchBtn.textContent = "Odśwież opis";
+      } else {
+        textEl.textContent = "Brak opisu.";
+        textEl.classList.add("muted");
+        fetchBtn.textContent = "Pobierz opis";
+      }
+    }
+    refreshDescPane();
+
+    const vtabInfo = overlay.querySelector("#vtab-info");
+    const vtabDesc = overlay.querySelector("#vtab-desc");
+    const vpaneInfo = overlay.querySelector("#vpane-info");
+    const vpaneDesc = overlay.querySelector("#vpane-desc");
+    vtabInfo.addEventListener("click", ()=>{
+      vtabInfo.classList.add("active"); vtabDesc.classList.remove("active");
+      vpaneInfo.style.display=""; vpaneDesc.style.display="none";
+    });
+    vtabDesc.addEventListener("click", ()=>{
+      vtabDesc.classList.add("active"); vtabInfo.classList.remove("active");
+      vpaneInfo.style.display="none"; vpaneDesc.style.display="";
+      refreshDescPane();
+    });
+
+    overlay.querySelector("#view-desc-fetch-btn").addEventListener("click", async ()=>{
+      const btn = overlay.querySelector("#view-desc-fetch-btn");
+      const statusEl = overlay.querySelector("#view-desc-status");
+      btn.disabled = true;
+      const oldLabel = btn.textContent;
+      btn.textContent = "Pobieranie…";
+      statusEl.textContent = "";
+      statusEl.classList.remove("err");
+      try {
+        const cur = findItem(id) || item;
+        let tid = cur.tmdb_id;
+        if (!tid) {
+          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
+        }
+        if (!tid) {
+          statusEl.textContent = "Nie znaleziono pozycji w TMDb.";
+          statusEl.classList.add("err");
+          return;
+        }
+        const overview = await tmdbOverview(cur.type, tid);
+        if (overview) {
+          cur.description = overview;
+          saveToLocalStorage();
+          setDirty(true);
+          statusEl.textContent = "Opis pobrany.";
+        } else {
+          statusEl.textContent = "Brak opisu w TMDb dla tej pozycji.";
+        }
+      } catch(err) {
+        statusEl.textContent = err.message || String(err);
+        statusEl.classList.add("err");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldLabel;
+        refreshDescPane();
+      }
+    });
 
     refreshStaticRows();
     refreshProgress();
@@ -2875,6 +2984,7 @@ function initSettingsTab(){
     setDirty(true);
   });
   document.getElementById("set-fill-titles").addEventListener("click", fillAllEpisodeTitles);
+  document.getElementById("set-fill-desc").addEventListener("click", fillAllDescriptions);
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
   renderSettingsTab();
@@ -2964,6 +3074,50 @@ async function fillAllEpisodeTitles(){
   setStatus(`Gotowe: uzupełniono ${filledEpisodes} odcinków w ${filledSeries} serialach` + (errors>0 ? `, ${errors} pozycji pominięto (brak dopasowania w TMDb).` : "."), errors>0 && filledEpisodes===0);
 }
 
+async function fillAllDescriptions(){
+  const btn = document.getElementById("set-fill-desc");
+  const statusEl = document.getElementById("set-fill-desc-status");
+  const setStatus = (msg, isErr)=>{
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("err", !!isErr);
+  };
+  const key = await ensureTmdbKey(false);
+  if (!key) { setStatus("Brak klucza API TMDb — podaj go powyżej.", true); return; }
+
+  const targetItems = db.items.filter(i=>(i.type===TYPE_MOVIE || i.type===TYPE_SERIES) && !(i.description && i.description.trim()));
+  if (targetItems.length===0) { setStatus("Wszystkie pozycje mają już opis."); return; }
+
+  btn.disabled = true;
+  const oldLabel = btn.textContent;
+  let done = 0, filled = 0, errors = 0;
+  btn.textContent = `Pobieranie 0/${targetItems.length}…`;
+
+  for (const item of targetItems) {
+    done++;
+    btn.textContent = `Pobieranie ${done}/${targetItems.length}…`;
+    setStatus(`Trwa: „${item.title}” (${done}/${targetItems.length})…`);
+    try {
+      let tid = item.tmdb_id;
+      if (!tid) {
+        const hit = await tmdbSearch(item.type, item.title, item.premiere_date);
+        if (hit) { tid = hit.id; item.tmdb_id = tid; }
+      }
+      if (!tid) { errors++; continue; }
+      const overview = await tmdbOverview(item.type, tid);
+      if (overview) { item.description = overview; filled++; }
+      else { errors++; }
+    } catch(err) {
+      errors++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = oldLabel;
+  if (filled>0) { saveToLocalStorage(); setDirty(true); }
+  setStatus(`Gotowe: uzupełniono opis dla ${filled} ${filled===1?"pozycji":"pozycji"}` + (errors>0 ? `, ${errors} pozycji pominięto (brak dopasowania lub opisu w TMDb).` : "."), errors>0 && filled===0);
+}
+
 async function refreshAllEpisodeTitles(){
   const btn = document.getElementById("set-refresh-titles");
   const statusEl = document.getElementById("set-refresh-titles-status");
@@ -2975,34 +3129,40 @@ async function refreshAllEpisodeTitles(){
   const key = await ensureTmdbKey(false);
   if (!key) { setStatus("Brak klucza API TMDb — podaj go powyżej.", true); return; }
 
-  const seriesItems = db.items.filter(i=>i.type===TYPE_SERIES && Array.isArray(i.seasons) && i.seasons.length>0);
-  if (seriesItems.length===0) { setStatus("Brak seriali w bazie."); return; }
+  const allItems = db.items.filter(i=>i.type===TYPE_SERIES || i.type===TYPE_MOVIE);
+  if (allItems.length===0) { setStatus("Brak pozycji w bazie."); return; }
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, errors = 0;
-  btn.textContent = `Sprawdzanie 0/${seriesItems.length}…`;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, errors = 0;
+  btn.textContent = `Sprawdzanie 0/${allItems.length}…`;
 
-  for (const item of seriesItems) {
+  for (const item of allItems) {
     done++;
-    btn.textContent = `Sprawdzanie ${done}/${seriesItems.length}…`;
-    setStatus(`Trwa: „${item.title}” (${done}/${seriesItems.length})…`);
+    btn.textContent = `Sprawdzanie ${done}/${allItems.length}…`;
+    setStatus(`Trwa: „${item.title}” (${done}/${allItems.length})…`);
     try {
       let tid = item.tmdb_id;
       if (!tid) {
-        const hit = await tmdbSearch(TYPE_SERIES, item.title, item.premiere_date);
+        const hit = await tmdbSearch(item.type, item.title, item.premiere_date);
         if (hit) { tid = hit.id; item.tmdb_id = tid; }
       }
       if (!tid) { errors++; continue; }
-      let itemUpdated = 0;
-      for (const season of item.seasons) {
-        const eps = await tmdbSeasonEpisodes(tid, season.number, true);
-        for (const ep of (season.episodes||[])) {
-          const match = (eps||[]).find(e=>e.episode_number===ep.number);
-          if (match && match.name && match.name !== ep.title) { ep.title = match.name; itemUpdated++; }
+
+      if (item.type===TYPE_SERIES && Array.isArray(item.seasons) && item.seasons.length>0) {
+        let itemUpdated = 0;
+        for (const season of item.seasons) {
+          const eps = await tmdbSeasonEpisodes(tid, season.number, true);
+          for (const ep of (season.episodes||[])) {
+            const match = (eps||[]).find(e=>e.episode_number===ep.number);
+            if (match && match.name && match.name !== ep.title) { ep.title = match.name; itemUpdated++; }
+          }
         }
+        if (itemUpdated>0) { updatedEpisodes += itemUpdated; updatedSeries++; }
       }
-      if (itemUpdated>0) { updatedEpisodes += itemUpdated; updatedSeries++; }
+
+      const overview = await tmdbOverview(item.type, tid);
+      if (overview && overview !== (item.description||"")) { item.description = overview; updatedDesc++; }
     } catch(err) {
       errors++;
     }
@@ -3010,9 +3170,14 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  if (updatedEpisodes>0) { saveToLocalStorage(); setDirty(true); }
-  if (updatedEpisodes>0) {
-    setStatus(`Gotowe: zaktualizowano ${updatedEpisodes} ${updatedEpisodes===1?"nazwę":"nazw"} odcinków w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
+  const anyChange = updatedEpisodes>0 || updatedDesc>0;
+  if (anyChange) { saveToLocalStorage(); setDirty(true); }
+
+  if (anyChange) {
+    const parts = [];
+    if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"nazwę":"nazw"} odcinków w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
+    if (updatedDesc>0) parts.push(`${updatedDesc} ${updatedDesc===1?"opis":"opisów"}`);
+    setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);
   }
