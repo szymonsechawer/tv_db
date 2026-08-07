@@ -288,10 +288,12 @@
   .season-title{font-weight:700;margin-bottom:8px;}
   .season-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
   .episodes-list{display:flex;flex-direction:column;gap:4px;padding-left:8px;}
-  .episode-row{display:flex;align-items:center;gap:8px;}
-  .episode-row label{display:flex;align-items:center;gap:6px;flex:1;cursor:pointer;}
+  .episode-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0;}
+  .episode-row label{display:flex;align-items:flex-start;gap:6px;flex:1 1 180px;min-width:150px;cursor:pointer;}
+  .episode-row label input[type="checkbox"]{margin-top:2px;flex-shrink:0;}
+  .episode-row .ep-label-text{white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.3;}
   .episode-row input[type="number"]{
-    width:60px;background:var(--bg-entry);color:var(--text-light);
+    width:60px;flex-shrink:0;background:var(--bg-entry);color:var(--text-light);
     border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;font-weight:600;
   }
   .muted{color:var(--text-muted);}
@@ -335,7 +337,9 @@
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}
     .season-actions .btn.small{min-height:36px;padding:8px 12px;}
-    .episode-row input[type="number"]{width:70px;}
+    .episode-row{align-items:flex-start;}
+    .episode-row label{flex:1 1 100%;min-width:0;}
+    .episode-row input[type="number"]{width:70px;margin-left:24px;}
     #mark-next-ep-btn{min-height:40px;padding:9px 14px;font-size:13px;}
   }
 </style>
@@ -430,6 +434,15 @@
           <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="set-tmdb-auto"> Pobieraj czasy trwania automatycznie</label>
         </div>
         <div class="tmdb-status" id="set-tmdb-status"></div>
+      </div>
+      <div class="stats-section">
+        <h3>Nazwy odcinków</h3>
+        <div class="muted" style="margin-bottom:10px;">Pobiera z TMDb brakujące nazwy odcinków dla wszystkich seriali w bazie na raz. Nie zmienia statusu „obejrzane” ani zapisanych czasów trwania — uzupełnia tylko puste tytuły.</div>
+        <div class="form-row">
+          <label style="min-width:150px;"></label>
+          <button class="btn small" id="set-fill-titles" type="button">Pobierz wszystkie nazwy odcinków</button>
+        </div>
+        <div class="tmdb-status" id="set-fill-titles-status"></div>
       </div>
     </div>
   </div>
@@ -974,20 +987,22 @@ function formatProgress(item){
   const remaining = total - watched;
 
   let nextLabel = null;
+  let nextTitle = "";
   outer:
   for (const season of seasons) {
     const eps = [...(season.episodes||[])].sort((a,b)=>(a.number||0)-(b.number||0));
     for (const ep of eps) {
       if (!ep.watched) {
         nextLabel = `S${String(season.number||0).padStart(2,"0")} E${String(ep.number||0).padStart(2,"0")}`;
+        nextTitle = ep.title || "";
         break outer;
       }
     }
   }
   const counts = `${watched}/${total} (${remaining})`;
-  if (nextLabel) return { next: nextLabel, counts };
-  if (total > 0) return { next: "✓", counts };
-  return { next: "", counts: "—" };
+  if (nextLabel) return { next: nextLabel, nextTitle, counts };
+  if (total > 0) return { next: "✓", nextTitle: "", counts };
+  return { next: "", nextTitle: "", counts: "—" };
 }
 
 function dateSortKey(item){
@@ -1950,7 +1965,10 @@ function openViewDialog(id){
     if (type===TYPE_SERIES) {
       bodyExtra = `
         <div class="view-row" id="view-progress-row"></div>
-        <div style="margin-top:6px;"><button class="btn small" id="mark-next-ep-btn"></button></div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button class="btn small" id="mark-next-ep-btn"></button>
+          <span id="mark-next-ep-title"></span>
+        </div>
       `;
     }
 
@@ -1989,12 +2007,15 @@ function openViewDialog(id){
       const progRow = overlay.querySelector("#view-progress-row");
       progRow.innerHTML = `<div class="vlabel">Postęp:</div><div class="vval">${escapeHtml(p.counts)}</div>`;
       const btn = overlay.querySelector("#mark-next-ep-btn");
+      const titleEl = overlay.querySelector("#mark-next-ep-title");
       if (p.next && p.next!=="✓") {
         btn.style.display = "";
         btn.textContent = `✔ ${p.next}`;
         btn.disabled = false;
+        if (titleEl) titleEl.textContent = p.nextTitle || "";
       } else {
         btn.style.display = "none";
+        if (titleEl) titleEl.textContent = "";
       }
     }
 
@@ -2195,7 +2216,7 @@ function openItemDialog({item, itemType}){
               const sn = Number(s.season_number);
               if (!sn || sn < 1) continue;
               const eps = await tmdbSeasonEpisodes(r.id, sn);
-              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title:""})).filter(e=>e.number>0);
+              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||""})).filter(e=>e.number>0);
               fetched.push({number: sn, episodes});
             }
           }
@@ -2288,6 +2309,33 @@ function openItemDialog({item, itemType}){
       }
     }
 
+    let titlesBackfillDone = false;
+    async function autoFillEpisodeTitles(){
+      if (titlesBackfillDone) return;
+      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>!e.title));
+      if (missingSeasons.length===0) { titlesBackfillDone = true; return; }
+      if (!tmdbId && !getStoredTmdbKey()) return;
+      titlesBackfillDone = true;
+      try {
+        const id = await ensureTmdbId();
+        let filled = 0;
+        for (const season of missingSeasons) {
+          const eps = await tmdbSeasonEpisodes(id, season.number);
+          for (const ep of season.episodes) {
+            if (ep.title) continue;
+            const match = eps.find(e=>e.episode_number===ep.number);
+            if (match && match.name) { ep.title = match.name; filled++; }
+          }
+        }
+        if (filled>0) {
+          renderSeasonsList();
+          setTmdbStatus(`Uzupełniono nazwy ${filled} odcinków z TMDb.`);
+        }
+      } catch(err) {
+        // cichy błąd - brak nazw nie blokuje pracy z sezonami
+      }
+    }
+
     async function autoEpisodeDuration(season, ep, durInput){
       if (ep.duration) return;
       try {
@@ -2374,6 +2422,7 @@ function openItemDialog({item, itemType}){
       tabSeasons.addEventListener("click", ()=>{
         innerTab="seasons"; tabSeasons.classList.add("active"); tabBasic.classList.remove("active");
         paneBasic.style.display="none"; paneSeasons.style.display="";
+        autoFillEpisodeTitles();
       });
       renderSeasonsList();
     }
@@ -2407,8 +2456,7 @@ function openItemDialog({item, itemType}){
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
           <button class="btn small" data-act="uncheck-all">Odznacz cały</button>
-          <button class="btn small" data-act="add-episode">+ Odcinek</button>
-          <button class="btn small secondary" data-act="remove-season" style="margin-left:auto;">Usuń sezon</button>
+          <button class="btn small secondary" data-act="remove-season">Usuń sezon</button>
         </div>
         <div class="episodes-list"></div>
       `;
@@ -2432,24 +2480,6 @@ function openItemDialog({item, itemType}){
         for (const e of season.episodes) e.watched = false;
         renderSeasonsList();
       });
-      box.querySelector('[data-act="add-episode"]').addEventListener("click", async ()=>{
-        const usedNums = new Set((season.episodes||[]).map(e=>e.number||0));
-        let suggested = 1;
-        while (usedNums.has(suggested)) suggested++;
-        const epNum = await askInt({
-          title:"Nowy odcinek",
-          prompt:`Sezon ${season.number} — podaj numer odcinka do dodania:`,
-          initial: suggested, min:1,
-        });
-        if (epNum===null) return;
-        if (usedNums.has(epNum)) {
-          await showAlert("Duplikat odcinka", `Odcinek ${epNum} już istnieje w Sezonie ${season.number}.`, "error");
-          return;
-        }
-        season.episodes.push({number:epNum, watched:false, duration:0, title:""});
-        season.episodes.sort((a,b)=>(a.number||0)-(b.number||0));
-        renderSeasonsList();
-      });
       box.querySelector('[data-act="remove-season"]').addEventListener("click", async ()=>{
         const ok = await showConfirm("Usuń sezon", `Czy na pewno usunąć Sezon ${season.number} wraz ze wszystkimi odcinkami?`);
         if (!ok) return;
@@ -2463,11 +2493,11 @@ function openItemDialog({item, itemType}){
     function buildEpisodeRow(season, ep){
       const row = document.createElement("div");
       row.className = "episode-row";
+      const epLabel = ep.title ? (ep.number + ". " + ep.title) : ("Odcinek " + ep.number);
       row.innerHTML = `
-        <label><input type="checkbox" ${ep.watched?"checked":""}> Odcinek ${ep.number}</label>
+        <label><input type="checkbox" ${ep.watched?"checked":""}><span class="ep-label-text">${escapeHtml(epLabel)}</span></label>
         <input type="number" min="0" value="${ep.duration||0}">
         <span class="muted">min</span>
-        <button class="btn small secondary" data-act="remove-episode" title="Usuń odcinek">✕</button>
       `;
       const checkbox = row.querySelector('input[type="checkbox"]');
       const durInput = row.querySelector('input[type="number"]');
@@ -2483,12 +2513,6 @@ function openItemDialog({item, itemType}){
         const v = parseInt(durInput.value,10);
         ep.duration = Number.isFinite(v) && v>=0 ? v : 0;
         durInput.value = ep.duration;
-      });
-      row.querySelector('[data-act="remove-episode"]').addEventListener("click", async ()=>{
-        const ok = await showConfirm("Usuń odcinek", `Czy na pewno usunąć Odcinek ${ep.number} z Sezonu ${season.number}?`);
-        if (!ok) return;
-        season.episodes = season.episodes.filter(e=>e!==ep);
-        renderSeasonsList();
       });
       return row;
     }
@@ -2533,7 +2557,7 @@ function openItemDialog({item, itemType}){
             const sn = Number(s.season_number);
             if (!sn || sn < 1) continue;
             const eps = await tmdbSeasonEpisodes(id, sn);
-            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title:""})).filter(e=>e.number>0);
+            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||""})).filter(e=>e.number>0);
             fetched.push({number: sn, episodes});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
@@ -2673,7 +2697,61 @@ function initSettingsTab(){
     saveToLocalStorage();
     setDirty(true);
   });
+  document.getElementById("set-fill-titles").addEventListener("click", fillAllEpisodeTitles);
   renderSettingsTab();
+}
+
+async function fillAllEpisodeTitles(){
+  const btn = document.getElementById("set-fill-titles");
+  const statusEl = document.getElementById("set-fill-titles-status");
+  const setStatus = (msg, isErr)=>{
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("err", !!isErr);
+  };
+  const key = await ensureTmdbKey(false);
+  if (!key) { setStatus("Brak klucza API TMDb — podaj go powyżej.", true); return; }
+
+  const seriesItems = db.items.filter(i=>i.type===TYPE_SERIES && Array.isArray(i.seasons) &&
+    i.seasons.some(s=>(s.episodes||[]).some(e=>!e.title)));
+  if (seriesItems.length===0) { setStatus("Wszystkie odcinki mają już nazwy."); return; }
+
+  btn.disabled = true;
+  const oldLabel = btn.textContent;
+  let done = 0, filledEpisodes = 0, filledSeries = 0, errors = 0;
+  btn.textContent = `Pobieranie 0/${seriesItems.length}…`;
+
+  for (const item of seriesItems) {
+    done++;
+    btn.textContent = `Pobieranie ${done}/${seriesItems.length}…`;
+    setStatus(`Trwa: „${item.title}” (${done}/${seriesItems.length})…`);
+    try {
+      let tid = item.tmdb_id;
+      if (!tid) {
+        const hit = await tmdbSearch(TYPE_SERIES, item.title, item.premiere_date);
+        if (hit) { tid = hit.id; item.tmdb_id = tid; }
+      }
+      if (!tid) { errors++; continue; }
+      let itemFilled = 0;
+      for (const season of item.seasons) {
+        const missing = (season.episodes||[]).filter(e=>!e.title);
+        if (missing.length===0) continue;
+        const eps = await tmdbSeasonEpisodes(tid, season.number);
+        for (const ep of missing) {
+          const match = (eps||[]).find(e=>e.episode_number===ep.number);
+          if (match && match.name) { ep.title = match.name; itemFilled++; }
+        }
+      }
+      if (itemFilled>0) { filledEpisodes += itemFilled; filledSeries++; }
+    } catch(err) {
+      errors++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = oldLabel;
+  if (filledEpisodes>0) { saveToLocalStorage(); setDirty(true); }
+  setStatus(`Gotowe: uzupełniono ${filledEpisodes} odcinków w ${filledSeries} serialach` + (errors>0 ? `, ${errors} pozycji pominięto (brak dopasowania w TMDb).` : "."), errors>0 && filledEpisodes===0);
 }
 
 async function checkUpcomingSeasons(){
