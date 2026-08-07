@@ -2284,6 +2284,17 @@ function openViewDialog(id){
     refreshStaticRows();
     refreshProgress();
 
+    requestAnimationFrame(()=>{
+      const bodyEl = overlay.querySelector(".modal-body");
+      if (bodyEl) {
+        const h = bodyEl.getBoundingClientRect().height;
+        bodyEl.style.flex = `0 0 ${h}px`;
+        bodyEl.style.height = h + "px";
+        bodyEl.style.maxHeight = h + "px";
+        bodyEl.style.overflowY = "auto";
+      }
+    });
+
     if (type===TYPE_SERIES) {
       overlay.querySelector("#mark-next-ep-btn").addEventListener("click", async (ev)=>{
         const btn = ev.currentTarget;
@@ -2368,6 +2379,10 @@ function openItemDialog({item, itemType}){
               <datalist id="tag-suggestions"></datalist>
             </div>
           </div>
+          <div class="form-row" style="align-items:flex-start;">
+            <label>Opis:</label>
+            <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
+          </div>
           <div class="error-text" id="dup-error"></div>
         </div>
 
@@ -2390,6 +2405,7 @@ function openItemDialog({item, itemType}){
     const durationInput = overlay.querySelector("#f-duration");
     const statusSelect = overlay.querySelector("#f-status");
     const ratingSelect = overlay.querySelector("#f-rating");
+    const descriptionInput = overlay.querySelector("#f-description");
     const dupError = overlay.querySelector("#dup-error");
 
     statusSelect.value = defaultStatus;
@@ -2402,6 +2418,7 @@ function openItemDialog({item, itemType}){
       if (type===TYPE_MOVIE && durationInput) durationInput.value = item.duration ? String(item.duration) : "";
       statusSelect.value = STATUS_LABELS[item.status] || defaultStatus;
       ratingSelect.value = String(parseInt(item.rating||0,10));
+      descriptionInput.value = item.description || "";
     }
     titleInput.focus();
 
@@ -2469,6 +2486,8 @@ function openItemDialog({item, itemType}){
         if (type===TYPE_MOVIE) {
           const runtime = await tmdbMovieRuntime(r.id);
           if (durationInput && runtime) durationInput.value = String(runtime);
+          const overview = await tmdbOverview(type, r.id);
+          if (descriptionInput && overview) descriptionInput.value = overview;
           setTmdbStatus("Uzupełniono dane z TMDb" + (runtime ? ` (czas: ${runtime} min).` : "."));
         } else {
           const details = await tmdbFetch("/tv/" + r.id, {});
@@ -2488,6 +2507,8 @@ function openItemDialog({item, itemType}){
             renderSeasonsList();
           }
           const epCount = fetched.reduce((a,s)=>a+s.episodes.length, 0);
+          const overview = await tmdbOverview(type, r.id);
+          if (descriptionInput && overview) descriptionInput.value = overview;
           setTmdbStatus(`Uzupełniono dane z TMDb: ${fetched.length} sezonów, ${epCount} odcinków.`);
         }
       } catch(err) {
@@ -2904,6 +2925,7 @@ function openItemDialog({item, itemType}){
       resultItem.status = statusKey;
       resultItem.rating = parseInt(ratingSelect.value||"0",10);
       resultItem.tags = [...tags];
+      resultItem.description = descriptionInput.value.trim();
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {
         resultItem.duration = duration;
