@@ -297,8 +297,9 @@
     width:60px;flex-shrink:0;background:var(--bg-entry);color:var(--text-light);
     border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;font-weight:600;
   }
-  #mark-next-ep-wrap{margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  #mark-next-ep-title{min-width:0;word-break:break-word;overflow-wrap:anywhere;}
+  #mark-next-ep-wrap{margin-top:6px;display:flex;align-items:center;gap:8px;}
+  #mark-next-ep-btn{flex-shrink:0;}
+  #mark-next-ep-title{min-width:0;flex:1 1 auto;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.3;}
   .muted{color:var(--text-muted);}
 
   input[type="checkbox"]{
@@ -344,8 +345,6 @@
     .episode-row label{flex:1 1 100%;min-width:0;}
     .episode-row input[type="number"]{width:70px;margin-left:24px;}
     #mark-next-ep-btn{min-height:40px;padding:9px 14px;font-size:13px;}
-    #mark-next-ep-wrap{align-items:flex-start;}
-    #mark-next-ep-title{flex:1 1 100%;display:block;margin-top:2px;}
   }
 </style>
 
@@ -2116,7 +2115,6 @@ function openItemDialog({item, itemType}){
 
         ${type===TYPE_SERIES ? `
         <div id="pane-seasons" style="display:none;">
-          <button class="btn small" id="btn-add-season" type="button">+ Dodaj sezon</button>
           <button class="btn small" id="btn-fetch-seasons" type="button">Pobierz</button>
           <div id="seasons-list" style="margin-top:10px;"></div>
         </div>` : ''}
@@ -2439,7 +2437,7 @@ function openItemDialog({item, itemType}){
       if (seasons.length===0) {
         const p = document.createElement("div");
         p.className = "muted";
-        p.textContent = "Brak sezonów. Kliknij „+ Dodaj sezon”.";
+        p.textContent = "Brak sezonów. Kliknij „Pobierz”, aby pobrać sezony i odcinki z TMDb.";
         list.appendChild(p);
         return;
       }
@@ -2523,34 +2521,6 @@ function openItemDialog({item, itemType}){
     }
 
     if (type===TYPE_SERIES) {
-      overlay.querySelector("#btn-add-season").addEventListener("click", async ()=>{
-        const usedNums = new Set(seasons.map(s=>s.number||0));
-        let suggested = 1;
-        while (usedNums.has(suggested)) suggested++;
-
-        const seasonNum = await askInt({
-          title:"Nowy sezon",
-          prompt:`Podaj numer sezonu do dodania:`,
-          initial: suggested, min:1,
-        });
-        if (seasonNum===null) return;
-        if (usedNums.has(seasonNum)) {
-          await showAlert("Duplikat sezonu", `Sezon ${seasonNum} już istnieje na liście.`, "error");
-          return;
-        }
-        const n = await askInt({
-          title:"Nowy sezon",
-          prompt:`Sezon ${seasonNum} — ile odcinków dodać?`,
-          initial:1, min:0,
-        });
-        if (n===null) return;
-        const count = n;
-        const episodes = Array.from({length:count},(_,i)=>({number:i+1, watched:false, duration:0, title:""}));
-        seasons.push({number: seasonNum, episodes});
-        seasons.sort((a,b)=>(a.number||0)-(b.number||0));
-        renderSeasonsList();
-      });
-
       overlay.querySelector("#btn-fetch-seasons").addEventListener("click", async ()=>{
         try {
           setTmdbStatus("Pobieranie sezonów i odcinków z TMDb…");
