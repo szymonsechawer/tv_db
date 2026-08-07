@@ -466,6 +466,15 @@
         </div>
         <div class="tmdb-status" id="set-refresh-titles-status"></div>
       </div>
+      <div class="stats-section">
+        <h3>Aktualizacja aplikacji</h3>
+        <div class="muted" style="margin-bottom:10px;">Pobiera najnowszą wersję aplikacji z serwera. Przydatne, gdy aplikacja jest dodana do ekranu głównego i nie odświeża się automatycznie po aktualizacji na GitHub.</div>
+        <div class="form-row">
+          <label style="min-width:150px;"></label>
+          <button class="btn small" id="set-update-app" type="button">Aktualizacja</button>
+        </div>
+        <div class="tmdb-status" id="set-update-status"></div>
+      </div>
     </div>
   </div>
 
@@ -2758,7 +2767,39 @@ function initSettingsTab(){
   });
   document.getElementById("set-fill-titles").addEventListener("click", fillAllEpisodeTitles);
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
+  document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
   renderSettingsTab();
+}
+
+async function forceAppUpdate(){
+  const btn = document.getElementById("set-update-app");
+  const statusEl = document.getElementById("set-update-status");
+  const setStatus = (msg, isErr)=>{
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("err", !!isErr);
+  };
+  if (btn) { btn.disabled = true; btn.textContent = "Aktualizowanie…"; }
+  setStatus("Czyszczenie pamięci podręcznej i pobieranie nowej wersji…");
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    setStatus("Pamięć wyczyszczona — przeładowuję aplikację…");
+    setTimeout(()=>{
+      const url = new URL(window.location.href);
+      url.searchParams.set("upd", Date.now().toString());
+      window.location.replace(url.toString());
+    }, 400);
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = "Aktualizacja"; }
+    setStatus(err.message || String(err), true);
+  }
 }
 
 async function fillAllEpisodeTitles(){
