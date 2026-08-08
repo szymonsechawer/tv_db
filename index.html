@@ -217,12 +217,22 @@
   table.data tbody tr.selected{background:var(--accent);color:#fff;}
   .empty-row td{color:var(--text-muted);text-align:center;padding:18px;font-weight:600;}
 
-  #button-bar{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;flex-shrink:0;}
+  #button-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-top:10px;flex-shrink:0;}
+  #button-bar-actions{display:flex;flex-wrap:nowrap;gap:6px;flex:1 1 auto;min-width:0;}
   .btn{
     background:var(--accent);color:#fff;border:none;border-radius:10px;
     padding:8px 15px;font-family:inherit;font-weight:600;font-size:14px;
     cursor:pointer;
   }
+  .icon-btn{
+    display:flex;align-items:center;justify-content:center;
+    flex:1 1 0;min-width:0;padding:9px 6px;gap:6px;
+  }
+  .icon-btn img{width:20px;height:20px;filter:invert(1);display:block;pointer-events:none;flex-shrink:0;}
+  .icon-btn .btn-label{display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #button-bar-actions.mode-text .icon-btn{padding:8px 12px;}
+  #button-bar-actions.mode-text .icon-btn img{display:none;}
+  #button-bar-actions.mode-text .icon-btn .btn-label{display:inline;}
   .btn:hover{background:var(--accent-hover);}
   .btn:active{background:var(--accent-pressed);}
   .btn.secondary{background:var(--bg-medium);}
@@ -361,7 +371,10 @@
     .form-row{flex-direction:column;align-items:stretch;gap:4px;}
     .form-row label{width:auto;}
     #button-bar{gap:6px;}
-    #button-bar .btn{flex:1 1 40%;font-size:13px;padding:10px 8px;min-height:40px;}
+    #button-bar-actions{gap:5px;}
+    .icon-btn{padding:9px 4px;min-height:40px;}
+    .icon-btn img{width:18px;height:18px;}
+    #button-bar-actions.mode-text .icon-btn{padding:9px 4px;font-size:12px;}
     .tab-btn{padding:10px 14px;min-height:40px;}
     .stats-row{flex-direction:column;}
     .stats-row .label{width:auto;}
@@ -490,14 +503,27 @@
         </div>
         <div class="tmdb-status" id="set-update-status"></div>
       </div>
+      <div class="stats-section">
+        <h3>Wygląd</h3>
+        <div class="muted" style="margin-bottom:10px;">Wybierz, jak mają wyglądać przyciski „Dodaj / Zapisz / Otwórz / Sprawdź” na dole ekranu.</div>
+        <div class="form-row">
+          <label style="min-width:150px;">Przyciski akcji:</label>
+          <select class="entry" id="set-button-style" style="flex:1;max-width:220px;">
+            <option value="icons">Ikony</option>
+            <option value="text">Tekst</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 
   <div id="button-bar">
-    <button class="btn" id="btn-add">Dodaj</button>
-    <button class="btn" id="btn-save">Zapisz</button>
-    <button class="btn" id="btn-open">Otwórz</button>
-    <button class="btn" id="btn-check">Sprawdź</button>
+    <div id="button-bar-actions" class="mode-icons">
+      <button class="btn icon-btn" id="btn-add" title="Dodaj" aria-label="Dodaj"><img src="icons/dodaj.png" alt="Dodaj"><span class="btn-label">Dodaj</span></button>
+      <button class="btn icon-btn" id="btn-save" title="Zapisz" aria-label="Zapisz"><img src="icons/zapisz.png" alt="Zapisz"><span class="btn-label">Zapisz</span></button>
+      <button class="btn icon-btn" id="btn-open" title="Otwórz" aria-label="Otwórz"><img src="icons/otworz.png" alt="Otwórz"><span class="btn-label">Otwórz</span></button>
+      <button class="btn icon-btn" id="btn-check" title="Sprawdź" aria-label="Sprawdź"><img src="icons/sprawdz.png" alt="Sprawdź"><span class="btn-label">Sprawdź</span></button>
+    </div>
     <div id="db-name-badge"></div>
   </div>
 </div>
@@ -1847,7 +1873,22 @@ function askInt({title, prompt, initial=null, min=null, max=null}){
 }
 
 const TMDB_KEY_STORAGE = "tv_db_tmdb_key";
+const BUTTON_STYLE_STORAGE = "tv_db_button_style";
 const tmdbSeasonCache = new Map();
+
+function getButtonStyle(){
+  try { return localStorage.getItem(BUTTON_STYLE_STORAGE) || "icons"; } catch(e){ return "icons"; }
+}
+function setButtonStyle(v){
+  const val = (v === "text") ? "text" : "icons";
+  try { localStorage.setItem(BUTTON_STYLE_STORAGE, val); } catch(e){}
+  applyButtonStyle(val);
+}
+function applyButtonStyle(v){
+  const val = v || getButtonStyle();
+  const el = document.getElementById("button-bar-actions");
+  if (el) el.classList.toggle("mode-text", val === "text");
+}
 
 function askText({title, prompt, initial="", password=false}){
   return new Promise(resolve=>{
@@ -3001,6 +3042,8 @@ function renderSettingsTab(){
   input.value = (db.settings && db.settings.tmdb_key) || "";
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
+  const btnStyle = document.getElementById("set-button-style");
+  if (btnStyle) btnStyle.value = getButtonStyle();
 }
 
 function setSettingsStatus(msg, isErr){
@@ -3040,6 +3083,12 @@ function initSettingsTab(){
   });
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
+  const btnStyle = document.getElementById("set-button-style");
+  if (btnStyle) {
+    btnStyle.addEventListener("change", (e)=>{
+      setButtonStyle(e.target.value);
+    });
+  }
   renderSettingsTab();
 }
 
@@ -3232,6 +3281,7 @@ document.getElementById("btn-check").addEventListener("click", ()=>{ checkUpcomi
 
 initTabs();
 initSettingsTab();
+applyButtonStyle();
 if (loadFromLocalStorage()) {
   renderAll();
 } else {
