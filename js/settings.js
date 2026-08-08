@@ -119,7 +119,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -136,6 +136,15 @@ async function refreshAllEpisodeTitles(){
         if (hit) { tid = hit.id; item.tmdb_id = tid; }
       }
       if (!tid) { errors++; noMatchTitles.push(item.title || "(bez tytułu)"); continue; }
+
+      if (!item.poster_path) {
+        try {
+          const posterPath = await tmdbFetchPoster(item.type, tid);
+          if (posterPath) { item.poster_path = posterPath; updatedPosters++; }
+        } catch(err) {
+          // brak okładki nie jest błędem krytycznym - kontynuuj resztę aktualizacji
+        }
+      }
 
       if (item.type===TYPE_SERIES && Array.isArray(item.seasons) && item.seasons.length>0) {
         let itemUpdated = 0;
@@ -164,13 +173,14 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = updatedEpisodes>0 || updatedDesc>0;
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); }
 
   if (anyChange) {
     const parts = [];
     if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"nazwę":"nazw"} odcinków w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
     if (updatedDesc>0) parts.push(`${updatedDesc} ${updatedDesc===1?"opis":"opisów"}`);
+    if (updatedPosters>0) parts.push(`${updatedPosters} ${updatedPosters===1?"okładkę":"okładek"}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);

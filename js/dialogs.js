@@ -18,6 +18,20 @@ function isTopOverlay(overlay){
   return root.lastElementChild === overlay;
 }
 
+// Powiększony podgląd okładki (klik zamyka).
+function openPosterLightbox(url){
+  if (!url) return;
+  const root = document.getElementById("modal-root");
+  const overlay = document.createElement("div");
+  overlay.className = "overlay poster-lightbox-overlay";
+  overlay.innerHTML = `<img class="poster-lightbox-img" src="${url}" alt="Okładka">`;
+  root.appendChild(overlay);
+  function finish(){ overlay.remove(); document.removeEventListener("keydown", onKey); }
+  function onKey(e){ if (e.key==="Escape") finish(); }
+  overlay.addEventListener("click", finish);
+  document.addEventListener("keydown", onKey);
+}
+
 function showAlert(title, message, kind="info"){
   return new Promise(resolve=>{
     const icon = kind==="error" ? "⚠" : "ℹ";

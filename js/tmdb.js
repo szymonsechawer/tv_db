@@ -46,6 +46,19 @@ async function tmdbFetch(path, params){
   return res.json();
 }
 
+// Buduje pełny URL obrazka okładki (poster) na podstawie poster_path z TMDb.
+function tmdbPosterUrl(posterPath, size){
+  if (!posterPath) return null;
+  return "https://image.tmdb.org/t/p/" + (size||"w342") + posterPath;
+}
+
+// Pobiera samą ścieżkę okładki (poster_path) dla filmu/serialu o danym id TMDb.
+async function tmdbFetchPoster(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
+  const data = await tmdbFetch(path, {});
+  return (data && data.poster_path) ? data.poster_path : null;
+}
+
 function tmdbQueryCandidates(title){
   const t = String(title||"").trim();
   const out = [];

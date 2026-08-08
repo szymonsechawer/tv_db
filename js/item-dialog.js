@@ -97,6 +97,10 @@ function openViewDialog(id){
         </div>
         <div class="tab-scroll">
           <div id="vpane-info">
+            <div class="view-poster-wrap" id="view-poster-wrap">
+              <img class="view-poster" id="view-poster-img" alt="Okładka" style="display:none;">
+              <div class="view-poster-placeholder" id="view-poster-placeholder">Brak okładki</div>
+            </div>
             <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
             <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
             ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
@@ -167,6 +171,48 @@ function openViewDialog(id){
       }
     }
     refreshDescPane();
+
+    function refreshPoster(){
+      const cur = findItem(id) || item;
+      const img = overlay.querySelector("#view-poster-img");
+      const placeholder = overlay.querySelector("#view-poster-placeholder");
+      if (cur.poster_path) {
+        img.src = tmdbPosterUrl(cur.poster_path, "w342");
+        img.style.display = "";
+        placeholder.style.display = "none";
+      } else {
+        img.style.display = "none";
+        placeholder.style.display = "";
+      }
+    }
+    refreshPoster();
+
+    async function fetchPosterIfNeeded(){
+      const cur = findItem(id) || item;
+      if (cur.poster_path) return;
+      try {
+        let tid = cur.tmdb_id;
+        if (!tid) {
+          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
+        }
+        if (!tid) return;
+        const posterPath = await tmdbFetchPoster(cur.type, tid);
+        if (posterPath) {
+          cur.poster_path = posterPath;
+          saveToLocalStorage();
+          refreshPoster();
+        }
+      } catch(err) {
+        // cicho ignoruj błąd pobierania okładki - nie blokuje okna informacji
+      }
+    }
+    fetchPosterIfNeeded();
+
+    overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
+      const cur = findItem(id) || item;
+      openPosterLightbox(tmdbPosterUrl(cur.poster_path, "w780"));
+    });
 
     function refreshSeasonsPane(){
       if (type!==TYPE_SERIES) return;
