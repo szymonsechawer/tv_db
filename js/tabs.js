@@ -31,6 +31,13 @@ function initTabs(){
   switchMainTab(TYPE_MOVIE);
 }
 
+function updateCheckButtonVisibility(){
+  const row = document.getElementById("button-bar-check-row");
+  if (!row) return;
+  const show = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
+  row.style.display = show ? "" : "none";
+}
+
 function switchMainTab(tab){
   activeMain = tab;
   document.querySelectorAll("#main-tabs .tab-btn").forEach(b=>{
@@ -45,6 +52,7 @@ function switchMainTab(tab){
   } else if (tab==="notes") {
     renderNotesTab();
   }
+  updateCheckButtonVisibility();
 }
 
 function switchStatusTab(type, status){
@@ -56,5 +64,6 @@ function switchStatusTab(type, status){
   document.querySelectorAll(`#subcontent-${type} .status-pane`).forEach(p=>p.classList.remove("active"));
   document.getElementById(`pane-${type}-${status}`).classList.add("active");
   renderTable(type, status);
+  updateCheckButtonVisibility();
 }
 

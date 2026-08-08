@@ -14,6 +14,8 @@ function applyButtonStyle(v){
   const val = v || getButtonStyle();
   const el = document.getElementById("button-bar-actions");
   if (el) el.classList.toggle("mode-text", val === "text");
+  const checkRow = document.getElementById("button-bar-check-row");
+  if (checkRow) checkRow.classList.toggle("mode-text", val === "text");
 }
 
 function renderSettingsTab(){
