@@ -263,6 +263,8 @@
   .modal.wide{max-width:640px;}
   .modal-header{padding:14px 18px;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;}
   .modal-body{padding:16px 18px;overflow:auto;flex:1;min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+  .modal-body.has-tabs{display:flex;flex-direction:column;overflow:hidden;}
+  .tab-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
   .modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
 
   .form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
@@ -284,7 +286,7 @@
   .msg-text{white-space:pre-line;line-height:1.4;}
   .error-text{color:var(--danger);font-size:12px;min-height:16px;margin-top:4px;}
 
-  .inner-tabs{display:flex;gap:4px;margin-bottom:12px;}
+  .inner-tabs{display:flex;gap:4px;margin-bottom:12px;flex-shrink:0;}
 
   #seasons-list{display:flex;flex-direction:column;gap:10px;}
   .season-box{border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
@@ -2127,31 +2129,33 @@ function openViewDialog(id){
     }
 
     const overlay = openOverlay(`
-      <div class="modal-body">
+      <div class="modal-body has-tabs">
         <div class="inner-tabs">
           <button class="tab-btn active" id="vtab-info" type="button">Informacje</button>
           <button class="tab-btn" id="vtab-desc" type="button">Opis</button>
           ${type===TYPE_SERIES ? '<button class="tab-btn" id="vtab-seasons" type="button">Sezony i odcinki</button>' : ''}
         </div>
-        <div id="vpane-info">
-          <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
-          <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
-          ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
-          <div class="view-row"><div class="vlabel">Czas:</div><div class="vval">${escapeHtml(timeTxt)}</div></div>
-          <div class="view-row"><div class="vlabel">Data (rok):</div><div class="vval">${escapeHtml(item.premiere_date||"—")}</div></div>
-          <div class="view-row" id="view-status-row"></div>
-          <div class="view-row" id="view-rating-row"></div>
-          <div class="view-row"><div class="vlabel">Tagi:</div><div class="vval"><div class="view-tags">${item.tags&&item.tags.length ? item.tags.map(t=>`<span class="view-tag">${escapeHtml(t)}</span>`).join("") : '<span class="muted">—</span>'}</div></div></div>
-          ${bodyExtra}
-        </div>
-        <div id="vpane-desc" style="display:none;">
-          <div class="tmdb-status" id="view-desc-status"></div>
-          <div class="desc-text" id="view-desc-text"></div>
-          <div style="margin-top:12px;">
-            <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
+        <div class="tab-scroll">
+          <div id="vpane-info">
+            <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
+            <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
+            ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
+            <div class="view-row"><div class="vlabel">Czas:</div><div class="vval">${escapeHtml(timeTxt)}</div></div>
+            <div class="view-row"><div class="vlabel">Data (rok):</div><div class="vval">${escapeHtml(item.premiere_date||"—")}</div></div>
+            <div class="view-row" id="view-status-row"></div>
+            <div class="view-row" id="view-rating-row"></div>
+            <div class="view-row"><div class="vlabel">Tagi:</div><div class="vval"><div class="view-tags">${item.tags&&item.tags.length ? item.tags.map(t=>`<span class="view-tag">${escapeHtml(t)}</span>`).join("") : '<span class="muted">—</span>'}</div></div></div>
+            ${bodyExtra}
           </div>
+          <div id="vpane-desc" style="display:none;">
+            <div class="tmdb-status" id="view-desc-status"></div>
+            <div class="desc-text" id="view-desc-text"></div>
+            <div style="margin-top:12px;">
+              <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
+            </div>
+          </div>
+          ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
         </div>
-        ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
@@ -2327,7 +2331,6 @@ function openViewDialog(id){
         bodyEl.style.flex = `0 0 ${h}px`;
         bodyEl.style.height = h + "px";
         bodyEl.style.maxHeight = h + "px";
-        bodyEl.style.overflowY = "auto";
       }
     });
 
@@ -2384,50 +2387,52 @@ function openItemDialog({item, itemType}){
 
     const overlay = openOverlay(`
       <div class="modal-header">${isNew ? "Dodaj pozycję" : "Edytuj pozycję"}</div>
-      <div class="modal-body">
+      <div class="modal-body has-tabs">
         <div class="inner-tabs">
           <button class="tab-btn active" id="itab-basic" type="button">Dane podstawowe</button>
           ${type===TYPE_SERIES ? '<button class="tab-btn" id="itab-seasons" type="button">Sezony i odcinki</button>' : ''}
         </div>
 
-        <div id="pane-basic">
-          <div class="tmdb-status" id="tmdb-status"></div>
-          <div class="form-row"><label>Typ:</label><div class="value-static">${TYPE_LABELS[type]}</div></div>
-          <div class="form-row"><label>Tytuł*:</label><div style="flex:1;position:relative;"><input class="entry" id="f-title" type="text" style="width:100%;" autocomplete="off"><div class="tmdb-suggest" id="tmdb-suggest" style="display:none;"></div></div></div>
-          <div class="form-row"><label>Tytuł org.:</label><input class="entry" id="f-original-title" type="text" style="flex:1;" placeholder="opcjonalnie"></div>
-          <div class="form-row"><label>Data (rok):</label><input class="entry" id="f-date" type="text" style="flex:1;"></div>
-          ${type===TYPE_MOVIE ? '<div class="form-row"><label>Czas trwania (min):</label><input class="entry" id="f-duration" type="text" style="flex:1;"></div>' : ''}
-          <div class="form-row"><label>Status:</label>
-            <select class="entry" id="f-status" style="flex:1;">
-              ${statusOptions.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("")}
-            </select>
-          </div>
-          <div class="form-row"><label>Ocena (0-10):</label>
-            <select class="entry" id="f-rating" style="width:80px;flex:none;">
-              ${Array.from({length:11},(_,i)=>`<option value="${i}">${i}</option>`).join("")}
-            </select>
-          </div>
-          <div class="form-row" style="align-items:flex-start;">
-            <label class="tags-label">Tagi:</label>
-            <div style="flex:1;">
-              <div id="tags-chip-list"></div>
-              <input class="entry" id="f-tag-input" type="text" list="tag-suggestions">
-              <datalist id="tag-suggestions"></datalist>
+        <div class="tab-scroll">
+          <div id="pane-basic">
+            <div class="tmdb-status" id="tmdb-status"></div>
+            <div class="form-row"><label>Typ:</label><div class="value-static">${TYPE_LABELS[type]}</div></div>
+            <div class="form-row"><label>Tytuł*:</label><div style="flex:1;position:relative;"><input class="entry" id="f-title" type="text" style="width:100%;" autocomplete="off"><div class="tmdb-suggest" id="tmdb-suggest" style="display:none;"></div></div></div>
+            <div class="form-row"><label>Tytuł org.:</label><input class="entry" id="f-original-title" type="text" style="flex:1;" placeholder="opcjonalnie"></div>
+            <div class="form-row"><label>Data (rok):</label><input class="entry" id="f-date" type="text" style="flex:1;"></div>
+            ${type===TYPE_MOVIE ? '<div class="form-row"><label>Czas trwania (min):</label><input class="entry" id="f-duration" type="text" style="flex:1;"></div>' : ''}
+            <div class="form-row"><label>Status:</label>
+              <select class="entry" id="f-status" style="flex:1;">
+                ${statusOptions.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("")}
+              </select>
             </div>
+            <div class="form-row"><label>Ocena (0-10):</label>
+              <select class="entry" id="f-rating" style="width:80px;flex:none;">
+                ${Array.from({length:11},(_,i)=>`<option value="${i}">${i}</option>`).join("")}
+              </select>
+            </div>
+            <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Tagi:</label>
+              <div style="flex:1;">
+                <div id="tags-chip-list"></div>
+                <input class="entry" id="f-tag-input" type="text" list="tag-suggestions">
+                <datalist id="tag-suggestions"></datalist>
+              </div>
+            </div>
+            <div class="form-row" style="align-items:flex-start;">
+              <label>Opis:</label>
+              <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
+            </div>
+            <div class="error-text" id="dup-error"></div>
           </div>
-          <div class="form-row" style="align-items:flex-start;">
-            <label>Opis:</label>
-            <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
-          </div>
-          <div class="error-text" id="dup-error"></div>
-        </div>
 
-        ${type===TYPE_SERIES ? `
-        <div id="pane-seasons" style="display:none;">
-          <button class="btn small" id="btn-fetch-seasons" type="button">Pobierz</button>
-          <button class="btn small" id="btn-add-season" type="button" style="display:none;margin-left:6px;">Dodaj sezon</button>
-          <div id="seasons-list" style="margin-top:10px;"></div>
-        </div>` : ''}
+          ${type===TYPE_SERIES ? `
+          <div id="pane-seasons" style="display:none;">
+            <button class="btn small" id="btn-fetch-seasons" type="button">Pobierz</button>
+            <button class="btn small" id="btn-add-season" type="button" style="display:none;margin-left:6px;">Dodaj sezon</button>
+            <div id="seasons-list" style="margin-top:10px;"></div>
+          </div>` : ''}
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="cancel-item-btn">Anuluj</button>
