@@ -295,7 +295,13 @@
   .msg-text{white-space:pre-line;line-height:1.4;}
   .error-text{color:var(--danger);font-size:12px;min-height:16px;margin-top:4px;}
 
-  .inner-tabs{display:flex;gap:4px;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap;}
+  .inner-tabs{display:flex;gap:4px;margin-bottom:12px;flex-shrink:0;flex-wrap:nowrap;}
+  .inner-tabs .tab-btn{
+    padding:8px 6px;
+    flex:1 1 0;min-width:0;
+    white-space:normal;word-break:break-word;overflow-wrap:break-word;
+    text-align:center;line-height:1.2;
+  }
 
   #seasons-list{display:flex;flex-direction:column;gap:10px;}
   .season-box{border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
@@ -375,6 +381,7 @@
     .icon-btn img{width:18px;height:18px;}
     #button-bar-actions.mode-text .icon-btn, #button-bar-check-row.mode-text .icon-btn{padding:9px 4px;font-size:12px;}
     .tab-btn{padding:10px 14px;min-height:40px;}
+    .inner-tabs .tab-btn{padding:8px 4px;min-height:36px;font-size:12.5px;}
     .stats-row{flex-direction:column;}
     .stats-row .label{width:auto;}
     .genre-stat-row{gap:8px;}
