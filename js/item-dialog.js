@@ -213,7 +213,7 @@ function openViewDialog(id){
       const textEl = overlay.querySelector("#view-cast-text");
       const fetchBtn = overlay.querySelector("#view-cast-fetch-btn");
       if (cur.cast && cur.cast.length) {
-        textEl.textContent = cur.cast.join(", ");
+        textEl.textContent = cur.cast.join("\n");
         textEl.classList.remove("muted");
         fetchBtn.textContent = "Odśwież obsadę";
       } else {
