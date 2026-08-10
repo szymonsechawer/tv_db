@@ -407,3 +407,13 @@
     padding-top: max(56px, calc(env(safe-area-inset-top) + 14px)) !important;
   }
 }
+
+/* Prognoza nadgonienia zaległych odcinków (dół zakładki Seriale) */
+.catchup-box{
+  margin-top:14px;
+  padding:10px 12px;
+  border:1px solid var(--border, #ccc);
+  border-radius:8px;
+  font-size:13px;
+  opacity:.9;
+}

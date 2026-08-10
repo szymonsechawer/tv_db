@@ -43,6 +43,7 @@ function updateStats(){
   document.getElementById("stat-episodes-time").textContent = formatDuration(s.episodesMinutes);
   renderGenreStats();
   updateAverageStats();
+  renderCatchUpInfo();
 }
 
 // Zbiera daty (timestampy) obejrzenia filmów albo odcinków, na podstawie
@@ -71,11 +72,16 @@ function collectWatchedDates(kind){
 // najwcześniejszej zapisanej daty do teraz.
 function computeAverageStats(kind){
   const dates = collectWatchedDates(kind);
-  if (!dates.length) return {count: 0, perDay: 0, perWeek: 0, perMonth: 0, hasData: false};
+  if (!dates.length) return {count: 0, perDay: 0, perWeek: 0, perMonth: 0, days: 0, hasData: false};
   const earliest = Math.min(...dates);
+  // Rzeczywisty czas obserwacji (min. 1 dzien, zeby nie dzielic przez zero).
   const days = Math.max(1, (Date.now() - earliest) / 86400000);
   const perDay = dates.length / days;
-  return {count: dates.length, perDay, perWeek: perDay*7, perMonth: perDay*30.44, hasData: true};
+  // Sredniej tygodniowej/miesiecznej nie ekstrapolujemy w gore, dopoki nie minal
+  // pelny tydzien/miesiac — inaczej 1 odcinek obejrzany dzis dawal "7 tygodniowo".
+  const perWeek = dates.length / Math.max(1, days/7);
+  const perMonth = dates.length / Math.max(1, days/30.44);
+  return {count: dates.length, perDay, perWeek, perMonth, days, hasData: true};
 }
 
 function formatAvgNumber(n){
@@ -101,7 +107,12 @@ function setAveragePane(prefix, s){
   dayEl.textContent = formatAvgNumber(s.perDay);
   weekEl.textContent = formatAvgNumber(s.perWeek);
   monthEl.textContent = formatAvgNumber(s.perMonth);
-  if (noteEl) noteEl.textContent = "Średnia liczona od daty oznaczenia pierwszej pozycji jako obejrzanej (starsze wpisy sprzed tej funkcji nie mają zapisanej daty).";
+  if (noteEl) {
+    const d = Math.max(1, Math.round(s.days));
+    let txt = `Średnia liczona od daty oznaczenia pierwszej pozycji jako obejrzanej (okres: ${d} ${d===1?"dzień":"dni"}, pozycji: ${s.count}).`;
+    if (s.days < 30.44) txt += " Tygodniowa i miesięczna nie są ekstrapolowane w górę, dopóki nie minie pełny tydzień/miesiąc.";
+    noteEl.textContent = txt;
+  }
 }
 
 function updateAverageStats(){
@@ -165,3 +176,62 @@ function renderGenreStats(){
   renderGenreStatsInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES);
 }
 
+
+
+// ============================================================
+// Prognoza: kiedy nadgonię wszystkie zaległe odcinki
+// ============================================================
+
+// Zaległe = nieobejrzane odcinki, które już miały premierę (lub nie mają daty),
+// w serialach oglądanych / wstrzymanych / zakończonych.
+function countBacklogEpisodes(){
+  let n = 0;
+  for (const it of db.items) {
+    if (it.type !== TYPE_SERIES) continue;
+    if (!(it.status===STATUS_WATCHING || it.status===STATUS_PAUSED || it.status===STATUS_WATCHED)) continue;
+    for (const season of it.seasons||[]) {
+      for (const ep of season.episodes||[]) {
+        if (ep.watched) continue;
+        const d = daysUntil(ep.air_date);
+        if (d !== null && d > 0) continue; // jeszcze nie wyemitowany
+        n++;
+      }
+    }
+  }
+  return n;
+}
+
+function plDays(n){
+  const last = n % 10, last2 = n % 100;
+  if (n === 1) return "dzień";
+  if (last >= 2 && last <= 4 && !(last2 >= 12 && last2 <= 14)) return "dni";
+  return "dni";
+}
+
+function computeCatchUp(){
+  const backlog = countBacklogEpisodes();
+  const avg = computeAverageStats("episodes");
+  if (backlog === 0) return {backlog, done: true, avg};
+  if (!avg.hasData || avg.perDay <= 0) return {backlog, done: false, unknown: true, avg};
+  const days = Math.ceil(backlog / avg.perDay);
+  const date = new Date(Date.now() + days*86400000);
+  const iso = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+  return {backlog, done: false, days, dateText: formatDateDMY(iso), avg};
+}
+
+function renderCatchUpInfo(){
+  const el = document.getElementById("stats-catchup-info");
+  if (!el) return;
+  const c = computeCatchUp();
+  if (c.done) {
+    el.innerHTML = `<strong>Nadgonione!</strong> Nie masz żadnych zaległych odcinków.`;
+    return;
+  }
+  if (c.unknown) {
+    el.innerHTML = `Zaległe odcinki: <strong>${c.backlog}</strong>. Brak danych o średniej — oznacz kilka odcinków jako obejrzane, aby obliczyć termin nadgonienia.`;
+    return;
+  }
+  el.innerHTML = `Zaległe odcinki: <strong>${c.backlog}</strong> · średnio <strong>${formatAvgNumber(c.avg.perDay)}</strong> odc./dzień `
+    + `(${formatAvgNumber(c.avg.perWeek)} tyg.) · nadgonisz za <strong>${c.days} ${plDays(c.days)}</strong>, `
+    + `czyli około <strong>${c.dateText}</strong>.`;
+}
