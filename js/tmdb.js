@@ -100,6 +100,20 @@ async function tmdbMovieRuntime(id){
   return data && data.runtime ? data.runtime : null;
 }
 
+// Wyciąga listę nazw gatunków (np. ["Dramat","Komedia"]) z pełnych danych TMDb.
+function tmdbGenreNames(details){
+  return (details && Array.isArray(details.genres))
+    ? details.genres.map(g=>g && g.name).filter(Boolean)
+    : [];
+}
+
+// Pobiera listę gatunków dla filmu/serialu o danym id TMDb.
+async function tmdbFetchGenres(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
+  const data = await tmdbFetch(path, {});
+  return tmdbGenreNames(data);
+}
+
 async function tmdbOverview(type, id){
   const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
   const data = await tmdbFetch(path, {});

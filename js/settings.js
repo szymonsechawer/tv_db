@@ -121,7 +121,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -145,6 +145,15 @@ async function refreshAllEpisodeTitles(){
           if (posterPath) { item.poster_path = posterPath; updatedPosters++; }
         } catch(err) {
           // brak okładki nie jest błędem krytycznym - kontynuuj resztę aktualizacji
+        }
+      }
+
+      if (!item.genres || !item.genres.length) {
+        try {
+          const genres = await tmdbFetchGenres(item.type, tid);
+          if (genres && genres.length) { item.genres = genres; updatedGenres++; }
+        } catch(err) {
+          // brak gatunku nie jest błędem krytycznym - kontynuuj resztę aktualizacji
         }
       }
 
@@ -175,14 +184,15 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0;
-  if (anyChange) { saveToLocalStorage(); setDirty(true); }
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0;
+  if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   if (anyChange) {
     const parts = [];
     if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"nazwę":"nazw"} odcinków w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
     if (updatedDesc>0) parts.push(`${updatedDesc} ${updatedDesc===1?"opis":"opisów"}`);
     if (updatedPosters>0) parts.push(`${updatedPosters} ${updatedPosters===1?"okładkę":"okładek"}`);
+    if (updatedGenres>0) parts.push(`${updatedGenres} ${updatedGenres===1?"gatunek":"gatunków"}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);

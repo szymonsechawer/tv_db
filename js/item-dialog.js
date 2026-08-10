@@ -106,6 +106,7 @@ function openViewDialog(id){
             ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
             <div class="view-row"><div class="vlabel">Czas:</div><div class="vval">${escapeHtml(timeTxt)}</div></div>
             <div class="view-row"><div class="vlabel">Data (rok):</div><div class="vval">${escapeHtml(item.premiere_date||"—")}</div></div>
+            <div class="view-row" id="view-genres-row"></div>
             <div class="view-row" id="view-status-row"></div>
             <div class="view-row" id="view-rating-row"></div>
             <div class="view-row"><div class="vlabel">Tagi:</div><div class="vval"><div class="view-tags">${item.tags&&item.tags.length ? item.tags.map(t=>`<span class="view-tag">${escapeHtml(t)}</span>`).join("") : '<span class="muted">—</span>'}</div></div></div>
@@ -135,6 +136,33 @@ function openViewDialog(id){
       const ratingTxt = ratingVal ? `${ratingVal}/10` : "—";
       overlay.querySelector("#view-status-row").innerHTML = `<div class="vlabel">Status:</div><div class="vval">${escapeHtml(statusLabel)}</div>`;
       overlay.querySelector("#view-rating-row").innerHTML = `<div class="vlabel">Ocena:</div><div class="vval">${escapeHtml(ratingTxt)}</div>`;
+    }
+
+    function refreshGenres(){
+      const cur = findItem(id) || item;
+      const genresTxt = (cur.genres && cur.genres.length) ? cur.genres.join(", ") : "—";
+      overlay.querySelector("#view-genres-row").innerHTML = `<div class="vlabel">Gatunek:</div><div class="vval">${escapeHtml(genresTxt)}</div>`;
+    }
+
+    async function fetchGenresIfNeeded(){
+      const cur = findItem(id) || item;
+      if (cur.genres && cur.genres.length) return;
+      try {
+        let tid = cur.tmdb_id;
+        if (!tid) {
+          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
+        }
+        if (!tid) return;
+        const genres = await tmdbFetchGenres(cur.type, tid);
+        if (genres && genres.length) {
+          cur.genres = genres;
+          saveToLocalStorage();
+          refreshGenres();
+        }
+      } catch(err) {
+        // cicho ignoruj błąd pobierania gatunku - nie blokuje okna informacji
+      }
     }
 
     function refreshProgress(){
@@ -208,6 +236,8 @@ function openViewDialog(id){
       }
     }
     fetchPosterIfNeeded();
+    refreshGenres();
+    fetchGenresIfNeeded();
 
     overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
       const cur = findItem(id) || item;
@@ -470,6 +500,7 @@ function openItemDialog({item, itemType}){
     titleInput.focus();
 
     let tmdbId = isNew ? null : (item.tmdb_id || null);
+    let genres = isNew ? [] : [...(item.genres||[])];
     const tmdbStatus = overlay.querySelector("#tmdb-status");
 
     function setTmdbStatus(msg, isErr){
@@ -531,13 +562,16 @@ function openItemDialog({item, itemType}){
       setTmdbStatus("Pobieranie szczegółów z TMDb…");
       try {
         if (type===TYPE_MOVIE) {
-          const runtime = await tmdbMovieRuntime(r.id);
+          const details = await tmdbFetch("/movie/" + r.id, {});
+          const runtime = details && details.runtime ? details.runtime : null;
           if (durationInput && runtime) durationInput.value = String(runtime);
+          genres = tmdbGenreNames(details);
           const overview = await tmdbOverview(type, r.id);
           if (descriptionInput && overview) descriptionInput.value = overview;
           setTmdbStatus("Uzupełniono dane z TMDb" + (runtime ? ` (czas: ${runtime} min).` : "."));
         } else {
           const details = await tmdbFetch("/tv/" + r.id, {});
+          genres = tmdbGenreNames(details);
           const fetched = [];
           if (details && Array.isArray(details.seasons)) {
             for (const s of details.seasons) {
@@ -971,6 +1005,7 @@ function openItemDialog({item, itemType}){
       resultItem.status = statusKey;
       resultItem.rating = parseInt(ratingSelect.value||"0",10);
       resultItem.tags = [...tags];
+      resultItem.genres = [...genres];
       resultItem.description = descriptionInput.value.trim();
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {

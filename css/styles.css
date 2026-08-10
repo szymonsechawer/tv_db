@@ -246,6 +246,13 @@
   .stats-row .label{width:230px;color:var(--text-light);flex-shrink:0;}
   .stats-row .value{color:var(--text-light);font-weight:800;}
 
+  .genre-stats-list{display:flex;flex-direction:column;gap:9px;}
+  .genre-stat-row{display:flex;align-items:center;gap:10px;}
+  .genre-stat-name{width:160px;flex-shrink:0;color:var(--text-light);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .genre-bar-track{flex:1;height:10px;background:var(--bg-medium,#33383c);border-radius:6px;overflow:hidden;}
+  .genre-bar-fill{height:100%;background:var(--accent);border-radius:6px;}
+  .genre-stat-pct{width:42px;flex-shrink:0;text-align:right;font-weight:800;color:var(--text-light);font-size:13px;}
+
   .overlay{
     position:fixed;inset:0;background:rgba(0,0,0,.55);
     display:flex;align-items:center;justify-content:center;
@@ -370,6 +377,9 @@
     .tab-btn{padding:10px 14px;min-height:40px;}
     .stats-row{flex-direction:column;}
     .stats-row .label{width:auto;}
+    .genre-stat-row{gap:8px;}
+    .genre-stat-name{width:96px;font-size:12px;}
+    .genre-stat-pct{width:34px;font-size:12px;}
     table.data thead th, table.data tbody td{padding:8px 6px;font-size:13px;}
     #db-name-badge{margin-left:0;text-align:left;width:100%;}
     .modal{max-height:96vh;max-height:96dvh;}

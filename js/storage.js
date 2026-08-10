@@ -23,6 +23,8 @@ function migrateItems(items){
     if (!Number.isInteger(rating) || rating < 0 || rating > 10) item.rating = 0;
     if (!Array.isArray(item.tags)) item.tags = [];
     item.tags = item.tags.map(t=>String(t||"").trim()).filter(Boolean);
+    if (!Array.isArray(item.genres)) item.genres = [];
+    item.genres = item.genres.map(g=>String(g||"").trim()).filter(Boolean);
     if (item.type === TYPE_SERIES) {
       if (!Array.isArray(item.seasons)) item.seasons = [];
       for (const season of item.seasons) {
