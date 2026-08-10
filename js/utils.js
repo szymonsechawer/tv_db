@@ -65,6 +65,17 @@ function appendToNote(title, lines){
   note.updated = Date.now();
   return note;
 }
+// Ustawia flagę "obejrzane" na odcinku i zapisuje/czyści datę obejrzenia
+// (używaną do liczenia średniej liczby oglądanych odcinków/dzień-tydzień-miesiąc).
+function markEpisodeWatched(ep, watched){
+  ep.watched = !!watched;
+  if (ep.watched) {
+    if (!ep.watchedAt) ep.watchedAt = Date.now();
+  } else {
+    delete ep.watchedAt;
+  }
+}
+
 function polishPlural(n, singular, few, many){
   if (n === 1) return singular;
   const mod100 = n % 100;

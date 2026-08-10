@@ -27,8 +27,24 @@ function initTabs(){
       content.appendChild(pane);
     }
   }
+  document.querySelectorAll("#subtabs-stats .tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=> switchStatsTab(btn.dataset.statsTab));
+  });
+
   initNotesAutosave();
   switchMainTab(TYPE_MOVIE);
+}
+
+let activeStatsTab = "general";
+
+function switchStatsTab(tab){
+  activeStatsTab = tab;
+  const bar = document.getElementById("subtabs-stats");
+  bar.querySelectorAll(".tab-btn").forEach(b=>{
+    b.classList.toggle("active", b.dataset.statsTab===tab);
+  });
+  document.querySelectorAll("#subcontent-stats .status-pane").forEach(p=>p.classList.remove("active"));
+  document.getElementById(`pane-stats-${tab}`).classList.add("active");
 }
 
 function updateCheckButtonVisibility(){
@@ -51,6 +67,8 @@ function switchMainTab(tab){
     switchStatusTab(tab, activeStatus[tab]);
   } else if (tab==="notes") {
     renderNotesTab();
+  } else if (tab==="stats") {
+    switchStatsTab(activeStatsTab);
   }
   updateCheckButtonVisibility();
 }

@@ -44,7 +44,7 @@ async function markNextEpisodeWatched(id){
           } catch(err) {
           }
         }
-        ep.watched = true;
+        markEpisodeWatched(ep, true);
         db.items = db.items.filter(i=>i.id!==id);
         const allWatched = seasons.every(s=>(s.episodes||[]).every(e=>e.watched));
         if (allWatched) {
@@ -1008,12 +1008,12 @@ function openItemDialog({item, itemType}){
       }
 
       box.querySelector('[data-act="check-all"]').addEventListener("click", async ()=>{
-        for (const e of season.episodes) e.watched = true;
+        for (const e of season.episodes) markEpisodeWatched(e, true);
         renderSeasonsList();
         await autoSeasonDurations(season);
       });
       box.querySelector('[data-act="uncheck-all"]').addEventListener("click", ()=>{
-        for (const e of season.episodes) e.watched = false;
+        for (const e of season.episodes) markEpisodeWatched(e, false);
         renderSeasonsList();
       });
       const removeBtn = box.querySelector('[data-act="remove-season"]');
@@ -1048,7 +1048,7 @@ function openItemDialog({item, itemType}){
       const checkbox = row.querySelector('input[type="checkbox"]');
 
       checkbox.addEventListener("change", async ()=>{
-        ep.watched = checkbox.checked;
+        markEpisodeWatched(ep, checkbox.checked);
         if (ep.watched && !ep.duration) {
           const durInput = row.querySelector('input[type="number"]');
           await autoEpisodeDuration(season, ep, durInput);
@@ -1179,6 +1179,11 @@ function openItemDialog({item, itemType}){
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {
         resultItem.duration = duration;
+        if (statusKey === STATUS_WATCHED) {
+          if (!resultItem.watchedAt) resultItem.watchedAt = Date.now();
+        } else {
+          delete resultItem.watchedAt;
+        }
       } else {
         resultItem.seasons = seasons;
       }

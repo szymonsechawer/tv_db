@@ -234,7 +234,9 @@
   }
   #db-name-badge .dirty{color:var(--danger);}
 
-  #tab-stats{padding:6px 2px;overflow:auto;}
+  #tab-stats{padding:6px 2px;}
+  #subcontent-stats{flex:1;min-height:0;}
+  #subcontent-stats .status-pane{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px;}
   #tab-settings{padding:6px 2px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
   .stats-section{
     background:transparent;border:1px solid var(--border);border-radius:8px;

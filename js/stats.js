@@ -42,6 +42,71 @@ function updateStats(){
   document.getElementById("stat-movies-time").textContent = formatDuration(s.moviesMinutes);
   document.getElementById("stat-episodes-time").textContent = formatDuration(s.episodesMinutes);
   renderGenreStats();
+  updateAverageStats();
+}
+
+// Zbiera daty (timestampy) obejrzenia filmów albo odcinków, na podstawie
+// których liczona jest średnia dzienna/tygodniowa/miesięczna.
+function collectWatchedDates(kind){
+  const dates = [];
+  if (kind === "movies") {
+    for (const it of db.items) {
+      if (it.type===TYPE_MOVIE && it.status===STATUS_WATCHED && it.watchedAt) dates.push(it.watchedAt);
+    }
+  } else {
+    for (const it of db.items) {
+      if (it.type !== TYPE_SERIES) continue;
+      for (const season of it.seasons||[]) {
+        for (const ep of season.episodes||[]) {
+          if (ep.watched && ep.watchedAt) dates.push(ep.watchedAt);
+        }
+      }
+    }
+  }
+  return dates;
+}
+
+// Liczy średnią dzienną/tygodniową/miesięczną na podstawie dat obejrzenia.
+// Średnia = liczba obejrzanych pozycji z zapisaną datą / liczba dni od
+// najwcześniejszej zapisanej daty do teraz.
+function computeAverageStats(kind){
+  const dates = collectWatchedDates(kind);
+  if (!dates.length) return {count: 0, perDay: 0, perWeek: 0, perMonth: 0, hasData: false};
+  const earliest = Math.min(...dates);
+  const days = Math.max(1, (Date.now() - earliest) / 86400000);
+  const perDay = dates.length / days;
+  return {count: dates.length, perDay, perWeek: perDay*7, perMonth: perDay*30.44, hasData: true};
+}
+
+function formatAvgNumber(n){
+  if (n <= 0) return "0";
+  if (n >= 10) return String(Math.round(n));
+  const rounded = Math.round(n*10)/10;
+  return (rounded % 1 === 0) ? String(rounded) : rounded.toFixed(1);
+}
+
+function setAveragePane(prefix, s){
+  const dayEl = document.getElementById(`stat-${prefix}-avg-day`);
+  if (!dayEl) return;
+  const weekEl = document.getElementById(`stat-${prefix}-avg-week`);
+  const monthEl = document.getElementById(`stat-${prefix}-avg-month`);
+  const noteEl = document.getElementById(`stat-${prefix}-avg-note`);
+  if (!s.hasData) {
+    dayEl.textContent = "—";
+    weekEl.textContent = "—";
+    monthEl.textContent = "—";
+    if (noteEl) noteEl.textContent = "Brak danych — średnia pojawi się, gdy zaczniesz oznaczać pozycje jako obejrzane.";
+    return;
+  }
+  dayEl.textContent = formatAvgNumber(s.perDay);
+  weekEl.textContent = formatAvgNumber(s.perWeek);
+  monthEl.textContent = formatAvgNumber(s.perMonth);
+  if (noteEl) noteEl.textContent = "Średnia liczona od daty oznaczenia pierwszej pozycji jako obejrzanej (starsze wpisy sprzed tej funkcji nie mają zapisanej daty).";
+}
+
+function updateAverageStats(){
+  setAveragePane("movies", computeAverageStats("movies"));
+  setAveragePane("episodes", computeAverageStats("episodes"));
 }
 
 // Zlicza gatunki dla danego typu (film/serial) wśród pozycji uznanych za
