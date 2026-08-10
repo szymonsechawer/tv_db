@@ -2,7 +2,7 @@
 // config.js — stałe aplikacji oraz globalny stan (współdzielony)
 // ============================================================
 
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 const DEFAULT_DB_FILENAME = "tv_db.json";
 const STORAGE_KEY = "tv_db_data";
 const STORAGE_NAME_KEY = "tv_db_filename";

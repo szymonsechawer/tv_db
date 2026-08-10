@@ -44,14 +44,15 @@ function updateStats(){
   renderGenreStats();
 }
 
-// Zlicza gatunki wśród oglądanych/obejrzanych pozycji (filmy zakończone,
-// seriale oglądane/zakończone/wstrzymane) i zwraca listę posortowaną malejąco
-// wg udziału procentowego.
-function computeGenreStats(){
-  const relevant = db.items.filter(i=>
-    (i.type===TYPE_MOVIE && i.status===STATUS_WATCHED) ||
-    (i.type===TYPE_SERIES && (i.status===STATUS_WATCHED || i.status===STATUS_WATCHING || i.status===STATUS_PAUSED))
-  );
+// Zlicza gatunki dla danego typu (film/serial) wśród pozycji uznanych za
+// oglądane/obejrzane (filmy: zakończone; seriale: oglądane/zakończone/wstrzymane).
+// Zwraca tylko gatunki, które faktycznie występują (count > 0), posortowane malejąco.
+function computeGenreStats(type){
+  const relevant = db.items.filter(i=>{
+    if (i.type !== type) return false;
+    if (type === TYPE_MOVIE) return i.status === STATUS_WATCHED;
+    return i.status===STATUS_WATCHED || i.status===STATUS_WATCHING || i.status===STATUS_PAUSED;
+  });
   const counts = {};
   let total = 0;
   for (const it of relevant) {
@@ -62,15 +63,23 @@ function computeGenreStats(){
     }
   }
   return Object.entries(counts)
+    .filter(([,count])=>count>0)
     .map(([name,count])=>({name, count, pct: total ? (count/total*100) : 0}))
-    .sort((a,b)=>b.count-a.count);
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
 }
 
-function renderGenreStats(){
-  const list = document.getElementById("stat-genres-list");
-  const empty = document.getElementById("stat-genres-empty");
+// Formatuje procent tak, by małe udziały nie wyglądały jak "0%" po zaokrągleniu.
+function formatGenrePct(pct){
+  if (pct <= 0) return "0%";
+  if (pct < 1) return pct.toFixed(1).replace(".0","") + "%";
+  return Math.round(pct) + "%";
+}
+
+function renderGenreStatsInto(listId, emptyId, type){
+  const list = document.getElementById(listId);
+  const empty = document.getElementById(emptyId);
   if (!list) return;
-  const data = computeGenreStats();
+  const data = computeGenreStats(type);
   if (!data.length) {
     list.innerHTML = "";
     if (empty) empty.style.display = "";
@@ -81,8 +90,13 @@ function renderGenreStats(){
     <div class="genre-stat-row">
       <div class="genre-stat-name">${escapeHtml(g.name)}</div>
       <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${g.pct.toFixed(1)}%;"></div></div>
-      <div class="genre-stat-pct">${g.pct.toFixed(0)}%</div>
+      <div class="genre-stat-pct">${formatGenrePct(g.pct)}</div>
     </div>
   `).join("");
+}
+
+function renderGenreStats(){
+  renderGenreStatsInto("stat-genres-movies-list", "stat-genres-movies-empty", TYPE_MOVIE);
+  renderGenreStatsInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES);
 }
 
