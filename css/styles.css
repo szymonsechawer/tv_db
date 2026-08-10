@@ -295,7 +295,7 @@
   .msg-text{white-space:pre-line;line-height:1.4;}
   .error-text{color:var(--danger);font-size:12px;min-height:16px;margin-top:4px;}
 
-  .inner-tabs{display:flex;gap:4px;margin-bottom:12px;flex-shrink:0;}
+  .inner-tabs{display:flex;gap:4px;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap;}
 
   #seasons-list{display:flex;flex-direction:column;gap:10px;}
   .season-box{border:1px solid var(--border);border-radius:8px;padding:10px 12px;}

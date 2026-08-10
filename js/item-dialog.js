@@ -93,6 +93,7 @@ function openViewDialog(id){
         <div class="inner-tabs">
           <button class="tab-btn active" id="vtab-info" type="button">Informacje</button>
           <button class="tab-btn" id="vtab-desc" type="button">Opis</button>
+          <button class="tab-btn" id="vtab-cast" type="button">Obsada</button>
           ${type===TYPE_SERIES ? '<button class="tab-btn" id="vtab-seasons" type="button">Sezony i odcinki</button>' : ''}
         </div>
         <div class="tab-scroll">
@@ -117,6 +118,13 @@ function openViewDialog(id){
             <div class="desc-text" id="view-desc-text"></div>
             <div style="margin-top:12px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
+            </div>
+          </div>
+          <div id="vpane-cast" style="display:none;">
+            <div class="tmdb-status" id="view-cast-status"></div>
+            <div class="desc-text" id="view-cast-text"></div>
+            <div style="margin-top:12px;">
+              <button class="btn small secondary" id="view-cast-fetch-btn" type="button">Pobierz obsadę</button>
             </div>
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
@@ -199,6 +207,22 @@ function openViewDialog(id){
       }
     }
     refreshDescPane();
+
+    function refreshCastPane(){
+      const cur = findItem(id) || item;
+      const textEl = overlay.querySelector("#view-cast-text");
+      const fetchBtn = overlay.querySelector("#view-cast-fetch-btn");
+      if (cur.cast && cur.cast.length) {
+        textEl.textContent = cur.cast.join(", ");
+        textEl.classList.remove("muted");
+        fetchBtn.textContent = "Odśwież obsadę";
+      } else {
+        textEl.textContent = "Brak informacji o obsadzie.";
+        textEl.classList.add("muted");
+        fetchBtn.textContent = "Pobierz obsadę";
+      }
+    }
+    refreshCastPane();
 
     function refreshPoster(){
       const cur = findItem(id) || item;
@@ -292,31 +316,70 @@ function openViewDialog(id){
 
     const vtabInfo = overlay.querySelector("#vtab-info");
     const vtabDesc = overlay.querySelector("#vtab-desc");
+    const vtabCast = overlay.querySelector("#vtab-cast");
     const vtabSeasons = overlay.querySelector("#vtab-seasons");
     const vpaneInfo = overlay.querySelector("#vpane-info");
     const vpaneDesc = overlay.querySelector("#vpane-desc");
+    const vpaneCast = overlay.querySelector("#vpane-cast");
     const vpaneSeasons = overlay.querySelector("#vpane-seasons");
-    vtabInfo.addEventListener("click", ()=>{
-      vtabInfo.classList.add("active"); vtabDesc.classList.remove("active");
-      if (vtabSeasons) vtabSeasons.classList.remove("active");
-      vpaneInfo.style.display=""; vpaneDesc.style.display="none";
-      if (vpaneSeasons) vpaneSeasons.style.display="none";
-    });
-    vtabDesc.addEventListener("click", ()=>{
-      vtabDesc.classList.add("active"); vtabInfo.classList.remove("active");
-      if (vtabSeasons) vtabSeasons.classList.remove("active");
-      vpaneInfo.style.display="none"; vpaneDesc.style.display="";
-      if (vpaneSeasons) vpaneSeasons.style.display="none";
-      refreshDescPane();
-    });
-    if (vtabSeasons) {
-      vtabSeasons.addEventListener("click", ()=>{
-        vtabSeasons.classList.add("active"); vtabInfo.classList.remove("active"); vtabDesc.classList.remove("active");
-        vpaneInfo.style.display="none"; vpaneDesc.style.display="none";
-        vpaneSeasons.style.display="";
-        refreshSeasonsPane();
-      });
+
+    const viewTabs = [
+      {tab: vtabInfo, pane: vpaneInfo},
+      {tab: vtabDesc, pane: vpaneDesc, onShow: refreshDescPane},
+      {tab: vtabCast, pane: vpaneCast, onShow: refreshCastPane},
+    ];
+    if (vtabSeasons) viewTabs.push({tab: vtabSeasons, pane: vpaneSeasons, onShow: refreshSeasonsPane});
+
+    function activateViewTab(target){
+      for (const t of viewTabs) {
+        const active = t===target;
+        t.tab.classList.toggle("active", active);
+        t.pane.style.display = active ? "" : "none";
+      }
+      if (target.onShow) target.onShow();
     }
+    for (const t of viewTabs) {
+      t.tab.addEventListener("click", ()=>activateViewTab(t));
+    }
+
+    overlay.querySelector("#view-cast-fetch-btn").addEventListener("click", async ()=>{
+      const btn = overlay.querySelector("#view-cast-fetch-btn");
+      const statusEl = overlay.querySelector("#view-cast-status");
+      btn.disabled = true;
+      const oldLabel = btn.textContent;
+      btn.textContent = "Pobieranie…";
+      statusEl.textContent = "";
+      statusEl.classList.remove("err");
+      try {
+        const cur = findItem(id) || item;
+        let tid = cur.tmdb_id;
+        if (!tid) {
+          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
+        }
+        if (!tid) {
+          statusEl.textContent = "Nie znaleziono pozycji w TMDb.";
+          statusEl.classList.add("err");
+          return;
+        }
+        const cast = await tmdbFetchCast(cur.type, tid);
+        if (cast && cast.length) {
+          cur.cast = cast;
+          saveToLocalStorage();
+          setDirty(true);
+          statusEl.textContent = "Obsada pobrana.";
+        } else {
+          statusEl.textContent = "Brak informacji o obsadzie w TMDb dla tej pozycji.";
+        }
+      } catch(err) {
+        statusEl.textContent = err.message || String(err);
+        statusEl.classList.add("err");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldLabel;
+        refreshCastPane();
+      }
+    });
 
     overlay.querySelector("#view-desc-fetch-btn").addEventListener("click", async ()=>{
       const btn = overlay.querySelector("#view-desc-fetch-btn");
@@ -456,6 +519,20 @@ function openItemDialog({item, itemType}){
               </div>
             </div>
             <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Gatunek:</label>
+              <div style="flex:1;">
+                <div id="genres-chip-list"></div>
+                <input class="entry" id="f-genre-input" type="text" placeholder="dodaj gatunek i Enter">
+              </div>
+            </div>
+            <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Obsada:</label>
+              <div style="flex:1;">
+                <div id="cast-chip-list"></div>
+                <input class="entry" id="f-cast-input" type="text" placeholder="dodaj aktora i Enter">
+              </div>
+            </div>
+            <div class="form-row" style="align-items:flex-start;">
               <label>Opis:</label>
               <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
             </div>
@@ -566,12 +643,16 @@ function openItemDialog({item, itemType}){
           const runtime = details && details.runtime ? details.runtime : null;
           if (durationInput && runtime) durationInput.value = String(runtime);
           genres = tmdbGenreNames(details);
+          try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
+          renderGenreChips(); renderCastChips();
           const overview = await tmdbOverview(type, r.id);
           if (descriptionInput && overview) descriptionInput.value = overview;
           setTmdbStatus("Uzupełniono dane z TMDb" + (runtime ? ` (czas: ${runtime} min).` : "."));
         } else {
           const details = await tmdbFetch("/tv/" + r.id, {});
           genres = tmdbGenreNames(details);
+          try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
+          renderGenreChips(); renderCastChips();
           const fetched = [];
           if (details && Array.isArray(details.seasons)) {
             for (const s of details.seasons) {
@@ -773,6 +854,93 @@ function openItemDialog({item, itemType}){
     });
     tagInput.addEventListener("blur", ()=>{ if (tagInput.value.trim()) addTagFromInput(); });
     renderTagChips();
+
+    const genresChipList = overlay.querySelector("#genres-chip-list");
+    const genreInput = overlay.querySelector("#f-genre-input");
+    function renderGenreChips(){
+      genresChipList.innerHTML = "";
+      for (const genre of genres) {
+        const chip = document.createElement("span");
+        chip.className = "tag-chip";
+        const label = document.createElement("span");
+        label.textContent = genre;
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "tag-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.title = "Usuń gatunek";
+        removeBtn.addEventListener("click", ()=>{
+          genres = genres.filter(g=>g!==genre);
+          renderGenreChips();
+        });
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        genresChipList.appendChild(chip);
+      }
+    }
+    function addGenreFromInput(){
+      const raw = genreInput.value.split(",");
+      let added = false;
+      for (let piece of raw) {
+        const val = piece.trim();
+        if (!val) continue;
+        if (!genres.some(g=>g.toLowerCase()===val.toLowerCase())) { genres.push(val); added = true; }
+      }
+      if (added) renderGenreChips();
+      genreInput.value = "";
+    }
+    genreInput.addEventListener("keydown", (e)=>{
+      if (e.key==="Enter" || e.key===",") {
+        e.preventDefault();
+        addGenreFromInput();
+      }
+    });
+    genreInput.addEventListener("blur", ()=>{ if (genreInput.value.trim()) addGenreFromInput(); });
+    renderGenreChips();
+
+    let cast = isNew ? [] : [...(item.cast||[])];
+    const castChipList = overlay.querySelector("#cast-chip-list");
+    const castInput = overlay.querySelector("#f-cast-input");
+    function renderCastChips(){
+      castChipList.innerHTML = "";
+      for (const actor of cast) {
+        const chip = document.createElement("span");
+        chip.className = "tag-chip";
+        const label = document.createElement("span");
+        label.textContent = actor;
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "tag-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.title = "Usuń z obsady";
+        removeBtn.addEventListener("click", ()=>{
+          cast = cast.filter(c=>c!==actor);
+          renderCastChips();
+        });
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        castChipList.appendChild(chip);
+      }
+    }
+    function addCastFromInput(){
+      const raw = castInput.value.split(",");
+      let added = false;
+      for (let piece of raw) {
+        const val = piece.trim();
+        if (!val) continue;
+        if (!cast.some(c=>c.toLowerCase()===val.toLowerCase())) { cast.push(val); added = true; }
+      }
+      if (added) renderCastChips();
+      castInput.value = "";
+    }
+    castInput.addEventListener("keydown", (e)=>{
+      if (e.key==="Enter" || e.key===",") {
+        e.preventDefault();
+        addCastFromInput();
+      }
+    });
+    castInput.addEventListener("blur", ()=>{ if (castInput.value.trim()) addCastFromInput(); });
+    renderCastChips();
 
     if (type===TYPE_SERIES) {
       const tabBasic = overlay.querySelector("#itab-basic");
@@ -1006,6 +1174,7 @@ function openItemDialog({item, itemType}){
       resultItem.rating = parseInt(ratingSelect.value||"0",10);
       resultItem.tags = [...tags];
       resultItem.genres = [...genres];
+      resultItem.cast = [...cast];
       resultItem.description = descriptionInput.value.trim();
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {

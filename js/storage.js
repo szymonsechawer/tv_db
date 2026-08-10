@@ -25,6 +25,8 @@ function migrateItems(items){
     item.tags = item.tags.map(t=>String(t||"").trim()).filter(Boolean);
     if (!Array.isArray(item.genres)) item.genres = [];
     item.genres = item.genres.map(g=>String(g||"").trim()).filter(Boolean);
+    if (!Array.isArray(item.cast)) item.cast = [];
+    item.cast = item.cast.map(c=>String(c||"").trim()).filter(Boolean);
     if (item.type === TYPE_SERIES) {
       if (!Array.isArray(item.seasons)) item.seasons = [];
       for (const season of item.seasons) {

@@ -114,6 +114,30 @@ async function tmdbFetchGenres(type, id){
   return tmdbGenreNames(data);
 }
 
+// Wyciąga listę obsady (np. ["Jan Kowalski (Postać)", ...]) z danych /credits TMDb.
+function tmdbCastNames(credits, limit){
+  if (!credits || !Array.isArray(credits.cast)) return [];
+  const n = limit || 10;
+  return credits.cast
+    .slice()
+    .sort((a,b)=>(a.order==null?999:a.order)-(b.order==null?999:b.order))
+    .slice(0, n)
+    .map(c=>{
+      const name = String((c && c.name) || "").trim();
+      const character = String((c && c.character) || "").trim();
+      if (!name) return "";
+      return character ? `${name} (${character})` : name;
+    })
+    .filter(Boolean);
+}
+
+// Pobiera listę obsady (aktorów) dla filmu/serialu o danym id TMDb.
+async function tmdbFetchCast(type, id, limit){
+  const path = type===TYPE_MOVIE ? "/movie/" + id + "/credits" : "/tv/" + id + "/credits";
+  const data = await tmdbFetch(path, {});
+  return tmdbCastNames(data, limit);
+}
+
 async function tmdbOverview(type, id){
   const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
   const data = await tmdbFetch(path, {});

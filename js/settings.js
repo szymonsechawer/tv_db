@@ -121,7 +121,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -157,6 +157,15 @@ async function refreshAllEpisodeTitles(){
         }
       }
 
+      if (!item.cast || !item.cast.length) {
+        try {
+          const cast = await tmdbFetchCast(item.type, tid);
+          if (cast && cast.length) { item.cast = cast; updatedCast++; }
+        } catch(err) {
+          // brak obsady nie jest błędem krytycznym - kontynuuj resztę aktualizacji
+        }
+      }
+
       if (item.type===TYPE_SERIES && Array.isArray(item.seasons) && item.seasons.length>0) {
         let itemUpdated = 0;
         for (const season of item.seasons) {
@@ -184,7 +193,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0;
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   if (anyChange) {
@@ -193,6 +202,7 @@ async function refreshAllEpisodeTitles(){
     if (updatedDesc>0) parts.push(`${updatedDesc} ${updatedDesc===1?"opis":"opisów"}`);
     if (updatedPosters>0) parts.push(`${updatedPosters} ${updatedPosters===1?"okładkę":"okładek"}`);
     if (updatedGenres>0) parts.push(`${updatedGenres} ${updatedGenres===1?"gatunek":"gatunków"}`);
+    if (updatedCast>0) parts.push(`${updatedCast} ${updatedCast===1?"obsadę":"obsad"}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);
