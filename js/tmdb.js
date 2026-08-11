@@ -138,26 +138,15 @@ async function tmdbFetchCast(type, id, limit){
   return tmdbCastNames(data, limit);
 }
 
-// Wyciąga listę twórców: dla filmu — reżyser(zy) z ekipy (crew), dla serialu —
-// twórców serialu (created_by) z danych szczegółowych TMDb.
-function tmdbCreatorNames(type, data, credits){
-  if (type===TYPE_MOVIE) {
-    if (!credits || !Array.isArray(credits.crew)) return [];
-    const seen = new Set();
-    const out = [];
-    for (const c of credits.crew) {
-      if (!c || c.job!=="Director") continue;
-      const name = String(c.name||"").trim();
-      if (!name || seen.has(name)) continue;
-      seen.add(name);
-      out.push(`${name} (Reżyseria)`);
-    }
-    return out;
-  }
-  if (!data || !Array.isArray(data.created_by)) return [];
+// Wyciąga listę nazwisk członków ekipy pełniących jedną z podanych funkcji
+// (np. reżyser) z danych /credits TMDb, bez duplikatów.
+function tmdbCrewNames(credits, jobs){
+  if (!credits || !Array.isArray(credits.crew)) return [];
   const seen = new Set();
   const out = [];
-  for (const c of data.created_by) {
+  for (const c of credits.crew) {
+    const job = String((c && c.job) || "");
+    if (!jobs.includes(job)) continue;
     const name = String((c && c.name) || "").trim();
     if (!name || seen.has(name)) continue;
     seen.add(name);
@@ -166,14 +155,25 @@ function tmdbCreatorNames(type, data, credits){
   return out;
 }
 
-// Pobiera listę twórców (reżyser filmu / twórcy serialu) dla pozycji o danym id TMDb.
+// Pobiera listę twórców filmu (reżyserzy) albo serialu (twórcy serialu, z
+// zapasowym wyszukiwaniem wśród producentów wykonawczych, gdy TMDb nie
+// podaje "created_by") dla pozycji o danym id TMDb.
 async function tmdbFetchCreators(type, id){
   if (type===TYPE_MOVIE) {
     const credits = await tmdbFetch("/movie/" + id + "/credits", {});
-    return tmdbCreatorNames(type, null, credits);
+    return tmdbCrewNames(credits, ["Director"]);
   }
-  const data = await tmdbFetch("/tv/" + id, {});
-  return tmdbCreatorNames(type, data, null);
+  const details = await tmdbFetch("/tv/" + id, {});
+  let names = (details && Array.isArray(details.created_by))
+    ? details.created_by.map(c=>c && c.name).map(n=>String(n||"").trim()).filter(Boolean)
+    : [];
+  if (!names.length) {
+    try {
+      const credits = await tmdbFetch("/tv/" + id + "/credits", {});
+      names = tmdbCrewNames(credits, ["Creator", "Executive Producer"]);
+    } catch(err) { /* brak danych - zwróć to, co mamy */ }
+  }
+  return names;
 }
 
 async function tmdbOverview(type, id){

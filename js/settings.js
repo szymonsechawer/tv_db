@@ -171,7 +171,7 @@ async function refreshAllEpisodeTitles(){
           const creators = await tmdbFetchCreators(item.type, tid);
           if (creators && creators.length) { item.creators = creators; updatedCreators++; }
         } catch(err) {
-          // brak informacji o twórcach nie jest błędem krytycznym - kontynuuj resztę aktualizacji
+          // brak twórców nie jest błędem krytycznym - kontynuuj resztę aktualizacji
         }
       }
 
@@ -212,7 +212,7 @@ async function refreshAllEpisodeTitles(){
     if (updatedPosters>0) parts.push(`${updatedPosters} ${updatedPosters===1?"okładkę":"okładek"}`);
     if (updatedGenres>0) parts.push(`${updatedGenres} ${updatedGenres===1?"gatunek":"gatunków"}`);
     if (updatedCast>0) parts.push(`${updatedCast} ${updatedCast===1?"obsadę":"obsad"}`);
-    if (updatedCreators>0) parts.push(`${updatedCreators} ${updatedCreators===1?"informację o twórcach":"informacji o twórcach"}`);
+    if (updatedCreators>0) parts.push(`${updatedCreators} ${updatedCreators===1?"listę twórców":"list twórców"}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);

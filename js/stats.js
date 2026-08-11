@@ -188,6 +188,19 @@ function renderWeekChart(elId, kind){
   }).join("");
 }
 
+// Liczy średni dzienny czas oglądania (w minutach) na podstawie zapisanych
+// dat obejrzenia i czasów trwania — tak samo jak computeAverageStats liczy
+// średnią dzienną liczby pozycji, tylko sumuje minuty zamiast sztuk.
+function computeAverageMinutesPerDay(kind){
+  const entries = collectWatchedEntries(kind);
+  if (!entries.length) return {perDay: 0, hasData: false};
+  const dates = entries.map(e=>e.ts);
+  const earliest = Math.min(...dates);
+  const days = Math.max(1, Math.round((startOfDayLocal(Date.now()) - startOfDayLocal(earliest)) / 86400000) + 1);
+  const totalMinutes = entries.reduce((acc,e)=>acc+(e.duration||0), 0);
+  return {perDay: totalMinutes / days, hasData: true, totalMinutes, days};
+}
+
 function updateAverageStats(){
   archiveCompletedYears();
 
@@ -204,6 +217,10 @@ function updateAverageStats(){
   document.getElementById("stat-movies-day-record").textContent = computeDayRecord("movies");
   document.getElementById("stat-episodes-day-record").textContent = computeDayRecord("episodes");
 
+  const movieMinAvg = computeAverageMinutesPerDay("movies");
+  const epMinAvg = computeAverageMinutesPerDay("episodes");
+  document.getElementById("stat-movies-avg-time").textContent = movieMinAvg.hasData ? formatDuration(Math.round(movieMinAvg.perDay)) : "—";
+  document.getElementById("stat-episodes-avg-time").textContent = epMinAvg.hasData ? formatDuration(Math.round(epMinAvg.perDay)) : "—";
 }
 
 // ============================================================

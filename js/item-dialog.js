@@ -114,9 +114,18 @@ function openViewDialog(id){
           </div>
           <div id="vpane-desc" style="display:none;">
             <div class="tmdb-status" id="view-desc-status"></div>
-            <div class="desc-text" id="view-desc-text"></div>
-            <div class="view-row" id="view-cast-row" style="margin-top:14px;"></div>
-            <div class="view-row" id="view-creators-row"></div>
+            <div class="desc-box">
+              <div class="desc-section-title">Opis</div>
+              <div class="desc-text" id="view-desc-text"></div>
+            </div>
+            <div class="desc-box">
+              <div class="desc-section-title">${type===TYPE_MOVIE ? "Reżyseria" : "Twórcy"}</div>
+              <div class="desc-text" id="view-creators-text"></div>
+            </div>
+            <div class="desc-box">
+              <div class="desc-section-title">Obsada</div>
+              <div class="desc-text" id="view-cast-text"></div>
+            </div>
             <div style="margin-top:12px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
             </div>
@@ -189,8 +198,10 @@ function openViewDialog(id){
     function refreshDescPane(){
       const cur = findItem(id) || item;
       const textEl = overlay.querySelector("#view-desc-text");
+      const creatorsEl = overlay.querySelector("#view-creators-text");
+      const castEl = overlay.querySelector("#view-cast-text");
       const fetchBtn = overlay.querySelector("#view-desc-fetch-btn");
-      const hasAny = (cur.description && cur.description.trim()) || (cur.cast && cur.cast.length) || (cur.creators && cur.creators.length);
+      const anyData = (cur.description && cur.description.trim()) || (cur.creators && cur.creators.length) || (cur.cast && cur.cast.length);
       if (cur.description && cur.description.trim()) {
         textEl.textContent = cur.description;
         textEl.classList.remove("muted");
@@ -198,16 +209,21 @@ function openViewDialog(id){
         textEl.textContent = "Brak opisu.";
         textEl.classList.add("muted");
       }
-      fetchBtn.textContent = hasAny ? "Odśwież opis" : "Pobierz opis";
-
-      const castRow = overlay.querySelector("#view-cast-row");
-      const castTxt = (cur.cast && cur.cast.length) ? cur.cast.join(", ") : "—";
-      castRow.innerHTML = `<div class="vlabel">Obsada:</div><div class="vval">${escapeHtml(castTxt)}</div>`;
-
-      const creatorsRow = overlay.querySelector("#view-creators-row");
-      const creatorsLabel = cur.type===TYPE_MOVIE ? "Reżyseria:" : "Twórcy:";
-      const creatorsTxt = (cur.creators && cur.creators.length) ? cur.creators.join(", ") : "—";
-      creatorsRow.innerHTML = `<div class="vlabel">${creatorsLabel}</div><div class="vval">${escapeHtml(creatorsTxt)}</div>`;
+      if (cur.creators && cur.creators.length) {
+        creatorsEl.textContent = cur.creators.join("\n");
+        creatorsEl.classList.remove("muted");
+      } else {
+        creatorsEl.textContent = type===TYPE_MOVIE ? "Brak informacji o reżyserii." : "Brak informacji o twórcach.";
+        creatorsEl.classList.add("muted");
+      }
+      if (cur.cast && cur.cast.length) {
+        castEl.textContent = cur.cast.join("\n");
+        castEl.classList.remove("muted");
+      } else {
+        castEl.textContent = "Brak informacji o obsadzie.";
+        castEl.classList.add("muted");
+      }
+      fetchBtn.textContent = anyData ? "Odśwież opis" : "Pobierz opis";
     }
     refreshDescPane();
 
@@ -346,22 +362,21 @@ function openViewDialog(id){
           statusEl.classList.add("err");
           return;
         }
-        const updated = [];
+        const parts = [];
         const overview = await tmdbOverview(cur.type, tid);
-        if (overview) { cur.description = overview; updated.push("opis"); }
-        try {
-          const cast = await tmdbFetchCast(cur.type, tid);
-          if (cast && cast.length) { cur.cast = cast; updated.push("obsadę"); }
-        } catch(err) { /* brak obsady nie jest błędem krytycznym */ }
+        if (overview) { cur.description = overview; parts.push("opis"); }
         try {
           const creators = await tmdbFetchCreators(cur.type, tid);
-          if (creators && creators.length) { cur.creators = creators; updated.push(cur.type===TYPE_MOVIE ? "reżyserię" : "twórców"); }
-        } catch(err) { /* brak twórców nie jest błędem krytycznym */ }
-
-        if (updated.length) {
+          if (creators && creators.length) { cur.creators = creators; parts.push("twórców"); }
+        } catch(err) { /* brak twórców nie blokuje reszty */ }
+        try {
+          const cast = await tmdbFetchCast(cur.type, tid);
+          if (cast && cast.length) { cur.cast = cast; parts.push("obsadę"); }
+        } catch(err) { /* brak obsady nie blokuje reszty */ }
+        if (parts.length) {
           saveToLocalStorage();
           setDirty(true);
-          statusEl.textContent = "Zaktualizowano: " + updated.join(", ") + ".";
+          statusEl.textContent = "Pobrano: " + parts.join(", ") + ".";
         } else {
           statusEl.textContent = "Brak danych w TMDb dla tej pozycji.";
         }
@@ -488,6 +503,13 @@ function openItemDialog({item, itemType}){
               </div>
             </div>
             <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">${type===TYPE_MOVIE ? "Reżyseria:" : "Twórcy:"}</label>
+              <div style="flex:1;">
+                <div id="creators-chip-list"></div>
+                <input class="entry" id="f-creators-input" type="text" placeholder="${type===TYPE_MOVIE ? "dodaj reżysera i Enter" : "dodaj twórcę i Enter"}">
+              </div>
+            </div>
+            <div class="form-row" style="align-items:flex-start;">
               <label>Opis:</label>
               <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
             </div>
@@ -599,7 +621,8 @@ function openItemDialog({item, itemType}){
           if (durationInput && runtime) durationInput.value = String(runtime);
           genres = tmdbGenreNames(details);
           try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
-          renderGenreChips(); renderCastChips();
+          try { const cr = await tmdbFetchCreators(type, r.id); if (cr && cr.length) creators = cr; } catch(err) {}
+          renderGenreChips(); renderCastChips(); renderCreatorsChips();
           const overview = await tmdbOverview(type, r.id);
           if (descriptionInput && overview) descriptionInput.value = overview;
           setTmdbStatus("Uzupełniono dane z TMDb" + (runtime ? ` (czas: ${runtime} min).` : "."));
@@ -607,7 +630,8 @@ function openItemDialog({item, itemType}){
           const details = await tmdbFetch("/tv/" + r.id, {});
           genres = tmdbGenreNames(details);
           try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
-          renderGenreChips(); renderCastChips();
+          try { const cr = await tmdbFetchCreators(type, r.id); if (cr && cr.length) creators = cr; } catch(err) {}
+          renderGenreChips(); renderCastChips(); renderCreatorsChips();
           const fetched = [];
           if (details && Array.isArray(details.seasons)) {
             for (const s of details.seasons) {
@@ -897,6 +921,50 @@ function openItemDialog({item, itemType}){
     castInput.addEventListener("blur", ()=>{ if (castInput.value.trim()) addCastFromInput(); });
     renderCastChips();
 
+    let creators = isNew ? [] : [...(item.creators||[])];
+    const creatorsChipList = overlay.querySelector("#creators-chip-list");
+    const creatorsInput = overlay.querySelector("#f-creators-input");
+    function renderCreatorsChips(){
+      creatorsChipList.innerHTML = "";
+      for (const person of creators) {
+        const chip = document.createElement("span");
+        chip.className = "tag-chip";
+        const label = document.createElement("span");
+        label.textContent = person;
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "tag-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.title = type===TYPE_MOVIE ? "Usuń z reżyserii" : "Usuń z twórców";
+        removeBtn.addEventListener("click", ()=>{
+          creators = creators.filter(c=>c!==person);
+          renderCreatorsChips();
+        });
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        creatorsChipList.appendChild(chip);
+      }
+    }
+    function addCreatorsFromInput(){
+      const raw = creatorsInput.value.split(",");
+      let added = false;
+      for (let piece of raw) {
+        const val = piece.trim();
+        if (!val) continue;
+        if (!creators.some(c=>c.toLowerCase()===val.toLowerCase())) { creators.push(val); added = true; }
+      }
+      if (added) renderCreatorsChips();
+      creatorsInput.value = "";
+    }
+    creatorsInput.addEventListener("keydown", (e)=>{
+      if (e.key==="Enter" || e.key===",") {
+        e.preventDefault();
+        addCreatorsFromInput();
+      }
+    });
+    creatorsInput.addEventListener("blur", ()=>{ if (creatorsInput.value.trim()) addCreatorsFromInput(); });
+    renderCreatorsChips();
+
     if (type===TYPE_SERIES) {
       const tabBasic = overlay.querySelector("#itab-basic");
       const tabSeasons = overlay.querySelector("#itab-seasons");
@@ -1130,6 +1198,7 @@ function openItemDialog({item, itemType}){
       resultItem.tags = [...tags];
       resultItem.genres = [...genres];
       resultItem.cast = [...cast];
+      resultItem.creators = [...creators];
       resultItem.description = descriptionInput.value.trim();
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {
