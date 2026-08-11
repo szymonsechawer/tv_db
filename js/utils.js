@@ -31,6 +31,30 @@ function normalizeSettings(s){
   return out;
 }
 
+// Waliduje/porzadkuje archiwum rekordow rocznych ({movies:{rok:{...}}, episodes:{rok:{...}}}),
+// tak zeby nieprawidlowe/uszkodzone dane z pliku JSON nie wywalily aplikacji.
+function normalizeYearStats(ys){
+  const out = {movies: {}, episodes: {}};
+  if (ys && typeof ys === "object") {
+    for (const kind of ["movies","episodes"]) {
+      const src = ys[kind];
+      if (src && typeof src === "object") {
+        for (const [year, s] of Object.entries(src)) {
+          const y = parseInt(year, 10);
+          if (!Number.isInteger(y) || !s || typeof s !== "object") continue;
+          out[kind][y] = {
+            year: y,
+            count: Number(s.count) || 0,
+            minutes: Number(s.minutes) || 0,
+            perDay: Number(s.perDay) || 0,
+          };
+        }
+      }
+    }
+  }
+  return out;
+}
+
 function makeNote(title, content){
   return {id: uuidv4(), title: title || "Nowa notatka", content: content || "", updated: Date.now()};
 }

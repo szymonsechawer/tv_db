@@ -46,25 +46,32 @@ function updateStats(){
   renderCatchUpInfo();
 }
 
-// Zbiera daty (timestampy) obejrzenia filmów albo odcinków, na podstawie
-// których liczona jest średnia dzienna/tygodniowa/miesięczna.
-function collectWatchedDates(kind){
-  const dates = [];
+// Zbiera wpisy {ts, duration} obejrzenia filmów albo odcinków (ts = timestamp
+// obejrzenia, duration = czas trwania w minutach), na podstawie których liczone
+// są średnie, wykresy tygodniowy/miesięczny oraz rekordy roczne.
+function collectWatchedEntries(kind){
+  const entries = [];
   if (kind === "movies") {
     for (const it of db.items) {
-      if (it.type===TYPE_MOVIE && it.status===STATUS_WATCHED && it.watchedAt) dates.push(it.watchedAt);
+      if (it.type===TYPE_MOVIE && it.status===STATUS_WATCHED && it.watchedAt) entries.push({ts: it.watchedAt, duration: it.duration||0});
     }
   } else {
     for (const it of db.items) {
       if (it.type !== TYPE_SERIES) continue;
       for (const season of it.seasons||[]) {
         for (const ep of season.episodes||[]) {
-          if (ep.watched && ep.watchedAt) dates.push(ep.watchedAt);
+          if (ep.watched && ep.watchedAt) entries.push({ts: ep.watchedAt, duration: ep.duration||0});
         }
       }
     }
   }
-  return dates;
+  return entries;
+}
+
+// Zbiera same daty (timestampy) obejrzenia — skrót dla miejsc, gdzie czas
+// trwania nie jest potrzebny.
+function collectWatchedDates(kind){
+  return collectWatchedEntries(kind).map(e=>e.ts);
 }
 
 // Liczy średnią dzienną/tygodniową/miesięczną na podstawie dat obejrzenia.
@@ -91,34 +98,256 @@ function formatAvgNumber(n){
   return (rounded % 1 === 0) ? String(rounded) : rounded.toFixed(1);
 }
 
-function setAveragePane(prefix, s){
-  const dayEl = document.getElementById(`stat-${prefix}-avg-day`);
-  if (!dayEl) return;
-  const weekEl = document.getElementById(`stat-${prefix}-avg-week`);
-  const monthEl = document.getElementById(`stat-${prefix}-avg-month`);
-  const noteEl = document.getElementById(`stat-${prefix}-avg-note`);
-  if (!s.hasData) {
-    dayEl.textContent = "—";
-    weekEl.textContent = "—";
-    monthEl.textContent = "—";
-    if (noteEl) noteEl.textContent = "Brak danych — średnia pojawi się, gdy zaczniesz oznaczać pozycje jako obejrzane.";
-    return;
+// Klucz dnia (lokalny, wg czasu urządzenia) w formacie YYYY-MM-DD, używany do
+// grupowania obejrzanych pozycji po dniu kalendarzowym.
+function dayKeyLocal(ts){
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// Grupuje obejrzane pozycje (filmy/odcinki) wg dnia kalendarzowego, na
+// podstawie zapisanych dat obejrzenia (watchedAt).
+function computeDailyCounts(kind){
+  const dates = collectWatchedDates(kind);
+  const counts = {};
+  for (const ts of dates) {
+    const k = dayKeyLocal(ts);
+    counts[k] = (counts[k]||0) + 1;
   }
-  dayEl.textContent = formatAvgNumber(s.perDay);
-  weekEl.textContent = formatAvgNumber(s.perWeek);
-  monthEl.textContent = formatAvgNumber(s.perMonth);
-  if (noteEl) {
-    const d = Math.max(1, Math.round(s.days));
-    let txt = `Średnia liczona od daty oznaczenia pierwszej pozycji jako obejrzanej (okres: ${d} ${d===1?"dzień":"dni"}, pozycji: ${s.count}).`;
-    if (s.days < 30.44) txt += " Tygodniowa i miesięczna nie są ekstrapolowane w górę, dopóki nie minie pełny tydzień/miesiąc.";
-    noteEl.textContent = txt;
+  return counts;
+}
+
+// Poniedziałek bieżącego tygodnia (00:00 czasu lokalnego).
+function startOfWeekMonday(date){
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const day = d.getDay(); // 0=niedziela..6=sobota
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+const WEEKDAY_LABELS_PL = ["Pn","Wt","Śr","Cz","Pt","So","Nd"];
+
+// Dane do wykresu kolumnowego bieżącego tygodnia (od poniedziałku).
+// Zeruje się automatycznie z nadejściem nowego tygodnia, bo liczy tylko dni
+// mieszczące się w aktualnym tygodniu.
+function computeWeekChartData(kind){
+  const counts = computeDailyCounts(kind);
+  const monday = startOfWeekMonday(new Date());
+  const todayKey = dayKeyLocal(Date.now());
+  const days = [];
+  let max = 0;
+  for (let i=0;i<7;i++){
+    const d = new Date(monday);
+    d.setDate(monday.getDate()+i);
+    const key = dayKeyLocal(d.getTime());
+    const count = counts[key] || 0;
+    if (count > max) max = count;
+    days.push({label: WEEKDAY_LABELS_PL[i], count, isToday: key===todayKey});
   }
+  return {days, max};
+}
+
+// Rekord: najwięcej pozycji obejrzanych jednego dnia (cała historia danych).
+// Ponieważ liczony jest zawsze z pełnej historii dat obejrzenia, rekord
+// "zostaje" (nie znika po zresetowaniu wykresu tygodniowego) i rośnie tylko
+// wtedy, gdy pojawi się dzień z większą liczbą obejrzanych pozycji.
+function computeDayRecord(kind){
+  const counts = computeDailyCounts(kind);
+  let max = 0;
+  for (const k in counts) if (counts[k] > max) max = counts[k];
+  return max;
+}
+
+function renderWeekChart(elId, kind){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const {days, max} = computeWeekChartData(kind);
+  const scaleMax = Math.max(max, 1);
+  el.innerHTML = days.map(d=>{
+    const pct = d.count>0 ? Math.max(Math.round((d.count/scaleMax)*100), 6) : 0;
+    const cls = "week-chart-col" + (d.count>0 ? " has-value" : "") + (d.isToday ? " today" : "");
+    return `
+      <div class="${cls}">
+        <div class="week-chart-value">${d.count}</div>
+        <div class="week-chart-bar-wrap"><div class="week-chart-bar" style="height:${pct}%;"></div></div>
+        <div class="week-chart-label">${d.label}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function updateAverageStats(){
-  setAveragePane("movies", computeAverageStats("movies"));
-  setAveragePane("episodes", computeAverageStats("episodes"));
+  archiveCompletedYears();
+
+  renderWeekChart("stat-movies-week-chart", "movies");
+  renderWeekChart("stat-episodes-week-chart", "episodes");
+  renderMonthChart("stat-movies-month-chart", "movies");
+  renderMonthChart("stat-episodes-month-chart", "episodes");
+
+  const movieAvg = computeAverageStats("movies");
+  const epAvg = computeAverageStats("episodes");
+  document.getElementById("stat-movies-avg-day").textContent = movieAvg.hasData ? formatAvgNumber(movieAvg.perDay) : "—";
+  document.getElementById("stat-episodes-avg-day").textContent = epAvg.hasData ? formatAvgNumber(epAvg.perDay) : "—";
+
+  document.getElementById("stat-movies-day-record").textContent = computeDayRecord("movies");
+  document.getElementById("stat-episodes-day-record").textContent = computeDayRecord("episodes");
+
 }
+
+// ============================================================
+// Wykres miesięczny (bieżący rok) + rekordy roczne (po zakończeniu roku)
+// ============================================================
+
+const MONTH_LABELS_PL = ["Sty","Lut","Mar","Kwi","Maj","Cze","Lip","Sie","Wrz","Paź","Lis","Gru"];
+
+// Klucz miesiąca (lokalny) w formacie YYYY-MM.
+function monthKeyLocal(ts){
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+
+// Grupuje obejrzane pozycje wg miesiąca kalendarzowego (wszystkie lata).
+function computeMonthlyCounts(kind){
+  const dates = collectWatchedDates(kind);
+  const counts = {};
+  for (const ts of dates) {
+    const k = monthKeyLocal(ts);
+    counts[k] = (counts[k]||0) + 1;
+  }
+  return counts;
+}
+
+// Dane do wykresu kolumnowego bieżącego roku (Sty–Gru). Zeruje się
+// automatycznie z nadejściem nowego roku, bo liczy tylko miesiące
+// mieszczące się w aktualnym roku kalendarzowym.
+function computeMonthChartData(kind){
+  const counts = computeMonthlyCounts(kind);
+  const now = new Date();
+  const year = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const months = [];
+  let max = 0;
+  for (let m=0;m<12;m++){
+    const key = `${year}-${String(m+1).padStart(2,"0")}`;
+    const count = counts[key] || 0;
+    if (count > max) max = count;
+    months.push({label: MONTH_LABELS_PL[m], count, isCurrent: m===currentMonth});
+  }
+  return {months, max};
+}
+
+function renderMonthChart(elId, kind){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const {months, max} = computeMonthChartData(kind);
+  const scaleMax = Math.max(max, 1);
+  el.innerHTML = months.map(m=>{
+    const pct = m.count>0 ? Math.max(Math.round((m.count/scaleMax)*100), 6) : 0;
+    const cls = "week-chart-col month-col" + (m.count>0 ? " has-value" : "") + (m.isCurrent ? " today" : "");
+    return `
+      <div class="${cls}">
+        <div class="week-chart-value">${m.count}</div>
+        <div class="week-chart-bar-wrap"><div class="week-chart-bar" style="height:${pct}%;"></div></div>
+        <div class="week-chart-label">${m.label}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function isLeapYear(y){ return (y%4===0 && y%100!==0) || y%400===0; }
+
+// Statystyki dla jednego (zakończonego) roku: liczba obejrzanych pozycji,
+// łączny czas oraz średnia dzienna liczona jako liczba pozycji / liczba dni
+// w tym roku (365 albo 366 dla lat przestępnych).
+function computeYearStats(kind, year){
+  const entries = collectWatchedEntries(kind).filter(e=>new Date(e.ts).getFullYear()===year);
+  const count = entries.length;
+  const minutes = entries.reduce((acc,e)=>acc+(e.duration||0),0);
+  const daysInYear = isLeapYear(year) ? 366 : 365;
+  const perDay = count / daysInYear;
+  return {year, count, minutes, perDay};
+}
+
+// Statystyki bieżącego (jeszcze trwającego) roku, liczone na żywo — średnia
+// dzienna dzieli liczbę obejrzanych pozycji przez liczbę dni, które już
+// minęły od 1 stycznia (a nie przez pełne 365/366 dni), żeby była miarodajna
+// w trakcie roku.
+function computeCurrentYearLiveStats(kind){
+  const year = new Date().getFullYear();
+  const entries = collectWatchedEntries(kind).filter(e=>new Date(e.ts).getFullYear()===year);
+  const count = entries.length;
+  const minutes = entries.reduce((acc,e)=>acc+(e.duration||0),0);
+  const startOfYear = new Date(year,0,1).getTime();
+  const daysElapsed = Math.max(1, Math.floor((Date.now()-startOfYear)/86400000)+1);
+  const perDay = count / daysElapsed;
+  return {year, count, minutes, perDay};
+}
+
+// Gdy zaczyna się nowy rok, poprzedni rok jest "zamykany": jego statystyki
+// (liczba obejrzanych pozycji, średnia dzienna, łączny czas) zostają
+// policzone raz i zapisane na stałe w db.year_stats (a stamtąd trafiają do
+// pliku JSON przy zapisie bazy). Bieżący, jeszcze trwający rok nigdy nie jest
+// archiwizowany — wykres miesięczny dla niego liczy się na żywo i zeruje się
+// automatycznie z nadejściem kolejnego roku.
+function archiveCompletedYears(){
+  if (!db.year_stats) db.year_stats = {movies: {}, episodes: {}};
+  if (!db.year_stats.movies) db.year_stats.movies = {};
+  if (!db.year_stats.episodes) db.year_stats.episodes = {};
+  const currentYear = new Date().getFullYear();
+  let changed = false;
+  for (const kind of ["movies","episodes"]) {
+    const years = new Set(collectWatchedDates(kind).map(ts=>new Date(ts).getFullYear()));
+    for (const y of years) {
+      if (y >= currentYear) continue;
+      if (db.year_stats[kind][y]) continue;
+      db.year_stats[kind][y] = computeYearStats(kind, y);
+      changed = true;
+    }
+  }
+  if (changed) setDirty(true);
+}
+
+// Renderuje listę rekordów rocznych jako HTML do okna modalnego.
+// Pierwsza linia to zawsze bieżący, jeszcze trwający rok, liczony na żywo
+// (dotychczasowy wynik "w trakcie"). Pod nim, każdy w nowej linii, kolejne
+// zarchiwizowane (zakończone) lata — od najnowszego do najstarszego.
+// Z nadejściem Nowego Roku bieżący wiersz zeruje się i zaczyna liczyć od
+// nowa, a poprzedni rok "spada" na stałe do listy poniżej.
+function buildYearRecordsHtml(kind){
+  const unitLabel = kind==="movies" ? "filmów" : "odcinków";
+  const rowHtml = (s, inProgress) => {
+    const label = inProgress ? `${s.year} rok (w trakcie):` : `${s.year} rok:`;
+    return `<div class="stats-row"><div class="label">${label}</div><div class="value">${s.count} ${unitLabel} · śr. ${formatAvgNumber(s.perDay)}/dzień · ${formatDuration(s.minutes)}</div></div>`;
+  };
+
+  const current = computeCurrentYearLiveStats(kind);
+  let html = rowHtml(current, true);
+
+  const data = (db.year_stats && db.year_stats[kind]) || {};
+  const years = Object.keys(data).map(Number).filter(Number.isInteger).sort((a,b)=>b-a);
+  html += years.map(y=>rowHtml(data[y], false)).join("");
+  return html;
+}
+
+function openYearRecordsDialog(kind){
+  const title = kind==="movies" ? "Rekordy roczne — Filmy" : "Rekordy roczne — Seriale";
+  const overlay = openOverlay(`
+    <div class="modal-header">${escapeHtml(title)}</div>
+    <div class="modal-body">${buildYearRecordsHtml(kind)}</div>
+    <div class="modal-footer">
+      <button class="btn" id="year-records-close-btn">Zamknij</button>
+    </div>
+  `);
+  function finish(){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); }
+  function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Enter"||e.key==="Escape") finish(); }
+  overlay.querySelector("#year-records-close-btn").addEventListener("click", finish);
+  document.addEventListener("keydown", onKey);
+}
+
+document.getElementById("btn-year-records-movies")?.addEventListener("click", ()=>openYearRecordsDialog("movies"));
+document.getElementById("btn-year-records-episodes")?.addEventListener("click", ()=>openYearRecordsDialog("episodes"));
 
 // Zlicza gatunki dla danego typu (film/serial) wśród pozycji uznanych za
 // oglądane/obejrzane (filmy: zakończone; seriale: oglądane/zakończone/wstrzymane).
