@@ -75,14 +75,24 @@ function collectWatchedDates(kind){
 }
 
 // Liczy średnią dzienną/tygodniową/miesięczną na podstawie dat obejrzenia.
-// Średnia = liczba obejrzanych pozycji z zapisaną datą / liczba dni od
-// najwcześniejszej zapisanej daty do teraz.
+// Początek doby (00:00 czasu lokalnego) dla danego timestampu.
+function startOfDayLocal(ts){
+  const d = new Date(ts);
+  d.setHours(0,0,0,0);
+  return d.getTime();
+}
+
+// Liczy średnią dzienną/tygodniową/miesięczną na podstawie dat obejrzenia.
+// Średnia = liczba obejrzanych pozycji z zapisaną datą / liczba DNI KALENDARZOWYCH
+// od najwcześniejszej zapisanej daty do dziś (włącznie z obydwoma dniami skrajnymi).
+// Np. 2 odcinki w poniedziałek + 3 we wtorek = 5 odcinków / 2 dni = 2,5 dziennie
+// (a nie 5, jak przy liczeniu "gołego" czasu, który dawałby ~1 dobę różnicy).
 function computeAverageStats(kind){
   const dates = collectWatchedDates(kind);
   if (!dates.length) return {count: 0, perDay: 0, perWeek: 0, perMonth: 0, days: 0, hasData: false};
   const earliest = Math.min(...dates);
-  // Rzeczywisty czas obserwacji (min. 1 dzien, zeby nie dzielic przez zero).
-  const days = Math.max(1, (Date.now() - earliest) / 86400000);
+  // Liczba dni kalendarzowych obserwacji (min. 1, zeby nie dzielic przez zero).
+  const days = Math.max(1, Math.round((startOfDayLocal(Date.now()) - startOfDayLocal(earliest)) / 86400000) + 1);
   const perDay = dates.length / days;
   // Sredniej tygodniowej/miesiecznej nie ekstrapolujemy w gore, dopoki nie minal
   // pelny tydzien/miesiac — inaczej 1 odcinek obejrzany dzis dawal "7 tygodniowo".

@@ -93,7 +93,6 @@ function openViewDialog(id){
         <div class="inner-tabs">
           <button class="tab-btn active" id="vtab-info" type="button">Informacje</button>
           <button class="tab-btn" id="vtab-desc" type="button">Opis</button>
-          <button class="tab-btn" id="vtab-cast" type="button">Obsada</button>
           ${type===TYPE_SERIES ? '<button class="tab-btn" id="vtab-seasons" type="button">Sezony i odcinki</button>' : ''}
         </div>
         <div class="tab-scroll">
@@ -116,15 +115,10 @@ function openViewDialog(id){
           <div id="vpane-desc" style="display:none;">
             <div class="tmdb-status" id="view-desc-status"></div>
             <div class="desc-text" id="view-desc-text"></div>
+            <div class="view-row" id="view-cast-row" style="margin-top:14px;"></div>
+            <div class="view-row" id="view-creators-row"></div>
             <div style="margin-top:12px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
-            </div>
-          </div>
-          <div id="vpane-cast" style="display:none;">
-            <div class="tmdb-status" id="view-cast-status"></div>
-            <div class="desc-text" id="view-cast-text"></div>
-            <div style="margin-top:12px;">
-              <button class="btn small secondary" id="view-cast-fetch-btn" type="button">Pobierz obsadę</button>
             </div>
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
@@ -196,33 +190,26 @@ function openViewDialog(id){
       const cur = findItem(id) || item;
       const textEl = overlay.querySelector("#view-desc-text");
       const fetchBtn = overlay.querySelector("#view-desc-fetch-btn");
+      const hasAny = (cur.description && cur.description.trim()) || (cur.cast && cur.cast.length) || (cur.creators && cur.creators.length);
       if (cur.description && cur.description.trim()) {
         textEl.textContent = cur.description;
         textEl.classList.remove("muted");
-        fetchBtn.textContent = "Odśwież opis";
       } else {
         textEl.textContent = "Brak opisu.";
         textEl.classList.add("muted");
-        fetchBtn.textContent = "Pobierz opis";
       }
+      fetchBtn.textContent = hasAny ? "Odśwież opis" : "Pobierz opis";
+
+      const castRow = overlay.querySelector("#view-cast-row");
+      const castTxt = (cur.cast && cur.cast.length) ? cur.cast.join(", ") : "—";
+      castRow.innerHTML = `<div class="vlabel">Obsada:</div><div class="vval">${escapeHtml(castTxt)}</div>`;
+
+      const creatorsRow = overlay.querySelector("#view-creators-row");
+      const creatorsLabel = cur.type===TYPE_MOVIE ? "Reżyseria:" : "Twórcy:";
+      const creatorsTxt = (cur.creators && cur.creators.length) ? cur.creators.join(", ") : "—";
+      creatorsRow.innerHTML = `<div class="vlabel">${creatorsLabel}</div><div class="vval">${escapeHtml(creatorsTxt)}</div>`;
     }
     refreshDescPane();
-
-    function refreshCastPane(){
-      const cur = findItem(id) || item;
-      const textEl = overlay.querySelector("#view-cast-text");
-      const fetchBtn = overlay.querySelector("#view-cast-fetch-btn");
-      if (cur.cast && cur.cast.length) {
-        textEl.textContent = cur.cast.join("\n");
-        textEl.classList.remove("muted");
-        fetchBtn.textContent = "Odśwież obsadę";
-      } else {
-        textEl.textContent = "Brak informacji o obsadzie.";
-        textEl.classList.add("muted");
-        fetchBtn.textContent = "Pobierz obsadę";
-      }
-    }
-    refreshCastPane();
 
     function refreshPoster(){
       const cur = findItem(id) || item;
@@ -316,17 +303,14 @@ function openViewDialog(id){
 
     const vtabInfo = overlay.querySelector("#vtab-info");
     const vtabDesc = overlay.querySelector("#vtab-desc");
-    const vtabCast = overlay.querySelector("#vtab-cast");
     const vtabSeasons = overlay.querySelector("#vtab-seasons");
     const vpaneInfo = overlay.querySelector("#vpane-info");
     const vpaneDesc = overlay.querySelector("#vpane-desc");
-    const vpaneCast = overlay.querySelector("#vpane-cast");
     const vpaneSeasons = overlay.querySelector("#vpane-seasons");
 
     const viewTabs = [
       {tab: vtabInfo, pane: vpaneInfo},
       {tab: vtabDesc, pane: vpaneDesc, onShow: refreshDescPane},
-      {tab: vtabCast, pane: vpaneCast, onShow: refreshCastPane},
     ];
     if (vtabSeasons) viewTabs.push({tab: vtabSeasons, pane: vpaneSeasons, onShow: refreshSeasonsPane});
 
@@ -341,45 +325,6 @@ function openViewDialog(id){
     for (const t of viewTabs) {
       t.tab.addEventListener("click", ()=>activateViewTab(t));
     }
-
-    overlay.querySelector("#view-cast-fetch-btn").addEventListener("click", async ()=>{
-      const btn = overlay.querySelector("#view-cast-fetch-btn");
-      const statusEl = overlay.querySelector("#view-cast-status");
-      btn.disabled = true;
-      const oldLabel = btn.textContent;
-      btn.textContent = "Pobieranie…";
-      statusEl.textContent = "";
-      statusEl.classList.remove("err");
-      try {
-        const cur = findItem(id) || item;
-        let tid = cur.tmdb_id;
-        if (!tid) {
-          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
-          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
-        }
-        if (!tid) {
-          statusEl.textContent = "Nie znaleziono pozycji w TMDb.";
-          statusEl.classList.add("err");
-          return;
-        }
-        const cast = await tmdbFetchCast(cur.type, tid);
-        if (cast && cast.length) {
-          cur.cast = cast;
-          saveToLocalStorage();
-          setDirty(true);
-          statusEl.textContent = "Obsada pobrana.";
-        } else {
-          statusEl.textContent = "Brak informacji o obsadzie w TMDb dla tej pozycji.";
-        }
-      } catch(err) {
-        statusEl.textContent = err.message || String(err);
-        statusEl.classList.add("err");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = oldLabel;
-        refreshCastPane();
-      }
-    });
 
     overlay.querySelector("#view-desc-fetch-btn").addEventListener("click", async ()=>{
       const btn = overlay.querySelector("#view-desc-fetch-btn");
@@ -401,14 +346,24 @@ function openViewDialog(id){
           statusEl.classList.add("err");
           return;
         }
+        const updated = [];
         const overview = await tmdbOverview(cur.type, tid);
-        if (overview) {
-          cur.description = overview;
+        if (overview) { cur.description = overview; updated.push("opis"); }
+        try {
+          const cast = await tmdbFetchCast(cur.type, tid);
+          if (cast && cast.length) { cur.cast = cast; updated.push("obsadę"); }
+        } catch(err) { /* brak obsady nie jest błędem krytycznym */ }
+        try {
+          const creators = await tmdbFetchCreators(cur.type, tid);
+          if (creators && creators.length) { cur.creators = creators; updated.push(cur.type===TYPE_MOVIE ? "reżyserię" : "twórców"); }
+        } catch(err) { /* brak twórców nie jest błędem krytycznym */ }
+
+        if (updated.length) {
           saveToLocalStorage();
           setDirty(true);
-          statusEl.textContent = "Opis pobrany.";
+          statusEl.textContent = "Zaktualizowano: " + updated.join(", ") + ".";
         } else {
-          statusEl.textContent = "Brak opisu w TMDb dla tej pozycji.";
+          statusEl.textContent = "Brak danych w TMDb dla tej pozycji.";
         }
       } catch(err) {
         statusEl.textContent = err.message || String(err);

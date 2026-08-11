@@ -138,6 +138,44 @@ async function tmdbFetchCast(type, id, limit){
   return tmdbCastNames(data, limit);
 }
 
+// Wyciąga listę twórców: dla filmu — reżyser(zy) z ekipy (crew), dla serialu —
+// twórców serialu (created_by) z danych szczegółowych TMDb.
+function tmdbCreatorNames(type, data, credits){
+  if (type===TYPE_MOVIE) {
+    if (!credits || !Array.isArray(credits.crew)) return [];
+    const seen = new Set();
+    const out = [];
+    for (const c of credits.crew) {
+      if (!c || c.job!=="Director") continue;
+      const name = String(c.name||"").trim();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      out.push(`${name} (Reżyseria)`);
+    }
+    return out;
+  }
+  if (!data || !Array.isArray(data.created_by)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const c of data.created_by) {
+    const name = String((c && c.name) || "").trim();
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push(name);
+  }
+  return out;
+}
+
+// Pobiera listę twórców (reżyser filmu / twórcy serialu) dla pozycji o danym id TMDb.
+async function tmdbFetchCreators(type, id){
+  if (type===TYPE_MOVIE) {
+    const credits = await tmdbFetch("/movie/" + id + "/credits", {});
+    return tmdbCreatorNames(type, null, credits);
+  }
+  const data = await tmdbFetch("/tv/" + id, {});
+  return tmdbCreatorNames(type, data, null);
+}
+
 async function tmdbOverview(type, id){
   const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
   const data = await tmdbFetch(path, {});
