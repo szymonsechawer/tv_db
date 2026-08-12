@@ -209,18 +209,12 @@ function updateAverageStats(){
   renderMonthChart("stat-movies-month-chart", "movies");
   renderMonthChart("stat-episodes-month-chart", "episodes");
 
-  const movieAvg = computeAverageStats("movies");
   const epAvg = computeAverageStats("episodes");
-  document.getElementById("stat-movies-avg-day").textContent = movieAvg.hasData ? formatAvgNumber(movieAvg.perDay) : "—";
   document.getElementById("stat-episodes-avg-day").textContent = epAvg.hasData ? formatAvgNumber(epAvg.perDay) : "—";
 
-  document.getElementById("stat-movies-day-record").textContent = computeDayRecord("movies");
-  document.getElementById("stat-episodes-day-record").textContent = computeDayRecord("episodes");
-
-  const movieMinAvg = computeAverageMinutesPerDay("movies");
   const epMinAvg = computeAverageMinutesPerDay("episodes");
-  document.getElementById("stat-movies-avg-time").textContent = movieMinAvg.hasData ? formatDuration(Math.round(movieMinAvg.perDay)) : "—";
-  document.getElementById("stat-episodes-avg-time").textContent = epMinAvg.hasData ? formatDuration(Math.round(epMinAvg.perDay)) : "—";
+  const epAvgTimeGeneralEl = document.getElementById("stat-episodes-avg-time-general");
+  if (epAvgTimeGeneralEl) epAvgTimeGeneralEl.textContent = epMinAvg.hasData ? formatDuration(Math.round(epMinAvg.perDay)) : "—";
 }
 
 // ============================================================
@@ -476,7 +470,7 @@ function computeCatchUp(){
 }
 
 function renderCatchUpInfo(){
-  const el = document.getElementById("stats-catchup-info");
+  const el = document.getElementById("stats-catchup-info-general");
   if (!el) return;
   const c = computeCatchUp();
   if (c.done) {
@@ -487,7 +481,6 @@ function renderCatchUpInfo(){
     el.innerHTML = `Zaległe odcinki: <strong>${c.backlog}</strong>. Brak danych o średniej — oznacz kilka odcinków jako obejrzane, aby obliczyć termin nadgonienia.`;
     return;
   }
-  el.innerHTML = `Zaległe odcinki: <strong>${c.backlog}</strong> · średnio <strong>${formatAvgNumber(c.avg.perDay)}</strong> odc./dzień `
-    + `(${formatAvgNumber(c.avg.perWeek)} tyg.) · nadgonisz za <strong>${c.days} ${plDays(c.days)}</strong>, `
-    + `czyli około <strong>${c.dateText}</strong>.`;
+  el.innerHTML = `Zaległe odcinki nadgonisz za <strong>${c.days} ${plDays(c.days)}</strong>.`
+    + `<br>Około <strong>${c.dateText}</strong>.`;
 }
