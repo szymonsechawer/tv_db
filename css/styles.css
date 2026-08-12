@@ -263,7 +263,9 @@
   .week-chart.months .week-chart-value{font-size:10px;}
   .week-chart.months .week-chart-label{font-size:10px;}
 
-  .chart-total{font-size:32px;font-weight:800;color:var(--text-light);text-align:center;margin-top:2px;}
+  .chart-total{font-size:14px;font-weight:800;color:var(--text-light);text-align:center;margin-top:2px;}
+
+  .stats-row.nowrap-label .label{width:auto;white-space:nowrap;margin-right:24px;}
 
   .genre-stats-list{display:flex;flex-direction:column;gap:9px;}
   .genre-stat-row{display:flex;align-items:center;gap:10px;}
@@ -428,12 +430,4 @@
   }
 }
 
-/* Prognoza nadgonienia zaległych odcinków (dół zakładki Seriale) */
-.catchup-box{
-  margin-top:14px;
-  padding:10px 12px;
-  border:1px solid var(--border, #ccc);
-  border-radius:8px;
-  font-size:13px;
-  opacity:.9;
-}
+/* (usunięto .catchup-box — prognoza nadgonienia jest teraz w standardowych .stats-row) */

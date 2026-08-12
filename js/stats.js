@@ -478,17 +478,26 @@ function computeCatchUp(){
 }
 
 function renderCatchUpInfo(){
-  const el = document.getElementById("stats-catchup-info-general");
-  if (!el) return;
+  const labelEl = document.getElementById("stat-catchup-label");
+  const valueEl = document.getElementById("stat-catchup-value");
+  const dateRow = document.getElementById("stat-catchup-date-row");
+  const dateEl = document.getElementById("stat-catchup-date");
+  if (!labelEl || !valueEl) return;
   const c = computeCatchUp();
   if (c.done) {
-    el.innerHTML = `<strong>Nadgonione!</strong> Nie masz żadnych zaległych odcinków.`;
+    labelEl.textContent = "Zaległe odcinki:";
+    valueEl.textContent = "Nadgonione! 🎉";
+    if (dateRow) dateRow.style.display = "none";
     return;
   }
   if (c.unknown) {
-    el.innerHTML = `Zaległe odcinki: <strong>${c.backlog}</strong>. Brak danych o średniej — oznacz kilka odcinków jako obejrzane, aby obliczyć termin nadgonienia.`;
+    labelEl.textContent = "Zaległe odcinki:";
+    valueEl.textContent = `${c.backlog} (brak danych o średniej)`;
+    if (dateRow) dateRow.style.display = "none";
     return;
   }
-  el.innerHTML = `Zaległe odcinki nadgonisz za <strong>${c.days} ${plDays(c.days)}</strong>.`
-    + `<br>Około <strong>${c.dateText}</strong>.`;
+  labelEl.textContent = "Zaległe odcinki nadgonisz za:";
+  valueEl.textContent = `${c.days} ${plDays(c.days)}`;
+  if (dateRow) dateRow.style.display = "";
+  if (dateEl) dateEl.textContent = c.dateText;
 }

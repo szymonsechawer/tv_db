@@ -93,15 +93,11 @@
             <div class="stats-row"><div class="label">Łączny czas obejrzanych odcinków:</div><div class="value" id="stat-episodes-time">0 minut</div></div>
             <div class="stats-row"><div class="label">Średnio dziennie:</div><div class="value" id="stat-episodes-avg-day">0</div></div>
             <div class="stats-row"><div class="label">Średni czas dziennie:</div><div class="value" id="stat-episodes-avg-time-general">0 minut</div></div>
-            <div class="catchup-box" id="stats-catchup-info-general"></div>
+            <div class="stats-row"><div class="label" id="stat-catchup-label">Zaległe odcinki nadgonisz za:</div><div class="value" id="stat-catchup-value">-</div></div>
+            <div class="stats-row" id="stat-catchup-date-row"><div class="label">Około:</div><div class="value" id="stat-catchup-date">-</div></div>
           </div>
         </div>
         <div class="status-pane" id="pane-stats-movies">
-          <div class="stats-section">
-            <h3>Najczęściej oglądane gatunki — Filmy</h3>
-            <div class="genre-stats-list" id="stat-genres-movies-list"></div>
-            <div class="muted" id="stat-genres-movies-empty" style="display:none;">Brak danych o gatunkach — użyj przycisku „Sprawdź ponownie i zaktualizuj” w Ustawieniach, aby je pobrać.</div>
-          </div>
           <div class="stats-section">
             <h3>Filmy obejrzane w tym tygodniu</h3>
             <div class="week-chart" id="stat-movies-week-chart"></div>
@@ -112,14 +108,14 @@
             <div class="week-chart months" id="stat-movies-month-chart"></div>
             <div class="chart-total" id="stat-movies-year-total">0</div>
           </div>
+          <div class="stats-section">
+            <h3>Najczęściej oglądane gatunki — Filmy</h3>
+            <div class="genre-stats-list" id="stat-genres-movies-list"></div>
+            <div class="muted" id="stat-genres-movies-empty" style="display:none;">Brak danych o gatunkach — użyj przycisku „Sprawdź ponownie i zaktualizuj” w Ustawieniach, aby je pobrać.</div>
+          </div>
           <button class="btn secondary" id="btn-year-records-movies" type="button" style="margin-top:4px;">Rekordy roczne — Filmy</button>
         </div>
         <div class="status-pane" id="pane-stats-series">
-          <div class="stats-section">
-            <h3>Najczęściej oglądane gatunki — Seriale</h3>
-            <div class="genre-stats-list" id="stat-genres-series-list"></div>
-            <div class="muted" id="stat-genres-series-empty" style="display:none;">Brak danych o gatunkach — użyj przycisku „Sprawdź ponownie i zaktualizuj” w Ustawieniach, aby je pobrać.</div>
-          </div>
           <div class="stats-section">
             <h3>Odcinki obejrzane w tym tygodniu</h3>
             <div class="week-chart" id="stat-episodes-week-chart"></div>
@@ -129,6 +125,11 @@
             <h3>Odcinki obejrzane w tym roku</h3>
             <div class="week-chart months" id="stat-episodes-month-chart"></div>
             <div class="chart-total" id="stat-episodes-year-total">0</div>
+          </div>
+          <div class="stats-section">
+            <h3>Najczęściej oglądane gatunki — Seriale</h3>
+            <div class="genre-stats-list" id="stat-genres-series-list"></div>
+            <div class="muted" id="stat-genres-series-empty" style="display:none;">Brak danych o gatunkach — użyj przycisku „Sprawdź ponownie i zaktualizuj” w Ustawieniach, aby je pobrać.</div>
           </div>
           <button class="btn secondary" id="btn-year-records-episodes" type="button" style="margin-top:4px;">Rekordy roczne — Seriale</button>
         </div>
