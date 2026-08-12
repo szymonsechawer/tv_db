@@ -348,7 +348,7 @@ function buildYearRecordsHtml(kind){
   const unitLabel = kind==="movies" ? "filmów" : "odcinków";
   const rowHtml = (s, inProgress) => {
     const label = inProgress ? `${s.year} rok (w trakcie):` : `${s.year} rok:`;
-    return `<div class="stats-row"><div class="label">${label}</div><div class="value">${s.count} ${unitLabel} · śr. ${formatAvgNumber(s.perDay)}/dzień · ${formatDuration(s.minutes)}</div></div>`;
+    return `<div class="stats-row"><div class="label">${label}</div><div class="value">${s.count} ${unitLabel} · ${formatDuration(s.minutes)}</div></div>`;
   };
 
   const current = computeCurrentYearLiveStats(kind);
@@ -361,7 +361,7 @@ function buildYearRecordsHtml(kind){
 }
 
 function openYearRecordsDialog(kind){
-  const title = kind==="movies" ? "Rekordy roczne — Filmy" : "Rekordy roczne — Seriale";
+  const title = kind==="movies" ? "Podsumowanie — Filmy" : "Podsumowanie — Seriale";
   const overlay = openOverlay(`
     <div class="modal-header">${escapeHtml(title)}</div>
     <div class="modal-body">${buildYearRecordsHtml(kind)}</div>
