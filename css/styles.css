@@ -263,6 +263,8 @@
   .week-chart.months .week-chart-value{font-size:10px;}
   .week-chart.months .week-chart-label{font-size:10px;}
 
+  .chart-total{font-size:32px;font-weight:800;color:var(--text-light);text-align:center;margin-top:2px;}
+
   .genre-stats-list{display:flex;flex-direction:column;gap:9px;}
   .genre-stat-row{display:flex;align-items:center;gap:10px;}
   .genre-stat-name{width:160px;flex-shrink:0;color:var(--text-light);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

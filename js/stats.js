@@ -170,7 +170,7 @@ function computeDayRecord(kind){
   return max;
 }
 
-function renderWeekChart(elId, kind){
+function renderWeekChart(elId, kind, totalElId){
   const el = document.getElementById(elId);
   if (!el) return;
   const {days, max} = computeWeekChartData(kind);
@@ -186,6 +186,10 @@ function renderWeekChart(elId, kind){
       </div>
     `;
   }).join("");
+  if (totalElId) {
+    const totalEl = document.getElementById(totalElId);
+    if (totalEl) totalEl.textContent = days.reduce((acc,d)=>acc+d.count, 0);
+  }
 }
 
 // Liczy średni dzienny czas oglądania (w minutach) na podstawie zapisanych
@@ -204,10 +208,10 @@ function computeAverageMinutesPerDay(kind){
 function updateAverageStats(){
   archiveCompletedYears();
 
-  renderWeekChart("stat-movies-week-chart", "movies");
-  renderWeekChart("stat-episodes-week-chart", "episodes");
-  renderMonthChart("stat-movies-month-chart", "movies");
-  renderMonthChart("stat-episodes-month-chart", "episodes");
+  renderWeekChart("stat-movies-week-chart", "movies", "stat-movies-week-total");
+  renderWeekChart("stat-episodes-week-chart", "episodes", "stat-episodes-week-total");
+  renderMonthChart("stat-movies-month-chart", "movies", "stat-movies-year-total");
+  renderMonthChart("stat-episodes-month-chart", "episodes", "stat-episodes-year-total");
 
   const epAvg = computeAverageStats("episodes");
   document.getElementById("stat-episodes-avg-day").textContent = epAvg.hasData ? formatAvgNumber(epAvg.perDay) : "—";
@@ -259,7 +263,7 @@ function computeMonthChartData(kind){
   return {months, max};
 }
 
-function renderMonthChart(elId, kind){
+function renderMonthChart(elId, kind, totalElId){
   const el = document.getElementById(elId);
   if (!el) return;
   const {months, max} = computeMonthChartData(kind);
@@ -275,6 +279,10 @@ function renderMonthChart(elId, kind){
       </div>
     `;
   }).join("");
+  if (totalElId) {
+    const totalEl = document.getElementById(totalElId);
+    if (totalEl) totalEl.textContent = months.reduce((acc,m)=>acc+m.count, 0);
+  }
 }
 
 function isLeapYear(y){ return (y%4===0 && y%100!==0) || y%400===0; }
