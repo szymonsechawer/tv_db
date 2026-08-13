@@ -117,7 +117,7 @@ function openViewDialog(id){
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
         <button class="btn" id="edit-from-view-btn">Edytuj</button>
-        <button class="btn danger-outline" id="delete-from-view-btn">Usuń</button>
+        <button class="btn" id="delete-from-view-btn">Usuń</button>
       </div>
     `, {wide:true});
 
