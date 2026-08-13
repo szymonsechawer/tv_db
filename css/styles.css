@@ -278,10 +278,12 @@
     position:fixed;inset:0;background:rgba(0,0,0,.55);
     display:flex;align-items:center;justify-content:center;
     z-index:1000;padding:14px;
+    padding-top:max(14px, calc(env(safe-area-inset-top) + 14px));
+    padding-bottom:max(14px, calc(env(safe-area-inset-bottom) + 14px));
   }
   .modal{
     background:var(--bg-dark);border-radius:12px;border:1px solid var(--border);
-    max-width:560px;width:100%;max-height:92vh;display:flex;flex-direction:column;
+    max-width:560px;width:100%;max-height:80vh;max-height:80dvh;display:flex;flex-direction:column;
     box-shadow:0 10px 40px rgba(0,0,0,.5);
   }
   .modal.wide{max-width:640px;}
@@ -418,7 +420,7 @@
     .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
     .progress-cell .prog-toprow{font-size:11px;}
     #db-name-badge{margin-left:0;text-align:left;width:100%;}
-    .modal{max-height:96vh;max-height:96dvh;}
+    .modal{max-height:78vh;max-height:78dvh;}
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}
     .view-row .vlabel{min-width:92px;width:92px;font-size:13px;}
