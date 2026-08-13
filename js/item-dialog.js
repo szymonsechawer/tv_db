@@ -275,13 +275,12 @@ function openViewDialog(id){
           const total = (season.episodes||[]).length;
           const watched = (season.episodes||[]).filter(e=>e.watched).length;
           const pct = total>0 ? Math.round((watched/total)*100) : 0;
-          const pctClass = pct>=100 ? "pct-full" : (pct>50 ? "pct-mid" : "pct-low");
           const isCollapsed = collapsedSeasons.has(season.number);
           box.innerHTML = `
             <div class="season-title season-title-toggle">
               <span class="season-toggle-arrow">${isCollapsed ? "▶" : "▼"}</span>
               <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
-              <span class="season-pct ${pctClass}">${pct}%</span>
+              <span class="season-pct">${pct}%</span>
             </div>
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;

@@ -193,10 +193,7 @@
   .progress-cell .prog-next{white-space:nowrap;font-weight:700;color:var(--text-light);}
   .progress-cell .prog-counts{white-space:nowrap;color:var(--text-muted);}
   .progress-bar-track{width:100%;height:6px;border-radius:4px;overflow:hidden;background:var(--bg-medium,#33383c);}
-  .progress-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .2s ease;}
-  .progress-bar-fill.pct-low{background:#e8c547;}
-  .progress-bar-fill.pct-mid{background:var(--accent);}
-  .progress-bar-fill.pct-full{background:#4caf50;}
+  .progress-bar-fill{height:100%;border-radius:4px;background:#fff;transition:width .2s ease;}
   table.data tbody tr{cursor:pointer;}
   @media (hover: hover) and (pointer: fine){
     table.data tbody tr:hover{background:#26313c;}
@@ -303,10 +300,10 @@
   .view-poster-placeholder{width:130px;height:195px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;text-align:center;padding:6px;}
   .poster-lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:2000;cursor:zoom-out;padding:20px;}
   .poster-lightbox-img{max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 6px 34px rgba(0,0,0,.65);}
-  .view-row{display:flex;flex-direction:column;gap:4px;padding:8px 0;border-bottom:1px solid var(--border,#333);text-align:left;}
+  .view-row{display:flex;flex-direction:row;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--border,#333);text-align:left;}
   .view-row:last-child{border-bottom:none;}
-  .view-row .vlabel{min-width:0;color:#9a9a9a;flex:none;font-weight:700;}
-  .view-row .vval{font-weight:600;flex:1;width:100%;word-break:break-word;text-align:left;}
+  .view-row .vlabel{min-width:110px;width:110px;flex:none;color:#9a9a9a;font-weight:700;}
+  .view-row .vval{font-weight:600;flex:1;min-width:0;word-break:break-word;text-align:left;}
   .desc-text{white-space:pre-wrap;line-height:1.55;font-size:14px;color:var(--text-light,#eee);}
   .desc-text.muted{color:var(--text-muted);}
   .view-row .vval.desc-inline{white-space:pre-wrap;line-height:1.5;}
@@ -334,10 +331,7 @@
   .season-title{font-weight:700;margin-bottom:8px;}
   .season-title-toggle{display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;user-select:none;padding:2px 0;}
   .season-toggle-arrow{flex-shrink:0;font-size:11px;color:var(--text-muted);width:12px;display:inline-block;}
-  .season-pct{margin-left:auto;flex-shrink:0;font-size:13px;font-weight:700;padding-left:8px;}
-  .season-pct.pct-low{color:#e8c547;}
-  .season-pct.pct-mid{color:var(--accent);}
-  .season-pct.pct-full{color:#4caf50;}
+  .season-pct{margin-left:auto;flex-shrink:0;font-size:13px;font-weight:700;padding-left:8px;color:#fff;}
   .season-box .episodes-list{margin-top:8px;}
   .season-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
   .episodes-list{display:flex;flex-direction:column;gap:4px;padding-left:8px;}
@@ -427,6 +421,7 @@
     .modal{max-height:96vh;max-height:96dvh;}
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}
+    .view-row .vlabel{min-width:92px;width:92px;font-size:13px;}
     .season-actions .btn.small{min-height:36px;padding:8px 12px;}
     .episode-row{align-items:flex-start;}
     .episode-row label{flex:1 1 100%;min-width:0;}

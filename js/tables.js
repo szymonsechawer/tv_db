@@ -254,7 +254,6 @@ function renderTable(type, status){
           track.className = "progress-bar-track";
           const fill = document.createElement("div");
           fill.className = "progress-bar-fill";
-          fill.classList.add(pct>=90 ? "pct-full" : (pct>50 ? "pct-mid" : "pct-low"));
           fill.style.width = pct + "%";
           track.appendChild(fill);
           wrap.appendChild(top);
