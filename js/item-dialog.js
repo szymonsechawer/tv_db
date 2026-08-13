@@ -251,6 +251,8 @@ function openViewDialog(id){
       }
     }
 
+    let collapsedSeasons = new Set((item.seasons||[]).map(s=>s.number));
+
     function refreshSeasonsPane(){
       if (type!==TYPE_SERIES) return;
       const cur = findItem(id) || item;
@@ -269,12 +271,25 @@ function openViewDialog(id){
         for (const season of sorted) {
           const box = document.createElement("div");
           box.className = "season-box";
-          box.style.marginBottom = "10px";
+          box.style.marginBottom = "8px";
           const total = (season.episodes||[]).length;
+          const watched = (season.episodes||[]).filter(e=>e.watched).length;
+          const pct = total>0 ? Math.round((watched/total)*100) : 0;
+          const pctClass = pct>=100 ? "pct-full" : (pct>50 ? "pct-mid" : "pct-low");
+          const isCollapsed = collapsedSeasons.has(season.number);
           box.innerHTML = `
-            <div class="season-title">Sezon ${season.number} (${total} odc.)</div>
-            <div class="episodes-list"></div>
+            <div class="season-title season-title-toggle">
+              <span class="season-toggle-arrow">${isCollapsed ? "▶" : "▼"}</span>
+              <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
+              <span class="season-pct ${pctClass}">${pct}%</span>
+            </div>
+            <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;
+          box.querySelector(".season-title-toggle").addEventListener("click", ()=>{
+            if (collapsedSeasons.has(season.number)) collapsedSeasons.delete(season.number);
+            else collapsedSeasons.add(season.number);
+            refreshSeasonsPane();
+          });
           const epsList = box.querySelector(".episodes-list");
           if (total===0) {
             const p = document.createElement("div");

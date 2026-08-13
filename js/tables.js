@@ -206,14 +206,12 @@ function renderTable(type, status){
     });
   }
 
-  const arrow = reverse ? " ▼" : " ▲";
   thead.innerHTML = "";
   const trH = document.createElement("tr");
   for (const col of columns) {
     const th = document.createElement("th");
     th.className = `col-${col}`;
-    th.textContent = COL_LABELS[col] + (col===sortCol ? arrow : "");
-    th.addEventListener("click", ()=> onSort(key, col));
+    th.textContent = COL_LABELS[col];
     trH.appendChild(th);
   }
   thead.appendChild(trH);
@@ -256,6 +254,7 @@ function renderTable(type, status){
           track.className = "progress-bar-track";
           const fill = document.createElement("div");
           fill.className = "progress-bar-fill";
+          fill.classList.add(pct>=90 ? "pct-full" : (pct>50 ? "pct-mid" : "pct-low"));
           fill.style.width = pct + "%";
           track.appendChild(fill);
           wrap.appendChild(top);
@@ -295,16 +294,6 @@ function renderTable(type, status){
     }
     return "";
   }
-}
-
-function onSort(key, column){
-  const [curCol, curRev] = sortState[key];
-  let reverse;
-  if (curCol === column) reverse = !curRev;
-  else reverse = false;
-  sortState[key] = [column, reverse];
-  const [type, status] = key.split(":");
-  renderTable(type, status);
 }
 
 function renderAll(){
