@@ -77,22 +77,10 @@ function openViewDialog(id){
       timeTxt = sum ? `${sum} min` : "—";
     }
 
-    let bodyExtra = "";
-    if (type===TYPE_SERIES) {
-      bodyExtra = `
-        <div class="view-row" id="view-progress-row"></div>
-        <div id="mark-next-ep-wrap">
-          <button class="btn small" id="mark-next-ep-btn"></button>
-          <span id="mark-next-ep-title"></span>
-        </div>
-      `;
-    }
-
     const overlay = openOverlay(`
       <div class="modal-body has-tabs">
         <div class="inner-tabs">
           <button class="tab-btn active" id="vtab-info" type="button">Informacje</button>
-          <button class="tab-btn" id="vtab-desc" type="button">Opis</button>
           ${type===TYPE_SERIES ? '<button class="tab-btn" id="vtab-seasons" type="button">Sezony i odcinki</button>' : ''}
         </div>
         <div class="tab-scroll">
@@ -110,28 +98,21 @@ function openViewDialog(id){
             <div class="view-row" id="view-status-row"></div>
             <div class="view-row" id="view-rating-row"></div>
             <div class="view-row"><div class="vlabel">Tagi:</div><div class="vval"><div class="view-tags">${item.tags&&item.tags.length ? item.tags.map(t=>`<span class="view-tag">${escapeHtml(t)}</span>`).join("") : '<span class="muted">—</span>'}</div></div></div>
-            ${bodyExtra}
-          </div>
-          <div id="vpane-desc" style="display:none;">
+            <div class="view-row"><div class="vlabel">Opis:</div><div class="vval desc-inline" id="view-desc-text"></div></div>
+            <div class="view-row"><div class="vlabel">${type===TYPE_MOVIE ? "Reżyseria:" : "Twórcy:"}</div><div class="vval desc-inline" id="view-creators-text"></div></div>
+            <div class="view-row"><div class="vlabel">Obsada:</div><div class="vval desc-inline" id="view-cast-text"></div></div>
             <div class="tmdb-status" id="view-desc-status"></div>
-            <div class="desc-box">
-              <div class="desc-section-title">Opis</div>
-              <div class="desc-text" id="view-desc-text"></div>
-            </div>
-            <div class="desc-box">
-              <div class="desc-section-title">${type===TYPE_MOVIE ? "Reżyseria" : "Twórcy"}</div>
-              <div class="desc-text" id="view-creators-text"></div>
-            </div>
-            <div class="desc-box">
-              <div class="desc-section-title">Obsada</div>
-              <div class="desc-text" id="view-cast-text"></div>
-            </div>
-            <div style="margin-top:12px;">
+            <div style="margin-top:6px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
             </div>
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
         </div>
+        ${type===TYPE_SERIES ? `
+        <div id="mark-next-ep-wrap" style="display:none;">
+          <button class="btn small" id="mark-next-ep-btn" type="button"></button>
+          <span id="mark-next-ep-title"></span>
+        </div>` : ''}
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
@@ -173,25 +154,6 @@ function openViewDialog(id){
         }
       } catch(err) {
         // cicho ignoruj błąd pobierania gatunku - nie blokuje okna informacji
-      }
-    }
-
-    function refreshProgress(){
-      if (type!==TYPE_SERIES) return;
-      const cur = findItem(id) || item;
-      const p = formatProgress(cur);
-      const progRow = overlay.querySelector("#view-progress-row");
-      progRow.innerHTML = `<div class="vlabel">Postęp:</div><div class="vval">${escapeHtml(p.counts)}</div>`;
-      const btn = overlay.querySelector("#mark-next-ep-btn");
-      const titleEl = overlay.querySelector("#mark-next-ep-title");
-      if (p.next && p.next!=="✓") {
-        btn.style.display = "";
-        btn.textContent = `✔ ${p.next}`;
-        btn.disabled = false;
-        if (titleEl) titleEl.textContent = p.nextTitle || "";
-      } else {
-        btn.style.display = "none";
-        if (titleEl) titleEl.textContent = "";
       }
     }
 
@@ -271,64 +233,83 @@ function openViewDialog(id){
       openPosterLightbox(tmdbPosterUrl(cur.poster_path, "w780"));
     });
 
+    function refreshMarkNextEp(){
+      if (type!==TYPE_SERIES) return;
+      const cur = findItem(id) || item;
+      const p = formatProgress(cur);
+      const btn = overlay.querySelector("#mark-next-ep-btn");
+      const titleEl = overlay.querySelector("#mark-next-ep-title");
+      if (!btn) return;
+      if (p.next && p.next!=="✓") {
+        btn.style.display = "";
+        btn.textContent = `✔ ${p.next}`;
+        btn.disabled = false;
+        if (titleEl) titleEl.textContent = p.nextTitle || "";
+      } else {
+        btn.style.display = "none";
+        if (titleEl) titleEl.textContent = "";
+      }
+    }
+
     function refreshSeasonsPane(){
       if (type!==TYPE_SERIES) return;
       const cur = findItem(id) || item;
       const pane = overlay.querySelector("#vpane-seasons");
       if (!pane) return;
       pane.innerHTML = "";
+
       const seasons = cur.seasons || [];
       if (seasons.length===0) {
-        const p = document.createElement("div");
-        p.className = "muted";
-        p.textContent = "Brak sezonów.";
-        pane.appendChild(p);
-        return;
-      }
-      const sorted = [...seasons].sort((a,b)=>(a.number||0)-(b.number||0));
-      for (const season of sorted) {
-        const box = document.createElement("div");
-        box.className = "season-box";
-        box.style.marginBottom = "10px";
-        const total = (season.episodes||[]).length;
-        box.innerHTML = `
-          <div class="season-title">Sezon ${season.number} (${total} odc.)</div>
-          <div class="episodes-list"></div>
-        `;
-        const epsList = box.querySelector(".episodes-list");
-        if (total===0) {
-          const p = document.createElement("div");
-          p.className = "muted";
-          p.textContent = "Brak odcinków w tym sezonie.";
-          epsList.appendChild(p);
-        } else {
-          const sortedEps = [...season.episodes].sort((a,b)=>(a.number||0)-(b.number||0));
-          for (const ep of sortedEps) {
-            const row = document.createElement("div");
-            row.className = "episode-row ep-static";
-            row.innerHTML = `
-              <label>${ep.watched ? '<span class="ep-check">✓</span>' : ''}<span class="ep-num">${ep.number}.</span><span class="ep-title-static">${escapeHtml(ep.title || ("Odcinek " + ep.number))}</span></label>
-              <span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>
-            `;
-            epsList.appendChild(row);
+        const emptyMsg = document.createElement("div");
+        emptyMsg.className = "muted";
+        emptyMsg.textContent = "Brak sezonów.";
+        pane.appendChild(emptyMsg);
+      } else {
+        const sorted = [...seasons].sort((a,b)=>(a.number||0)-(b.number||0));
+        for (const season of sorted) {
+          const box = document.createElement("div");
+          box.className = "season-box";
+          box.style.marginBottom = "10px";
+          const total = (season.episodes||[]).length;
+          box.innerHTML = `
+            <div class="season-title">Sezon ${season.number} (${total} odc.)</div>
+            <div class="episodes-list"></div>
+          `;
+          const epsList = box.querySelector(".episodes-list");
+          if (total===0) {
+            const p = document.createElement("div");
+            p.className = "muted";
+            p.textContent = "Brak odcinków w tym sezonie.";
+            epsList.appendChild(p);
+          } else {
+            const sortedEps = [...season.episodes].sort((a,b)=>(a.number||0)-(b.number||0));
+            for (const ep of sortedEps) {
+              const row = document.createElement("div");
+              row.className = "episode-row ep-static";
+              row.innerHTML = `
+                <label>${ep.watched ? '<span class="ep-check">✓</span>' : ''}<span class="ep-num">${ep.number}.</span><span class="ep-title-static">${escapeHtml(ep.title || ("Odcinek " + ep.number))}</span></label>
+                <span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>
+              `;
+              epsList.appendChild(row);
+            }
           }
+          pane.appendChild(box);
         }
-        pane.appendChild(box);
       }
+
+      refreshMarkNextEp();
     }
 
     const vtabInfo = overlay.querySelector("#vtab-info");
-    const vtabDesc = overlay.querySelector("#vtab-desc");
     const vtabSeasons = overlay.querySelector("#vtab-seasons");
     const vpaneInfo = overlay.querySelector("#vpane-info");
-    const vpaneDesc = overlay.querySelector("#vpane-desc");
     const vpaneSeasons = overlay.querySelector("#vpane-seasons");
+    const markNextEpWrap = overlay.querySelector("#mark-next-ep-wrap");
 
     const viewTabs = [
       {tab: vtabInfo, pane: vpaneInfo},
-      {tab: vtabDesc, pane: vpaneDesc, onShow: refreshDescPane},
     ];
-    if (vtabSeasons) viewTabs.push({tab: vtabSeasons, pane: vpaneSeasons, onShow: refreshSeasonsPane});
+    if (vtabSeasons) viewTabs.push({tab: vtabSeasons, pane: vpaneSeasons, onShow: refreshSeasonsPane, showMarkNextEp: true});
 
     function activateViewTab(target){
       for (const t of viewTabs) {
@@ -336,10 +317,25 @@ function openViewDialog(id){
         t.tab.classList.toggle("active", active);
         t.pane.style.display = active ? "" : "none";
       }
+      if (markNextEpWrap) markNextEpWrap.style.display = target.showMarkNextEp ? "flex" : "none";
       if (target.onShow) target.onShow();
     }
     for (const t of viewTabs) {
       t.tab.addEventListener("click", ()=>activateViewTab(t));
+    }
+
+    if (type===TYPE_SERIES) {
+      overlay.querySelector("#mark-next-ep-btn").addEventListener("click", async (ev)=>{
+        const btn = ev.currentTarget;
+        btn.disabled = true;
+        btn.textContent = "Pobieranie…";
+        try {
+          await markNextEpisodeWatched(id);
+        } finally {
+          refreshStaticRows();
+          refreshSeasonsPane();
+        }
+      });
     }
 
     overlay.querySelector("#view-desc-fetch-btn").addEventListener("click", async ()=>{
@@ -391,7 +387,6 @@ function openViewDialog(id){
     });
 
     refreshStaticRows();
-    refreshProgress();
 
     requestAnimationFrame(()=>{
       const bodyEl = overlay.querySelector(".modal-body");
@@ -402,21 +397,6 @@ function openViewDialog(id){
         bodyEl.style.maxHeight = h + "px";
       }
     });
-
-    if (type===TYPE_SERIES) {
-      overlay.querySelector("#mark-next-ep-btn").addEventListener("click", async (ev)=>{
-        const btn = ev.currentTarget;
-        const prevText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Pobieranie…";
-        try {
-          await markNextEpisodeWatched(id);
-        } finally {
-          refreshStaticRows();
-          refreshProgress();
-        }
-      });
-    }
 
     function finish(result){
       closeOverlay(overlay);

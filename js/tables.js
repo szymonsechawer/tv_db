@@ -3,9 +3,13 @@
 // ============================================================
 
 function columnsFor(type, status){
-  if (status === STATUS_UPCOMING) return ["title","date","days","del"];
-  if (type === TYPE_SERIES) return ["title","date","progress","rating"];
-  return ["title","date","rating"];
+  if (status === STATUS_UPCOMING) return ["title","days","del"];
+  if (type === TYPE_SERIES) {
+    if (status === STATUS_WATCHING) return ["title","progress"];
+    if (status === STATUS_WATCHED) return ["title","rating"];
+    return ["title","date","progress","rating"];
+  }
+  return ["title","rating"];
 }
 
 function formatProgress(item){
@@ -104,9 +108,6 @@ function renderUpcomingTable(){
     const tdTitle = document.createElement("td");
     tdTitle.className = "col-title";
     tdTitle.textContent = row.title || "";
-    const tdDate = document.createElement("td");
-    tdDate.className = "col-date";
-    tdDate.textContent = formatDateDMY(row.air_date);
     const tdDays = document.createElement("td");
     tdDays.className = "col-days";
     tdDays.textContent = formatDaysLabel(row.days);
@@ -139,7 +140,6 @@ function renderUpcomingTable(){
     });
     tdDel.appendChild(addBtn);
     tr.appendChild(tdTitle);
-    tr.appendChild(tdDate);
     tr.appendChild(tdDays);
     tr.appendChild(tdDel);
     addDoubleActivation(tr, ()=>{ openUpcomingViewDialog(row); });
@@ -237,16 +237,29 @@ function renderTable(type, status){
         td.className = `col-${col}`;
         if (col === "progress") {
           const p = formatProgress(item);
+          let total = 0, watched = 0;
+          for (const s of item.seasons||[]) for (const e of s.episodes||[]) { total++; if (e.watched) watched++; }
+          const pct = total ? Math.round((watched/total)*100) : 0;
           const wrap = document.createElement("div");
           wrap.className = "progress-cell";
+          const top = document.createElement("div");
+          top.className = "prog-toprow";
           const next = document.createElement("span");
           next.className = "prog-next";
           next.textContent = (status === STATUS_WATCHED) ? "" : p.next;
           const cnt = document.createElement("span");
           cnt.className = "prog-counts";
-          cnt.textContent = (status === STATUS_WATCHING) ? "" : p.counts;
-          wrap.appendChild(next);
-          wrap.appendChild(cnt);
+          cnt.textContent = p.counts;
+          top.appendChild(next);
+          top.appendChild(cnt);
+          const track = document.createElement("div");
+          track.className = "progress-bar-track";
+          const fill = document.createElement("div");
+          fill.className = "progress-bar-fill";
+          fill.style.width = pct + "%";
+          track.appendChild(fill);
+          wrap.appendChild(top);
+          wrap.appendChild(track);
           td.appendChild(wrap);
         } else {
           td.textContent = cellValue(item, col, type);
