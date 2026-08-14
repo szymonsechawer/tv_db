@@ -8,6 +8,9 @@ function initTabs(){
   });
   const settingsIconBtn = document.getElementById("settings-icon-btn");
   if (settingsIconBtn) settingsIconBtn.addEventListener("click", ()=> switchMainTab("settings"));
+  const notesBtn = document.getElementById("btn-notes");
+  if (notesBtn) notesBtn.addEventListener("click", ()=> switchMainTab("notes"));
+
 
   for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
     const bar = document.getElementById(`subtabs-${type}`);
@@ -61,7 +64,10 @@ function switchMainTab(tab){
   });
   const _sib = document.getElementById("settings-icon-btn");
   if (_sib) _sib.classList.toggle("active", tab==="settings");
+  const _nb = document.getElementById("btn-notes");
+  if (_nb) _nb.classList.toggle("active", tab==="notes");
   document.querySelectorAll(".type-tab").forEach(el=>el.classList.remove("active"));
+
   document.getElementById(`tab-${tab}`).classList.add("active");
   if (tab===TYPE_MOVIE || tab===TYPE_SERIES) {
     switchStatusTab(tab, activeStatus[tab]);
