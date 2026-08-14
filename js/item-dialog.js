@@ -62,7 +62,8 @@ async function markNextEpisodeWatched(id){
   return null;
 }
 
-function openViewDialog(id){
+function openViewDialog(id, opts){
+  const readOnly = !!(opts && opts.readOnly);
   return new Promise(resolve=>{
     const item = findItem(id);
     if (!item) { resolve(null); return; }
@@ -119,7 +120,7 @@ function openViewDialog(id){
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
-        <button class="btn" id="edit-from-view-btn">Edytuj</button>
+        ${readOnly ? "" : '<button class="btn" id="edit-from-view-btn">Edytuj</button>'}
         <button class="btn" id="delete-from-view-btn">Usuń</button>
       </div>
     `, {wide:true});
@@ -293,6 +294,7 @@ function openViewDialog(id){
       const btn = overlay.querySelector("#mark-next-ep-btn");
       const titleEl = overlay.querySelector("#mark-next-ep-title");
       if (!btn) return;
+      if (readOnly) { btn.style.display = "none"; if (titleEl) titleEl.textContent = ""; return; }
       if (p.next && p.next!=="✓") {
         btn.style.display = "";
         btn.textContent = `✔ ${p.next}`;
@@ -384,14 +386,14 @@ function openViewDialog(id){
         t.tab.classList.toggle("active", active);
         t.pane.style.display = active ? "" : "none";
       }
-      if (markNextEpWrap) markNextEpWrap.style.display = target.showMarkNextEp ? "flex" : "none";
+      if (markNextEpWrap) markNextEpWrap.style.display = (target.showMarkNextEp && !readOnly) ? "flex" : "none";
       if (target.onShow) target.onShow();
     }
     for (const t of viewTabs) {
       t.tab.addEventListener("click", ()=>activateViewTab(t));
     }
 
-    if (type===TYPE_SERIES) {
+    if (type===TYPE_SERIES && !readOnly) {
       overlay.querySelector("#mark-next-ep-btn").addEventListener("click", async (ev)=>{
         const btn = ev.currentTarget;
         btn.disabled = true;
@@ -491,7 +493,7 @@ function openViewDialog(id){
       renderAll();
       finish(null);
     });
-    overlay.querySelector("#edit-from-view-btn").addEventListener("click", async ()=>{
+    if (!readOnly) overlay.querySelector("#edit-from-view-btn").addEventListener("click", async ()=>{
       finish(null);
       await openEditDialog(id);
     });

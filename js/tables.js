@@ -353,7 +353,7 @@ function renderPlannedTable(){
     tr.appendChild(tdDel);
     if (!entry.legacy) {
       tr.style.cursor = "pointer";
-      tr.addEventListener("click", ()=>{ openViewDialog(entry.id); });
+      tr.addEventListener("click", ()=>{ openViewDialog(entry.id, {readOnly:true}); });
     }
     tbody.appendChild(tr);
   }
