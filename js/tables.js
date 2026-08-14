@@ -302,8 +302,85 @@ function renderAll(){
     }
   }
   renderNotesTab();
+  renderPlannedTable();
   updateStats();
   updateDbBadge();
+}
+
+function getPlannedRows(){
+  const fromItems = (db.items || []).filter(i=>i.status===STATUS_PLANNED && (i.type===TYPE_MOVIE || i.type===TYPE_SERIES));
+  const legacy = (db.planned || []).map(p=>({...p, legacy:true}));
+  return [...fromItems, ...legacy];
+}
+
+function renderPlannedTable(){
+  const tbody = document.getElementById("planned-tbody");
+  if (!tbody) return;
+  const rows = getPlannedRows();
+  tbody.innerHTML = "";
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    tr.className = "empty-row";
+    const td = document.createElement("td");
+    td.colSpan = 3;
+    td.textContent = "Brak planowanych pozycji.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+  for (const entry of rows) {
+    const tr = document.createElement("tr");
+    tr.dataset.id = entry.id;
+    const tdTitle = document.createElement("td");
+    tdTitle.className = "col-title";
+    tdTitle.textContent = entry.title || "";
+    const tdRodzaj = document.createElement("td");
+    tdRodzaj.className = "col-rodzaj";
+    tdRodzaj.textContent = entry.type === TYPE_SERIES ? "Serial" : "Film";
+    const tdDel = document.createElement("td");
+    tdDel.className = "col-del";
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn small secondary";
+    delBtn.textContent = "Usuń";
+    delBtn.addEventListener("click", async (e)=>{
+      e.stopPropagation();
+      await deletePlannedItem(entry.id);
+    });
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdTitle);
+    tr.appendChild(tdRodzaj);
+    tr.appendChild(tdDel);
+    if (!entry.legacy) {
+      tr.style.cursor = "pointer";
+      tr.addEventListener("click", ()=>{ openViewDialog(entry.id); });
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+async function deletePlannedItem(id){
+  const item = findItem(id);
+  if (item && item.status===STATUS_PLANNED) {
+    const ok = await showConfirm("Usuń z planowanych", `Czy na pewno usunąć „${item.title||""}” z planowanych?`);
+    if (!ok) return;
+    db.items = db.items.filter(i=>i.id!==id);
+    setDirty(true);
+    renderAll();
+    return;
+  }
+  await deleteLegacyPlannedItem(id);
+}
+
+async function deleteLegacyPlannedItem(id){
+
+  const entry = findPlanned(id);
+  if (!entry) return;
+  const ok = await showConfirm("Usuń z planowanych", `Czy na pewno usunąć „${entry.title}” z planowanych?`);
+  if (!ok) return;
+  db.planned = (db.planned || []).filter(p=>p.id!==id);
+  setDirty(true);
+  renderPlannedTable();
 }
 
 function getCurrentKey(){

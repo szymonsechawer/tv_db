@@ -131,8 +131,8 @@ function askAddType(){
     `);
     function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
-    overlay.querySelector("#add-type-movie").addEventListener("click", ()=>finish(TYPE_MOVIE));
-    overlay.querySelector("#add-type-series").addEventListener("click", ()=>finish(TYPE_SERIES));
+    overlay.querySelector("#add-type-movie").addEventListener("click", ()=>finish({type:TYPE_MOVIE}));
+    overlay.querySelector("#add-type-series").addEventListener("click", ()=>finish({type:TYPE_SERIES}));
     overlay.querySelector("#add-type-cancel").addEventListener("click", ()=>finish(null));
     document.addEventListener("keydown", onKey);
   });

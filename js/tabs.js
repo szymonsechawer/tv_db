@@ -67,6 +67,8 @@ function switchMainTab(tab){
     switchStatusTab(tab, activeStatus[tab]);
   } else if (tab==="notes") {
     renderNotesTab();
+  } else if (tab==="planned") {
+    renderPlannedTable();
   } else if (tab==="stats") {
     switchStatsTab(activeStatsTab);
   }

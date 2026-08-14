@@ -505,7 +505,7 @@ function openItemDialog({item, itemType}){
     let seasons = isNew ? [] : JSON.parse(JSON.stringify(item.seasons||[]));
     let innerTab = "basic";
 
-    const statusChoices = TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_PLANNED && s!==STATUS_UPCOMING);
+    const statusChoices = [...TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_PLANNED && s!==STATUS_UPCOMING), STATUS_PLANNED];
     const statusOptions = statusChoices.map(s=>STATUS_LABELS[s]);
     const defaultStatus = STATUS_LABELS[statusChoices[0]];
 
@@ -564,6 +564,22 @@ function openItemDialog({item, itemType}){
                 <input class="entry" id="f-creators-input" type="text" placeholder="${type===TYPE_MOVIE ? "dodaj reżysera i Enter" : "dodaj twórcę i Enter"}">
               </div>
             </div>
+            <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Kraje prod.:</label>
+              <div style="flex:1;">
+                <div id="countries-chip-list"></div>
+                <input class="entry" id="f-countries-input" type="text" placeholder="dodaj kraj i Enter">
+              </div>
+            </div>
+            <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Kraj poch.:</label>
+              <div style="flex:1;">
+                <div id="origin-chip-list"></div>
+                <input class="entry" id="f-origin-input" type="text" placeholder="dodaj kraj i Enter">
+              </div>
+            </div>
+            <div class="form-row"><label>Oryg. język:</label><input class="entry" id="f-language" type="text" style="flex:1;" placeholder="np. en"></div>
+            <div class="form-row"><label>Okładka (TMDb):</label><input class="entry" id="f-poster" type="text" style="flex:1;" placeholder="np. /abc123.jpg"></div>
             <div class="form-row" style="align-items:flex-start;">
               <label>Opis:</label>
               <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
@@ -678,6 +694,7 @@ function openItemDialog({item, itemType}){
           try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
           try { const cr = await tmdbFetchCreators(type, r.id); if (cr && cr.length) creators = cr; } catch(err) {}
           renderGenreChips(); renderCastChips(); renderCreatorsChips();
+          await applyTmdbExtraInfo(r.id, details);
           const overview = await tmdbOverview(type, r.id);
           if (descriptionInput && overview) descriptionInput.value = overview;
           setTmdbStatus("Uzupełniono dane z TMDb" + (runtime ? ` (czas: ${runtime} min).` : "."));
@@ -687,6 +704,7 @@ function openItemDialog({item, itemType}){
           try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
           try { const cr = await tmdbFetchCreators(type, r.id); if (cr && cr.length) creators = cr; } catch(err) {}
           renderGenreChips(); renderCastChips(); renderCreatorsChips();
+          await applyTmdbExtraInfo(r.id, details);
           const fetched = [];
           if (details && Array.isArray(details.seasons)) {
             for (const s of details.seasons) {
@@ -1020,6 +1038,58 @@ function openItemDialog({item, itemType}){
     creatorsInput.addEventListener("blur", ()=>{ if (creatorsInput.value.trim()) addCreatorsFromInput(); });
     renderCreatorsChips();
 
+    function setupChipField(initial, listId, inputId, removeTitle){
+      let values = [...(initial||[])];
+      const listEl = overlay.querySelector("#"+listId);
+      const inputEl = overlay.querySelector("#"+inputId);
+      function render(){
+        listEl.innerHTML = "";
+        for (const val of values) {
+          const chip = document.createElement("span");
+          chip.className = "tag-chip";
+          const label = document.createElement("span");
+          label.textContent = val;
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "tag-remove";
+          removeBtn.textContent = "✕";
+          removeBtn.title = removeTitle;
+          removeBtn.addEventListener("click", ()=>{ values = values.filter(v=>v!==val); render(); });
+          chip.appendChild(label);
+          chip.appendChild(removeBtn);
+          listEl.appendChild(chip);
+        }
+      }
+      function addFromInput(){
+        let added = false;
+        for (const piece of inputEl.value.split(",")) {
+          const val = piece.trim();
+          if (!val) continue;
+          if (!values.some(v=>v.toLowerCase()===val.toLowerCase())) { values.push(val); added = true; }
+        }
+        if (added) render();
+        inputEl.value = "";
+      }
+      inputEl.addEventListener("keydown", (e)=>{
+        if (e.key==="Enter" || e.key===",") { e.preventDefault(); addFromInput(); }
+      });
+      inputEl.addEventListener("blur", ()=>{ if (inputEl.value.trim()) addFromInput(); });
+      render();
+      return {
+        get: ()=>[...values],
+        set: (next)=>{ values = [...(next||[])]; render(); },
+      };
+    }
+
+    const countriesField = setupChipField(isNew ? [] : item.production_countries, "countries-chip-list", "f-countries-input", "Usuń kraj produkcji");
+    const originField = setupChipField(isNew ? [] : item.origin_country, "origin-chip-list", "f-origin-input", "Usuń kraj pochodzenia");
+    const languageInput = overlay.querySelector("#f-language");
+    const posterInput = overlay.querySelector("#f-poster");
+    if (!isNew) {
+      languageInput.value = item.original_language || "";
+      posterInput.value = item.poster_path || "";
+    }
+
     if (type===TYPE_SERIES) {
       const tabBasic = overlay.querySelector("#itab-basic");
       const tabSeasons = overlay.querySelector("#itab-seasons");
@@ -1196,6 +1266,22 @@ function openItemDialog({item, itemType}){
       });
     }
 
+    async function applyTmdbExtraInfo(tid, details){
+      try {
+        const info = await tmdbFetchOriginInfo(type, tid);
+        if (info) {
+          if (info.productionCountries && info.productionCountries.length) countriesField.set(info.productionCountries);
+          if (info.originCountry && info.originCountry.length) originField.set(info.originCountry);
+          if (info.originalLanguage && languageInput) languageInput.value = info.originalLanguage;
+        }
+      } catch(err) { /* brak danych o kraju/jezyku nie blokuje reszty */ }
+      try {
+        let posterPath = details && details.poster_path ? details.poster_path : null;
+        if (!posterPath) posterPath = await tmdbFetchPoster(type, tid);
+        if (posterPath && posterInput) posterInput.value = posterPath;
+      } catch(err) { /* brak okladki nie blokuje reszty */ }
+    }
+
     function finish(result){
       closeOverlay(overlay);
       document.removeEventListener("keydown", onKey);
@@ -1255,6 +1341,12 @@ function openItemDialog({item, itemType}){
       resultItem.cast = [...cast];
       resultItem.creators = [...creators];
       resultItem.description = descriptionInput.value.trim();
+      resultItem.production_countries = countriesField.get();
+      resultItem.origin_country = originField.get();
+      resultItem.original_language = languageInput ? languageInput.value.trim() : "";
+      const posterVal = posterInput ? posterInput.value.trim() : "";
+      if (posterVal) resultItem.poster_path = posterVal;
+      else delete resultItem.poster_path;
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {
         resultItem.duration = duration;

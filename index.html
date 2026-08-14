@@ -43,6 +43,7 @@
     <button class="tab-btn" data-main="series">Seriale</button>
     <button class="tab-btn" data-main="stats">Statystyki</button>
     <button class="tab-btn" data-main="notes">Notatki</button>
+    <button class="tab-btn" data-main="planned">Planowane</button>
   </div>
 
   <div id="main-content">
@@ -69,6 +70,14 @@
           <textarea class="notes-textarea" id="note-content" placeholder="Pisz tu, co chcesz…"></textarea>
         </div>
         <div class="notes-empty" id="notes-empty">Brak notatek. Kliknij „+ Nowa notatka”.</div>
+      </div>
+    </div>
+    <div class="type-tab" id="tab-planned">
+      <div class="table-wrap">
+        <table class="data" id="planned-table">
+          <thead><tr><th class="col-title">Tytuł</th><th class="col-rodzaj">Rodzaj</th><th class="col-del"></th></tr></thead>
+          <tbody id="planned-tbody"></tbody>
+        </table>
       </div>
     </div>
     <div class="type-tab" id="tab-stats">

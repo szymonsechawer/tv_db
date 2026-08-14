@@ -80,6 +80,22 @@ function normalizeNotes(n){
   return out;
 }
 
+function normalizePlanned(p){
+  const out = [];
+  if (Array.isArray(p)) {
+    for (const raw of p) {
+      if (!raw || typeof raw !== "object") continue;
+      const title = String(raw.title || "").trim();
+      if (!title) continue;
+      const type = (raw.type === TYPE_SERIES) ? TYPE_SERIES : TYPE_MOVIE;
+      out.push({id: raw.id || uuidv4(), title, type});
+    }
+  }
+  return out;
+}
+
+function findPlanned(id){ return (db.planned||[]).find(p=>p.id===id) || null; }
+
 function findNote(id){ return db.notes.find(n=>n.id===id) || null; }
 function noteByTitle(title){ return db.notes.find(n=>n.title===title) || null; }
 function appendToNote(title, lines){

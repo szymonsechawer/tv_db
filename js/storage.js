@@ -65,7 +65,7 @@ function extractPlannedIntoNotes(items, notes){
 
 function saveToLocalStorage(){
   try{
-    const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}};
+    const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     localStorage.setItem(STORAGE_NAME_KEY, currentDbName);
   }catch(e){ }
@@ -77,8 +77,7 @@ function loadFromLocalStorage(){
     if (!raw) return false;
     const data = JSON.parse(raw);
     if (typeof data !== "object" || data===null || !Array.isArray(data.items)) return false;
-    db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats)};
-    db.items = extractPlannedIntoNotes(db.items, db.notes);
+    db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
     if (!db.settings.tmdb_key) {
       try { db.settings.tmdb_key = localStorage.getItem(TMDB_KEY_STORAGE) || ""; } catch(e){}
     }
@@ -135,8 +134,7 @@ async function loadDbFromFile(file){
     const items = data.items;
     if (!Array.isArray(items)) throw new Error("Pole 'items' w pliku bazy nie jest listą.");
     const prevKey = (db.settings && db.settings.tmdb_key) || "";
-    db = {version: data.version || APP_VERSION, items: migrateItems(items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats)};
-    db.items = extractPlannedIntoNotes(db.items, db.notes);
+    db = {version: data.version || APP_VERSION, items: migrateItems(items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
     if (!db.settings.tmdb_key) db.settings.tmdb_key = prevKey;
     renderSettingsTab();
     currentDbName = file.name || DEFAULT_DB_FILENAME;
@@ -151,7 +149,7 @@ async function loadDbFromFile(file){
 document.getElementById("btn-save").addEventListener("click", ()=>{ saveDb(); });
 
 async function saveDb(){
-  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}};
+  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
   const json = JSON.stringify(data, null, 2);
 
   saveToLocalStorage();
