@@ -201,6 +201,64 @@ function isGenericEpisodeName(name, number){
   return number == null || Number(m[2]) === Number(number);
 }
 
+// Mapowanie kodów ISO 3166-1 krajów na polskie nazwy (najczęściej spotykane
+// w danych TMDb). Dla nierozpoznanych kodów zwracany jest sam kod.
+const TMDB_COUNTRY_NAMES_PL = {
+  US:"Stany Zjednoczone", GB:"Wielka Brytania", FR:"Francja", DE:"Niemcy", IT:"Włochy",
+  ES:"Hiszpania", PL:"Polska", JP:"Japonia", KR:"Korea Południowa", CN:"Chiny",
+  IN:"Indie", RU:"Rosja", CA:"Kanada", AU:"Australia", BR:"Brazylia", MX:"Meksyk",
+  NL:"Holandia", SE:"Szwecja", NO:"Norwegia", DK:"Dania", FI:"Finlandia", BE:"Belgia",
+  CH:"Szwajcaria", AT:"Austria", IE:"Irlandia", PT:"Portugalia", GR:"Grecja",
+  TR:"Turcja", UA:"Ukraina", CZ:"Czechy", HU:"Węgry", RO:"Rumunia", IL:"Izrael",
+  ZA:"RPA", NZ:"Nowa Zelandia", HK:"Hongkong", TW:"Tajwan", TH:"Tajlandia",
+  ID:"Indonezja", PH:"Filipiny", VN:"Wietnam", AR:"Argentyna", CL:"Chile",
+  SA:"Arabia Saudyjska", AE:"Zjednoczone Emiraty Arabskie", EG:"Egipt",
+  IS:"Islandia", LU:"Luksemburg", SG:"Singapur", CO:"Kolumbia", RS:"Serbia",
+  HR:"Chorwacja", SI:"Słowenia", SK:"Słowacja", BG:"Bułgaria", LT:"Litwa",
+  LV:"Łotwa", EE:"Estonia",
+};
+function tmdbCountryName(code){
+  if (!code) return "";
+  const c = String(code).toUpperCase();
+  return TMDB_COUNTRY_NAMES_PL[c] || c;
+}
+
+// Mapowanie kodów ISO 639-1 języków na polskie nazwy. Dla nierozpoznanych
+// kodów zwracany jest sam kod (wielkimi literami).
+const TMDB_LANGUAGE_NAMES_PL = {
+  en:"angielski", pl:"polski", fr:"francuski", de:"niemiecki", es:"hiszpański",
+  it:"włoski", ja:"japoński", ko:"koreański", zh:"chiński", ru:"rosyjski",
+  pt:"portugalski", nl:"niderlandzki", sv:"szwedzki", no:"norweski", da:"duński",
+  fi:"fiński", tr:"turecki", ar:"arabski", hi:"hinduski", cs:"czeski", hu:"węgierski",
+  ro:"rumuński", el:"grecki", he:"hebrajski", th:"tajski", id:"indonezyjski",
+  vi:"wietnamski", uk:"ukraiński", sk:"słowacki", bg:"bułgarski", hr:"chorwacki",
+  sr:"serbski", fa:"perski", ca:"kataloński", nb:"norweski", sl:"słoweński",
+};
+function tmdbLanguageName(code){
+  if (!code) return "";
+  const c = String(code).toLowerCase();
+  return TMDB_LANGUAGE_NAMES_PL[c] || c.toUpperCase();
+}
+
+// Pobiera kraje produkcji, kraj pochodzenia i oryginalny język dla filmu/serialu
+// o danym id TMDb.
+async function tmdbFetchOriginInfo(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
+  const data = await tmdbFetch(path, {});
+  if (!data) return null;
+  const productionCountries = Array.isArray(data.production_countries)
+    ? data.production_countries.map(c=>tmdbCountryName(c && c.iso_3166_1)).filter(Boolean)
+    : [];
+  let originCountry = [];
+  if (Array.isArray(data.origin_country) && data.origin_country.length) {
+    originCountry = data.origin_country.map(tmdbCountryName).filter(Boolean);
+  } else if (productionCountries.length) {
+    originCountry = [productionCountries[0]];
+  }
+  const originalLanguage = tmdbLanguageName(data.original_language);
+  return {productionCountries, originCountry, originalLanguage};
+}
+
 async function tmdbSeriesOriginalLanguage(seriesId){
   if (tmdbSeriesOrigLangCache.has(seriesId)) return tmdbSeriesOrigLangCache.get(seriesId);
   let lang = "";

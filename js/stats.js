@@ -432,6 +432,83 @@ function renderGenreStatsInto(listId, emptyId, type){
 function renderGenreStats(){
   renderGenreStatsInto("stat-genres-movies-list", "stat-genres-movies-empty", TYPE_MOVIE);
   renderGenreStatsInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES);
+  renderCountryStats();
+}
+
+// Zlicza wystąpienia wartości pola krajowego (production_countries / origin_country)
+// wśród pozycji uznanych za oglądane/obejrzane (analogicznie do computeGenreStats).
+function computeCountryStats(type, field){
+  const relevant = db.items.filter(i=>{
+    if (i.type !== type) return false;
+    if (type === TYPE_MOVIE) return i.status === STATUS_WATCHED;
+    return i.status===STATUS_WATCHED || i.status===STATUS_WATCHING || i.status===STATUS_PAUSED;
+  });
+  const counts = {};
+  for (const it of relevant) {
+    for (const c of (it[field]||[])) {
+      if (!c) continue;
+      counts[c] = (counts[c]||0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .map(([name,count])=>({name, count}))
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
+}
+
+// Bierze N najczęstszych wpisów z listy i przelicza procenty tak, by suma
+// wycinków wykresu kołowego dawała 100% (a nie procent względem całej bazy).
+function topNWithPct(list, n){
+  const top = list.slice(0, n);
+  const sum = top.reduce((acc,x)=>acc+x.count,0);
+  return top.map(x=>({...x, pct: sum ? (x.count/sum*100) : 0}));
+}
+
+const PIE_CHART_COLORS = ["#4f8fdb","#e0a458","#5cb85c","#d9534f","#9b6dd6","#4fd1c5"];
+
+// Buduje wartość CSS conic-gradient odwzorowującą wycinki wykresu kołowego.
+function buildPieGradient(items, colors){
+  let start = 0;
+  const stops = [];
+  items.forEach((it,idx)=>{
+    const angle = (it.pct/100)*360;
+    const end = start + angle;
+    stops.push(`${colors[idx % colors.length]} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`);
+    start = end;
+  });
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+function renderCountryPie(chartId, legendId, emptyId, type, field){
+  const chart = document.getElementById(chartId);
+  const legend = document.getElementById(legendId);
+  const empty = document.getElementById(emptyId);
+  if (!chart) return;
+  const list = computeCountryStats(type, field);
+  if (!list.length) {
+    chart.style.background = "var(--bg-medium)";
+    if (legend) legend.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  const top = topNWithPct(list, 5);
+  chart.style.background = buildPieGradient(top, PIE_CHART_COLORS);
+  if (legend) {
+    legend.innerHTML = top.map((it,idx)=>`
+      <div class="pie-legend-item">
+        <span class="pie-legend-swatch" style="background:${PIE_CHART_COLORS[idx % PIE_CHART_COLORS.length]};"></span>
+        <span class="pie-legend-name">${escapeHtml(it.name)}</span>
+        <span class="pie-legend-pct">${formatGenrePct(it.pct)}</span>
+      </div>
+    `).join("");
+  }
+}
+
+function renderCountryStats(){
+  renderCountryPie("stat-countries-movies-pie", "stat-countries-movies-legend", "stat-countries-movies-empty", TYPE_MOVIE, "production_countries");
+  renderCountryPie("stat-origin-movies-pie", "stat-origin-movies-legend", "stat-origin-movies-empty", TYPE_MOVIE, "origin_country");
+  renderCountryPie("stat-countries-series-pie", "stat-countries-series-legend", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
+  renderCountryPie("stat-origin-series-pie", "stat-origin-series-legend", "stat-origin-series-empty", TYPE_SERIES, "origin_country");
 }
 
 

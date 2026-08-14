@@ -121,7 +121,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -175,6 +175,23 @@ async function refreshAllEpisodeTitles(){
         }
       }
 
+      if ((!item.production_countries || !item.production_countries.length) ||
+          (!item.origin_country || !item.origin_country.length) ||
+          !item.original_language) {
+        try {
+          const info = await tmdbFetchOriginInfo(item.type, tid);
+          if (info) {
+            let changed = false;
+            if ((!item.production_countries || !item.production_countries.length) && info.productionCountries.length) { item.production_countries = info.productionCountries; changed = true; }
+            if ((!item.origin_country || !item.origin_country.length) && info.originCountry.length) { item.origin_country = info.originCountry; changed = true; }
+            if (!item.original_language && info.originalLanguage) { item.original_language = info.originalLanguage; changed = true; }
+            if (changed) updatedOrigin++;
+          }
+        } catch(err) {
+          // brak kraju/języka nie jest błędem krytycznym - kontynuuj resztę aktualizacji
+        }
+      }
+
       if (item.type===TYPE_SERIES && Array.isArray(item.seasons) && item.seasons.length>0) {
         let itemUpdated = 0;
         for (const season of item.seasons) {
@@ -202,7 +219,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0;
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   if (anyChange) {
@@ -213,6 +230,7 @@ async function refreshAllEpisodeTitles(){
     if (updatedGenres>0) parts.push(`${updatedGenres} ${updatedGenres===1?"gatunek":"gatunków"}`);
     if (updatedCast>0) parts.push(`${updatedCast} ${updatedCast===1?"obsadę":"obsad"}`);
     if (updatedCreators>0) parts.push(`${updatedCreators} ${updatedCreators===1?"listę twórców":"list twórców"}`);
+    if (updatedOrigin>0) parts.push(`${updatedOrigin} ${updatedOrigin===1?"kraj/język produkcji":"kraje/języki produkcji"}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);

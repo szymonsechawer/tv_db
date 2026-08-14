@@ -101,6 +101,9 @@ function openViewDialog(id){
             <div class="view-row"><div class="vlabel">Opis:</div><div class="vval desc-inline" id="view-desc-text"></div></div>
             <div class="view-row"><div class="vlabel">${type===TYPE_MOVIE ? "Reżyseria:" : "Twórcy:"}</div><div class="vval desc-inline" id="view-creators-text"></div></div>
             <div class="view-row"><div class="vlabel">Obsada:</div><div class="vval desc-inline" id="view-cast-text"></div></div>
+            <div class="view-row"><div class="vlabel">Kraje produkcji:</div><div class="vval desc-inline" id="view-countries-text"></div></div>
+            <div class="view-row"><div class="vlabel">Kraj pochodzenia:</div><div class="vval desc-inline" id="view-origin-text"></div></div>
+            <div class="view-row"><div class="vlabel">Oryg. język:</div><div class="vval desc-inline" id="view-language-text"></div></div>
             <div class="tmdb-status" id="view-desc-status"></div>
             <div style="margin-top:6px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
@@ -185,9 +188,59 @@ function openViewDialog(id){
         castEl.textContent = "Brak informacji o obsadzie.";
         castEl.classList.add("muted");
       }
+      const countriesEl = overlay.querySelector("#view-countries-text");
+      const originEl = overlay.querySelector("#view-origin-text");
+      const languageEl = overlay.querySelector("#view-language-text");
+      if (cur.production_countries && cur.production_countries.length) {
+        countriesEl.textContent = cur.production_countries.join(", ");
+        countriesEl.classList.remove("muted");
+      } else {
+        countriesEl.textContent = "Brak informacji.";
+        countriesEl.classList.add("muted");
+      }
+      if (cur.origin_country && cur.origin_country.length) {
+        originEl.textContent = cur.origin_country.join(", ");
+        originEl.classList.remove("muted");
+      } else {
+        originEl.textContent = "Brak informacji.";
+        originEl.classList.add("muted");
+      }
+      if (cur.original_language) {
+        languageEl.textContent = cur.original_language;
+        languageEl.classList.remove("muted");
+      } else {
+        languageEl.textContent = "Brak informacji.";
+        languageEl.classList.add("muted");
+      }
       fetchBtn.textContent = anyData ? "Odśwież opis" : "Pobierz opis";
     }
     refreshDescPane();
+
+    async function fetchOriginInfoIfNeeded(){
+      const cur = findItem(id) || item;
+      if ((cur.production_countries && cur.production_countries.length) &&
+          (cur.origin_country && cur.origin_country.length) &&
+          cur.original_language) return;
+      try {
+        let tid = cur.tmdb_id;
+        if (!tid) {
+          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
+        }
+        if (!tid) return;
+        const info = await tmdbFetchOriginInfo(cur.type, tid);
+        if (info) {
+          if (info.productionCountries.length) cur.production_countries = info.productionCountries;
+          if (info.originCountry.length) cur.origin_country = info.originCountry;
+          if (info.originalLanguage) cur.original_language = info.originalLanguage;
+          saveToLocalStorage();
+          refreshDescPane();
+        }
+      } catch(err) {
+        // cicho ignoruj błąd pobierania kraju/języka - nie blokuje okna informacji
+      }
+    }
+    fetchOriginInfoIfNeeded();
 
     function refreshPoster(){
       const cur = findItem(id) || item;
@@ -383,6 +436,14 @@ function openViewDialog(id){
           const cast = await tmdbFetchCast(cur.type, tid);
           if (cast && cast.length) { cur.cast = cast; parts.push("obsadę"); }
         } catch(err) { /* brak obsady nie blokuje reszty */ }
+        try {
+          const info = await tmdbFetchOriginInfo(cur.type, tid);
+          if (info) {
+            if (info.productionCountries.length) { cur.production_countries = info.productionCountries; parts.push("kraje produkcji"); }
+            if (info.originCountry.length) { cur.origin_country = info.originCountry; parts.push("kraj pochodzenia"); }
+            if (info.originalLanguage) { cur.original_language = info.originalLanguage; parts.push("język oryginalny"); }
+          }
+        } catch(err) { /* brak danych o kraju/języku nie blokuje reszty */ }
         if (parts.length) {
           saveToLocalStorage();
           setDirty(true);
