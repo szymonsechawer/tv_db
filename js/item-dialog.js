@@ -15,6 +15,27 @@ function findDuplicate(type, title, premiereDate, excludeId){
   return null;
 }
 
+// Sprawdza, czy pozycja dodawana/edytowana jako "Planowane" nie powiela już
+// istniejącej pozycji o tym samym tytule w innej, "wyższej" zakładce
+// (dla filmów: Zakończone; dla seriali: Zakończone lub Oglądane), a także
+// czy taki tytuł nie jest już w samych Planowanych. Porównanie tylko po
+// tytule (bez daty premiery), bo w planach data bywa nieznana/inna.
+function findPlannedConflict(type, title, excludeId){
+  const normTitle = title.trim().toLowerCase();
+  if (!normTitle) return null;
+  const relevantStatuses = type===TYPE_MOVIE
+    ? [STATUS_WATCHED, STATUS_PLANNED]
+    : [STATUS_WATCHED, STATUS_WATCHING, STATUS_PLANNED];
+  for (const other of db.items) {
+    if (other.type !== type) continue;
+    if (excludeId!=null && other.id===excludeId) continue;
+    if (!relevantStatuses.includes(other.status)) continue;
+    if ((other.title||"").trim().toLowerCase() !== normTitle) continue;
+    return other;
+  }
+  return null;
+}
+
 function computeLp(type, status, itemId){
   const items = db.items.filter(i=>i.type===type && (i.status||STATUS_WATCHING)===status);
   const idx = items.findIndex(i=>i.id===itemId);
@@ -1328,6 +1349,21 @@ function openItemDialog({item, itemType}){
           "error"
         );
         return;
+      }
+      if (statusKey === STATUS_PLANNED) {
+        const conflict = findPlannedConflict(type, title, excludeId);
+        if (conflict) {
+          const conflictStatusLabel = STATUS_LABELS[conflict.status] || conflict.status || "";
+          const conflictLp = computeLp(conflict.type, conflict.status, conflict.id);
+          const lpTxt = conflictLp!=null ? `Lp ${conflictLp}` : "nieznana pozycja";
+          await showAlert(
+            "Pozycja już istnieje",
+            `Pozycja „${title}” już znajduje się na liście ${TYPE_LABELS[type]} w zakładce „${conflictStatusLabel}” (${lpTxt}).\n\n` +
+            `Nie można dodać jej do Planowanych, ponieważ powstałby duplikat.`,
+            "error"
+          );
+          return;
+        }
       }
 
       const resultItem = isNew ? {id: uuidv4(), type} : item;

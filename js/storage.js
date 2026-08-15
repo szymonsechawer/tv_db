@@ -16,7 +16,7 @@ function migrateItems(items){
       item.type = item.seasons ? TYPE_SERIES : TYPE_MOVIE;
     }
     if (!(item.status in STATUS_LABELS)) item.status = STATUS_WATCHING;
-    if (item.type === TYPE_MOVIE && !TYPE_STATUS_ORDER[TYPE_MOVIE].includes(item.status)) {
+    if (item.type === TYPE_MOVIE && item.status !== STATUS_PLANNED && !TYPE_STATUS_ORDER[TYPE_MOVIE].includes(item.status)) {
       item.status = STATUS_WATCHED;
     }
     let rating = item.rating;

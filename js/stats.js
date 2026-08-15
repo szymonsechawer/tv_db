@@ -455,60 +455,35 @@ function computeCountryStats(type, field){
     .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
 }
 
-// Bierze N najczęstszych wpisów z listy i przelicza procenty tak, by suma
-// wycinków wykresu kołowego dawała 100% (a nie procent względem całej bazy).
-function topNWithPct(list, n){
-  const top = list.slice(0, n);
-  const sum = top.reduce((acc,x)=>acc+x.count,0);
-  return top.map(x=>({...x, pct: sum ? (x.count/sum*100) : 0}));
-}
-
-const PIE_CHART_COLORS = ["#4f8fdb","#e0a458","#5cb85c","#d9534f","#9b6dd6","#4fd1c5"];
-
-// Buduje wartość CSS conic-gradient odwzorowującą wycinki wykresu kołowego.
-function buildPieGradient(items, colors){
-  let start = 0;
-  const stops = [];
-  items.forEach((it,idx)=>{
-    const angle = (it.pct/100)*360;
-    const end = start + angle;
-    stops.push(`${colors[idx % colors.length]} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`);
-    start = end;
-  });
-  return `conic-gradient(${stops.join(", ")})`;
-}
-
-function renderCountryPie(chartId, legendId, emptyId, type, field){
-  const chart = document.getElementById(chartId);
-  const legend = document.getElementById(legendId);
+function renderCountryListInto(listId, emptyId, type, field){
+  const list = document.getElementById(listId);
   const empty = document.getElementById(emptyId);
-  if (!chart) return;
-  const list = computeCountryStats(type, field);
-  if (!list.length) {
-    chart.style.background = "var(--bg-medium)";
-    if (legend) legend.innerHTML = "";
+  if (!list) return;
+  const data = computeCountryStats(type, field);
+  if (!data.length) {
+    list.innerHTML = "";
     if (empty) empty.style.display = "";
     return;
   }
   if (empty) empty.style.display = "none";
-  const top = topNWithPct(list, 5);
-  chart.style.background = buildPieGradient(top, PIE_CHART_COLORS);
-  if (legend) {
-    legend.innerHTML = top.map((it,idx)=>`
-      <div class="pie-legend-item">
-        <span class="pie-legend-swatch" style="background:${PIE_CHART_COLORS[idx % PIE_CHART_COLORS.length]};"></span>
-        <span class="pie-legend-name">${escapeHtml(it.name)}</span>
-        <span class="pie-legend-pct">${formatGenrePct(it.pct)}</span>
+  const total = data.reduce((acc,x)=>acc+x.count,0);
+  list.innerHTML = data.map(c=>{
+    const pct = total ? (c.count/total*100) : 0;
+    return `
+      <div class="genre-stat-row">
+        <div class="genre-stat-name">${escapeHtml(c.name)}</div>
+        <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${pct.toFixed(1)}%;"></div></div>
+        <div class="genre-stat-pct">${formatGenrePct(pct)}</div>
       </div>
-    `).join("");
-  }
+    `;
+  }).join("");
 }
 
 function renderCountryStats(){
-  renderCountryPie("stat-countries-movies-pie", "stat-countries-movies-legend", "stat-countries-movies-empty", TYPE_MOVIE, "production_countries");
-  renderCountryPie("stat-origin-movies-pie", "stat-origin-movies-legend", "stat-origin-movies-empty", TYPE_MOVIE, "origin_country");
-  renderCountryPie("stat-countries-series-pie", "stat-countries-series-legend", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
-  renderCountryPie("stat-origin-series-pie", "stat-origin-series-legend", "stat-origin-series-empty", TYPE_SERIES, "origin_country");
+  renderCountryListInto("stat-countries-movies-list", "stat-countries-movies-empty", TYPE_MOVIE, "production_countries");
+  renderCountryListInto("stat-origin-movies-list", "stat-origin-movies-empty", TYPE_MOVIE, "origin_country");
+  renderCountryListInto("stat-countries-series-list", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
+  renderCountryListInto("stat-origin-series-list", "stat-origin-series-empty", TYPE_SERIES, "origin_country");
 }
 
 
