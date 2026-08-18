@@ -260,6 +260,9 @@ async function tmdbFetchOriginInfo(type, id){
 }
 
 // Pobiera wytwórnie (production_companies) dla filmu/serialu o danym id TMDb.
+// Dla seriali TMDb często ma puste pole production_companies (w przeciwieństwie
+// do filmów), za to dobrze wypełnia pole networks (nadawca/platforma, np. HBO,
+// Netflix) — dlatego dla seriali doklejamy networks do tej samej listy.
 async function tmdbFetchExtras(type, id){
   const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
   const data = await tmdbFetch(path, {});
@@ -267,6 +270,10 @@ async function tmdbFetchExtras(type, id){
   const companies = Array.isArray(data.production_companies)
     ? data.production_companies.map(c=>c && c.name).filter(Boolean)
     : [];
+  if (type===TYPE_SERIES && Array.isArray(data.networks)) {
+    const networks = data.networks.map(n=>n && n.name).filter(Boolean);
+    for (const n of networks) { if (!companies.includes(n)) companies.push(n); }
+  }
   return {companies};
 }
 
