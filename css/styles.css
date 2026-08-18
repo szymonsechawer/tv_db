@@ -311,6 +311,10 @@
   .genre-bar-fill{height:100%;background:var(--accent);border-radius:6px;}
   .genre-stat-pct{width:42px;flex-shrink:0;text-align:right;font-weight:800;color:var(--text-light);font-size:13px;}
 
+  .person-stat-row{justify-content:space-between;}
+  .person-stat-row .genre-stat-name{width:auto;flex:1;white-space:normal;}
+  .person-stat-row .genre-stat-pct{width:auto;}
+
   .overlay{
     position:fixed;inset:0;background:rgba(0,0,0,.55);
     display:flex;align-items:center;justify-content:center;

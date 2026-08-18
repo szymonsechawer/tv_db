@@ -522,48 +522,7 @@ function renderAverageRatingStats(){
   renderAverageRatingInto("stat-avgrating-series", TYPE_SERIES);
 }
 
-// Rozkład wg dekady premiery (na podstawie roku wyciągniętego z premiere_date).
-function computeDecadeStats(type){
-  const relevant = relevantWatchedItems(type);
-  const counts = {};
-  let total = 0;
-  for (const it of relevant) {
-    const m = String(it.premiere_date||"").match(/\d{4}/);
-    if (!m) continue;
-    const decade = Math.floor(parseInt(m[0],10)/10)*10;
-    const label = `${decade}s`;
-    counts[label] = (counts[label]||0) + 1;
-    total++;
-  }
-  return Object.entries(counts)
-    .map(([name,count])=>({name, count, pct: total ? (count/total*100) : 0}))
-    .sort((a,b)=>parseInt(b.name,10)-parseInt(a.name,10));
-}
 
-function renderDecadeListInto(listId, emptyId, type){
-  const list = document.getElementById(listId);
-  const empty = document.getElementById(emptyId);
-  if (!list) return;
-  const data = computeDecadeStats(type);
-  if (!data.length) {
-    list.innerHTML = "";
-    if (empty) empty.style.display = "";
-    return;
-  }
-  if (empty) empty.style.display = "none";
-  list.innerHTML = data.map(d=>`
-    <div class="genre-stat-row">
-      <div class="genre-stat-name">${escapeHtml(d.name)}</div>
-      <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${d.pct.toFixed(1)}%;"></div></div>
-      <div class="genre-stat-pct">${formatGenrePct(d.pct)}</div>
-    </div>
-  `).join("");
-}
-
-function renderDecadeStats(){
-  renderDecadeListInto("stat-decades-movies-list", "stat-decades-movies-empty", TYPE_MOVIE);
-  renderDecadeListInto("stat-decades-series-list", "stat-decades-series-empty", TYPE_SERIES);
-}
 
 // Usuwa dopisaną nazwę postaci z wpisu obsady, np. "Jan Kowalski (Postać)" -> "Jan Kowalski".
 function stripCastCharacter(raw){
@@ -603,13 +562,10 @@ function renderPersonListInto(listId, emptyId, type, field, extractFn, limit){
     return;
   }
   if (empty) empty.style.display = "none";
-  const max = data[0].count;
   list.innerHTML = data.map(p=>{
-    const pct = max ? (p.count/max*100) : 0;
     return `
-      <div class="genre-stat-row">
+      <div class="genre-stat-row person-stat-row">
         <div class="genre-stat-name">${escapeHtml(p.name)}</div>
-        <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${pct.toFixed(1)}%;"></div></div>
         <div class="genre-stat-pct">${p.count}×</div>
       </div>
     `;
@@ -627,7 +583,6 @@ function renderPersonStats(){
 
 function renderExtraStats(){
   renderAverageRatingStats();
-  renderDecadeStats();
   renderPersonStats();
 }
 

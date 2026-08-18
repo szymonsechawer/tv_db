@@ -322,7 +322,7 @@ function renderPlannedTable(){
     const tr = document.createElement("tr");
     tr.className = "empty-row";
     const td = document.createElement("td");
-    td.colSpan = 3;
+    td.colSpan = 2;
     td.textContent = "Brak planowanych pozycji.";
     tr.appendChild(td);
     tbody.appendChild(tr);
@@ -337,20 +337,8 @@ function renderPlannedTable(){
     const tdRodzaj = document.createElement("td");
     tdRodzaj.className = "col-rodzaj";
     tdRodzaj.textContent = entry.type === TYPE_SERIES ? "Serial" : "Film";
-    const tdDel = document.createElement("td");
-    tdDel.className = "col-del";
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "btn small secondary";
-    delBtn.textContent = "Usuń";
-    delBtn.addEventListener("click", async (e)=>{
-      e.stopPropagation();
-      await deletePlannedItem(entry.id);
-    });
-    tdDel.appendChild(delBtn);
     tr.appendChild(tdTitle);
     tr.appendChild(tdRodzaj);
-    tr.appendChild(tdDel);
     if (!entry.legacy) {
       tr.style.cursor = "pointer";
       tr.addEventListener("click", ()=>{ openViewDialog(entry.id, {readOnly:true}); });
