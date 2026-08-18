@@ -126,9 +126,11 @@ function openViewDialog(id, opts){
             <div class="view-row"><div class="vlabel">Kraje produkcji:</div><div class="vval desc-inline" id="view-countries-text"></div></div>
             <div class="view-row"><div class="vlabel">Kraj pochodzenia:</div><div class="vval desc-inline" id="view-origin-text"></div></div>
             <div class="view-row"><div class="vlabel">Oryg. język:</div><div class="vval desc-inline" id="view-language-text"></div></div>
+            <div class="view-row"><div class="vlabel">Wytwórnia:</div><div class="vval desc-inline" id="view-companies-text"></div></div>
+            <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
             <div class="tmdb-status" id="view-desc-status"></div>
             <div style="margin-top:6px;">
-              <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz opis</button>
+              <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz dane</button>
             </div>
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
@@ -234,9 +236,55 @@ function openViewDialog(id, opts){
         languageEl.textContent = "Brak informacji.";
         languageEl.classList.add("muted");
       }
-      fetchBtn.textContent = anyData ? "Odśwież opis" : "Pobierz opis";
+      fetchBtn.textContent = anyData ? "Odśwież dane" : "Pobierz dane";
     }
     refreshDescPane();
+
+    function refreshExtras(){
+      const cur = findItem(id) || item;
+      const companiesEl = overlay.querySelector("#view-companies-text");
+      const linksEl = overlay.querySelector("#view-links-text");
+      if (companiesEl) {
+        if (cur.production_companies && cur.production_companies.length) { companiesEl.textContent = cur.production_companies.join(", "); companiesEl.classList.remove("muted"); }
+        else { companiesEl.textContent = "Brak informacji."; companiesEl.classList.add("muted"); }
+      }
+      if (linksEl) {
+        if (cur.trailer_key) {
+          linksEl.innerHTML = `<a href="https://www.youtube.com/watch?v=${escapeHtml(cur.trailer_key)}" target="_blank" rel="noopener" class="view-link">Obejrzyj na YouTube</a>`;
+          linksEl.classList.remove("muted");
+        } else { linksEl.textContent = "Brak informacji."; linksEl.classList.add("muted"); }
+      }
+    }
+    refreshExtras();
+
+    async function fetchExtrasIfNeeded(){
+      const cur = findItem(id) || item;
+      if (cur.production_companies && cur.production_companies.length && cur.trailer_key) return;
+      try {
+        let tid = cur.tmdb_id;
+        if (!tid) {
+          const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+          if (hit) { tid = hit.id; cur.tmdb_id = tid; }
+        }
+        if (!tid) return;
+        let changed = false;
+        try {
+          const extras = await tmdbFetchExtras(cur.type, tid);
+          if (extras && extras.companies.length) { cur.production_companies = extras.companies; changed = true; }
+        } catch(err) { /* brak danych ogólnych - kontynuuj */ }
+        try {
+          const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);
+          if (trailerKey) { cur.trailer_key = trailerKey; changed = true; }
+        } catch(err) { /* brak zwiastuna - kontynuuj */ }
+        if (changed) {
+          saveToLocalStorage();
+          refreshExtras();
+        }
+      } catch(err) {
+        // cicho ignoruj błąd pobierania dodatkowych informacji - nie blokuje okna informacji
+      }
+    }
+    fetchExtrasIfNeeded();
 
     async function fetchOriginInfoIfNeeded(){
       const cur = findItem(id) || item;
@@ -467,6 +515,14 @@ function openViewDialog(id, opts){
             if (info.originalLanguage) { cur.original_language = info.originalLanguage; parts.push("język oryginalny"); }
           }
         } catch(err) { /* brak danych o kraju/języku nie blokuje reszty */ }
+        try {
+          const extras = await tmdbFetchExtras(cur.type, tid);
+          if (extras && extras.companies.length) { cur.production_companies = extras.companies; parts.push("wytwórnię"); }
+        } catch(err) { /* brak dodatkowych danych nie blokuje reszty */ }
+        try {
+          const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);
+          if (trailerKey) { cur.trailer_key = trailerKey; parts.push("zwiastun"); }
+        } catch(err) { /* brak zwiastuna nie blokuje reszty */ }
         if (parts.length) {
           saveToLocalStorage();
           setDirty(true);
@@ -481,6 +537,7 @@ function openViewDialog(id, opts){
         btn.disabled = false;
         btn.textContent = oldLabel;
         refreshDescPane();
+        refreshExtras();
       }
     });
 

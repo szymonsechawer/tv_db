@@ -433,6 +433,7 @@ function renderGenreStats(){
   renderGenreStatsInto("stat-genres-movies-list", "stat-genres-movies-empty", TYPE_MOVIE);
   renderGenreStatsInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES);
   renderCountryStats();
+  renderExtraStats();
 }
 
 // Zlicza wystąpienia wartości pola krajowego (production_countries / origin_country)
@@ -484,6 +485,150 @@ function renderCountryStats(){
   renderCountryListInto("stat-origin-movies-list", "stat-origin-movies-empty", TYPE_MOVIE, "origin_country");
   renderCountryListInto("stat-countries-series-list", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
   renderCountryListInto("stat-origin-series-list", "stat-origin-series-empty", TYPE_SERIES, "origin_country");
+}
+
+// ============================================================
+// Dodatkowe statystyki: średnia ocena, dekady, reżyserzy/twórcy, obsada
+// ============================================================
+
+// Pozycje uznane za "oglądane/obejrzane" dla danego typu — ta sama reguła,
+// co w computeGenreStats/computeCountryStats (filmy: zakończone; seriale:
+// oglądane/zakończone/wstrzymane).
+function relevantWatchedItems(type){
+  return db.items.filter(i=>{
+    if (i.type !== type) return false;
+    if (type === TYPE_MOVIE) return i.status === STATUS_WATCHED;
+    return i.status===STATUS_WATCHED || i.status===STATUS_WATCHING || i.status===STATUS_PAUSED;
+  });
+}
+
+// Średnia z własnych ocen (pole rating, 1-10; 0 = brak oceny — pomijane).
+function computeAverageRating(type){
+  const rated = relevantWatchedItems(type).map(i=>parseInt(i.rating||0,10)).filter(r=>r>0);
+  if (!rated.length) return null;
+  const sum = rated.reduce((a,b)=>a+b, 0);
+  return {avg: sum/rated.length, count: rated.length};
+}
+
+function renderAverageRatingInto(elId, type){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const r = computeAverageRating(type);
+  el.textContent = r ? `${r.avg.toFixed(1)}/10 (${r.count} ${r.count===1?"ocena":"ocen"})` : "—";
+}
+
+function renderAverageRatingStats(){
+  renderAverageRatingInto("stat-avgrating-movies", TYPE_MOVIE);
+  renderAverageRatingInto("stat-avgrating-series", TYPE_SERIES);
+}
+
+// Rozkład wg dekady premiery (na podstawie roku wyciągniętego z premiere_date).
+function computeDecadeStats(type){
+  const relevant = relevantWatchedItems(type);
+  const counts = {};
+  let total = 0;
+  for (const it of relevant) {
+    const m = String(it.premiere_date||"").match(/\d{4}/);
+    if (!m) continue;
+    const decade = Math.floor(parseInt(m[0],10)/10)*10;
+    const label = `${decade}s`;
+    counts[label] = (counts[label]||0) + 1;
+    total++;
+  }
+  return Object.entries(counts)
+    .map(([name,count])=>({name, count, pct: total ? (count/total*100) : 0}))
+    .sort((a,b)=>parseInt(b.name,10)-parseInt(a.name,10));
+}
+
+function renderDecadeListInto(listId, emptyId, type){
+  const list = document.getElementById(listId);
+  const empty = document.getElementById(emptyId);
+  if (!list) return;
+  const data = computeDecadeStats(type);
+  if (!data.length) {
+    list.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  list.innerHTML = data.map(d=>`
+    <div class="genre-stat-row">
+      <div class="genre-stat-name">${escapeHtml(d.name)}</div>
+      <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${d.pct.toFixed(1)}%;"></div></div>
+      <div class="genre-stat-pct">${formatGenrePct(d.pct)}</div>
+    </div>
+  `).join("");
+}
+
+function renderDecadeStats(){
+  renderDecadeListInto("stat-decades-movies-list", "stat-decades-movies-empty", TYPE_MOVIE);
+  renderDecadeListInto("stat-decades-series-list", "stat-decades-series-empty", TYPE_SERIES);
+}
+
+// Usuwa dopisaną nazwę postaci z wpisu obsady, np. "Jan Kowalski (Postać)" -> "Jan Kowalski".
+function stripCastCharacter(raw){
+  return String(raw||"").replace(/\s*\([^()]*\)\s*$/, "").trim();
+}
+
+// Zlicza wystąpienia osób (reżyserów/twórców albo obsady) wśród pozycji
+// oglądanych/obejrzanych — analogicznie do computeGenreStats, ale bez
+// procentów względem sumy (osoba może wystąpić w wielu pozycjach naraz).
+function computePersonStats(type, field, extractFn){
+  const relevant = relevantWatchedItems(type);
+  const counts = {};
+  for (const it of relevant) {
+    for (const raw of (it[field]||[])) {
+      const name = extractFn ? extractFn(raw) : String(raw||"").trim();
+      if (!name) continue;
+      counts[name] = (counts[name]||0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .map(([name,count])=>({name, count}))
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
+}
+
+function renderPersonListInto(listId, emptyId, type, field, extractFn, limit){
+  const list = document.getElementById(listId);
+  const empty = document.getElementById(emptyId);
+  if (!list) return;
+  let data = computePersonStats(type, field, extractFn);
+  // Pomijamy osoby, które pojawiły się tylko raz, gdy lista jest bardzo długa —
+  // inaczej ranking "najczęściej oglądanych" tonie w jednorazowych wpisach.
+  if (data.length > limit && data.some(p=>p.count>1)) data = data.filter(p=>p.count>1);
+  data = data.slice(0, limit);
+  if (!data.length) {
+    list.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  const max = data[0].count;
+  list.innerHTML = data.map(p=>{
+    const pct = max ? (p.count/max*100) : 0;
+    return `
+      <div class="genre-stat-row">
+        <div class="genre-stat-name">${escapeHtml(p.name)}</div>
+        <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${pct.toFixed(1)}%;"></div></div>
+        <div class="genre-stat-pct">${p.count}×</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderPersonStats(){
+  renderPersonListInto("stat-creators-movies-list", "stat-creators-movies-empty", TYPE_MOVIE, "creators", null, 10);
+  renderPersonListInto("stat-cast-movies-list", "stat-cast-movies-empty", TYPE_MOVIE, "cast", stripCastCharacter, 10);
+  renderPersonListInto("stat-companies-movies-list", "stat-companies-movies-empty", TYPE_MOVIE, "production_companies", null, 10);
+  renderPersonListInto("stat-creators-series-list", "stat-creators-series-empty", TYPE_SERIES, "creators", null, 10);
+  renderPersonListInto("stat-cast-series-list", "stat-cast-series-empty", TYPE_SERIES, "cast", stripCastCharacter, 10);
+  renderPersonListInto("stat-companies-series-list", "stat-companies-series-empty", TYPE_SERIES, "production_companies", null, 10);
+}
+
+function renderExtraStats(){
+  renderAverageRatingStats();
+  renderDecadeStats();
+  renderPersonStats();
 }
 
 

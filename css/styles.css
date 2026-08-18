@@ -349,6 +349,8 @@
   .view-row .vval.desc-inline.muted{color:var(--text-muted);font-weight:400;}
   .view-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start;}
   .view-tag{background:var(--chip-bg,#333);border-radius:12px;padding:2px 10px;font-size:12px;}
+  .view-link{color:var(--accent-hover,#3a7ebf);text-decoration:none;font-weight:700;}
+  .view-link:hover{text-decoration:underline;}
 
   .msg-box{display:flex;gap:12px;align-items:flex-start;}
   .msg-icon{font-size:24px;font-weight:700;}

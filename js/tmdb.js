@@ -259,6 +259,37 @@ async function tmdbFetchOriginInfo(type, id){
   return {productionCountries, originCountry, originalLanguage};
 }
 
+// Pobiera wytwórnie (production_companies) dla filmu/serialu o danym id TMDb.
+async function tmdbFetchExtras(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
+  const data = await tmdbFetch(path, {});
+  if (!data) return null;
+  const companies = Array.isArray(data.production_companies)
+    ? data.production_companies.map(c=>c && c.name).filter(Boolean)
+    : [];
+  return {companies};
+}
+
+// Pobiera klucz YouTube pierwszego sensownego zwiastuna (oficjalny trailer w
+// miarę możliwości) dla filmu/serialu o danym id TMDb. Zwiastuny rzadko mają
+// polską wersję, więc w razie braku wyników próbuje wersji angielskiej.
+async function tmdbFetchTrailerKey(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id + "/videos" : "/tv/" + id + "/videos";
+  function pick(results){
+    const yt = (results||[]).filter(v=>v && v.site==="YouTube");
+    return yt.find(v=>v.type==="Trailer" && v.official) || yt.find(v=>v.type==="Trailer") || yt[0] || null;
+  }
+  let data = await tmdbFetch(path, {});
+  let found = pick(data && data.results);
+  if (!found) {
+    try {
+      const alt = await tmdbFetch(path, {language: "en-US"});
+      found = pick(alt && alt.results);
+    } catch(err) { /* brak alternatywy - ignoruj */ }
+  }
+  return found ? found.key : null;
+}
+
 async function tmdbSeriesOriginalLanguage(seriesId){
   if (tmdbSeriesOrigLangCache.has(seriesId)) return tmdbSeriesOrigLangCache.get(seriesId);
   let lang = "";
