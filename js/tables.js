@@ -107,7 +107,16 @@ function renderUpcomingTable(){
     const tr = document.createElement("tr");
     const tdTitle = document.createElement("td");
     tdTitle.className = "col-title";
-    tdTitle.textContent = row.title || "";
+    const titleLine = document.createElement("div");
+    titleLine.className = "title-main";
+    titleLine.textContent = row.title || "";
+    tdTitle.appendChild(titleLine);
+    if (row.air_date) {
+      const dateLine = document.createElement("div");
+      dateLine.className = "title-date";
+      dateLine.textContent = row.air_date;
+      tdTitle.appendChild(dateLine);
+    }
     const tdDays = document.createElement("td");
     tdDays.className = "col-days";
     tdDays.textContent = formatDaysLabel(row.days);
@@ -258,6 +267,33 @@ function renderTable(type, status){
           track.appendChild(fill);
           wrap.appendChild(top);
           wrap.appendChild(track);
+          if (status !== STATUS_WATCHED && p.nextTitle) {
+            const bottom = document.createElement("div");
+            bottom.className = "prog-bottomrow";
+            const epTitle = document.createElement("span");
+            epTitle.className = "prog-ep-title";
+            epTitle.textContent = p.nextTitle;
+            bottom.appendChild(epTitle);
+            if (status !== STATUS_UPCOMING) {
+              const markBtn = document.createElement("button");
+              markBtn.type = "button";
+              markBtn.className = "mark-watched-btn";
+              markBtn.title = "Oznacz jako obejrzane";
+              markBtn.setAttribute("aria-label", "Oznacz jako obejrzane");
+              markBtn.textContent = "+";
+              markBtn.addEventListener("click", async (e)=>{
+                e.stopPropagation();
+                markBtn.disabled = true;
+                try {
+                  await markNextEpisodeWatched(item.id);
+                } finally {
+                  markBtn.disabled = false;
+                }
+              });
+              bottom.appendChild(markBtn);
+            }
+            wrap.appendChild(bottom);
+          }
           td.appendChild(wrap);
         } else if (col === "title") {
           const titleLine = document.createElement("div");
@@ -344,7 +380,16 @@ function renderPlannedTable(){
     tr.dataset.id = entry.id;
     const tdTitle = document.createElement("td");
     tdTitle.className = "col-title";
-    tdTitle.textContent = entry.title || "";
+    const titleLine = document.createElement("div");
+    titleLine.className = "title-main";
+    titleLine.textContent = entry.title || "";
+    tdTitle.appendChild(titleLine);
+    if (entry.premiere_date) {
+      const dateLine = document.createElement("div");
+      dateLine.className = "title-date";
+      dateLine.textContent = entry.premiere_date;
+      tdTitle.appendChild(dateLine);
+    }
     const tdRodzaj = document.createElement("td");
     tdRodzaj.className = "col-rodzaj";
     tdRodzaj.textContent = entry.type === TYPE_SERIES ? "Serial" : "Film";
