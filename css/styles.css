@@ -236,23 +236,6 @@
   .progress-cell .prog-toprow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;}
   .progress-cell .prog-next{white-space:nowrap;font-weight:700;color:var(--text-light);}
   .progress-cell .prog-counts{white-space:nowrap;color:var(--text-muted);}
-  .progress-cell .prog-bottomrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px;}
-  .progress-cell .prog-ep-title{
-    color:var(--text-muted);font-size:12.5px;font-weight:400;
-    white-space:normal;overflow:hidden;text-overflow:ellipsis;
-    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;
-    min-width:0;flex:1;
-  }
-  .mark-watched-btn{
-    flex-shrink:0;width:22px;height:22px;border-radius:50%;
-    border:1px solid var(--accent);background:var(--accent);color:#fff;
-    font-size:15px;line-height:1;font-weight:700;
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;padding:0;transition:background .15s ease,transform .1s ease;
-  }
-  .mark-watched-btn:hover{background:var(--accent-hover);}
-  .mark-watched-btn:active{transform:scale(.92);}
-  .mark-watched-btn:disabled{opacity:.5;cursor:default;}
   .progress-bar-track{width:100%;height:6px;border-radius:4px;overflow:hidden;background:var(--bg-medium,#33383c);}
   .progress-bar-fill{height:100%;border-radius:4px;background:#fff;transition:width .2s ease;}
   table.data tbody tr{cursor:pointer;}
