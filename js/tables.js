@@ -259,6 +259,17 @@ function renderTable(type, status){
           wrap.appendChild(top);
           wrap.appendChild(track);
           td.appendChild(wrap);
+        } else if (col === "title") {
+          const titleLine = document.createElement("div");
+          titleLine.className = "title-main";
+          titleLine.textContent = item.title || "";
+          td.appendChild(titleLine);
+          if (item.premiere_date) {
+            const dateLine = document.createElement("div");
+            dateLine.className = "title-date";
+            dateLine.textContent = item.premiere_date;
+            td.appendChild(dateLine);
+          }
         } else {
           td.textContent = cellValue(item, col, type);
         }
