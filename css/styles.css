@@ -43,8 +43,6 @@
   button{ -webkit-appearance:none; appearance:none; touch-action:manipulation; }
   input,select,textarea{ font-size:16px !important; }
   #search-bar{display:flex;align-items:center;gap:6px;padding-bottom:8px;flex-shrink:0;flex-wrap:nowrap;}
-  #search-bar label{white-space:nowrap;}
-  @media (max-width:480px){#search-bar label{display:none;}}
   #search-input-wrap{flex:1;position:relative;display:flex;min-width:0;}
   #search-input, .entry, select.entry{
     flex:1;min-width:0;
@@ -210,7 +208,7 @@
     border-bottom:1px solid var(--border);
     background:var(--bg-entry);
     text-align:center;
-    font-size:13px;
+    font-size:14px;
   }
   table.data tbody td.col-title{white-space:normal;width:100%;text-align:left;}
   .title-main{font-weight:600;}
@@ -453,7 +451,7 @@
     .genre-stat-name{width:96px;font-size:12px;}
     .genre-stat-pct{width:34px;font-size:12px;}
     table.data thead th{padding:8px 6px;font-size:15px;}
-    table.data tbody td{padding:9px 7px;font-size:12px;}
+    table.data tbody td{padding:9px 7px;font-size:13px;}
     .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
     .progress-cell .prog-toprow{font-size:11px;}
     #db-name-badge{margin-left:0;text-align:left;width:100%;}
@@ -478,4 +476,4 @@
 /* (usunięto .catchup-box — prognoza nadgonienia jest teraz w standardowych .stats-row) */
 
 /* Przycisk „Notatki” na dolnym pasku (obok „Otwórz”) */
-#btn-notes.active{background:var(--accent);color:#fff;}
+#btn-settings.active{background:var(--accent);color:#fff;}

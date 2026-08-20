@@ -25,13 +25,11 @@
 
 <div id="app">
   <div id="search-bar">
-    <label for="search-input">Szukaj:</label>
     <div id="search-input-wrap">
       <input id="search-input" class="entry" type="text" placeholder="" style="flex:1;">
       <button type="button" id="search-clear-btn" aria-label="Wyczyść" style="display:none;">&times;</button>
       <div class="search-suggest" id="search-tag-suggest" style="display:none;"></div>
     </div>
-    <button class="btn small secondary tab-btn" id="settings-icon-btn" data-main="settings" type="button" style="padding:4px 7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><img src="icons/settings.png" alt="Ustawienia" style="width:20px;height:20px;filter:invert(1);display:block;"></button>
   </div>
 
   <div class="tabbar" id="main-tabs">
@@ -51,26 +49,27 @@
       <div class="tabbar" id="subtabs-series"></div>
       <div class="sub-content" id="subcontent-series"></div>
     </div>
-    <div class="type-tab" id="tab-notes">
-      <div class="notes-layout">
-        <div class="notes-sidebar">
-          <button class="btn small" id="btn-new-note" type="button">+ Nowa notatka</button>
-          <div class="notes-list" id="notes-list"></div>
-        </div>
-        <div class="notes-editor" id="notes-editor">
-          <div class="notes-editor-head">
-            <input class="entry" id="note-title" type="text" placeholder="Nazwa notatki">
-            <button class="btn small secondary" id="btn-rename-note" type="button">Zmień nazwę</button>
-            <button class="btn small secondary" id="btn-delete-note" type="button">Usuń</button>
-          </div>
-          <textarea class="notes-textarea" id="note-content" placeholder="Pisz tu, co chcesz…"></textarea>
-        </div>
-        <div class="notes-empty" id="notes-empty">Brak notatek. Kliknij „+ Nowa notatka”.</div>
-      </div>
-    </div>
     <div class="type-tab" id="tab-planned">
       <div class="tabbar" id="subtabs-planned"></div>
-      <div class="sub-content" id="subcontent-planned"></div>
+      <div class="sub-content" id="subcontent-planned">
+        <div class="status-pane" id="pane-planned-notes">
+          <div class="notes-layout">
+            <div class="notes-sidebar">
+              <button class="btn small" id="btn-new-note" type="button">+ Nowa notatka</button>
+              <div class="notes-list" id="notes-list"></div>
+            </div>
+            <div class="notes-editor" id="notes-editor">
+              <div class="notes-editor-head">
+                <input class="entry" id="note-title" type="text" placeholder="Nazwa notatki">
+                <button class="btn small secondary" id="btn-rename-note" type="button">Zmień nazwę</button>
+                <button class="btn small secondary" id="btn-delete-note" type="button">Usuń</button>
+              </div>
+              <textarea class="notes-textarea" id="note-content" placeholder="Pisz tu, co chcesz…"></textarea>
+            </div>
+            <div class="notes-empty" id="notes-empty">Brak notatek. Kliknij „+ Nowa notatka”.</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="type-tab" id="tab-stats">
       <div class="tabbar" id="subtabs-stats">
@@ -253,7 +252,7 @@
       <button class="btn icon-btn" id="btn-add" title="Dodaj" aria-label="Dodaj"><img src="icons/dodaj.png" alt="Dodaj"><span class="btn-label">Dodaj</span></button>
       <button class="btn icon-btn" id="btn-save" title="Zapisz" aria-label="Zapisz"><img src="icons/zapisz.png" alt="Zapisz"><span class="btn-label">Zapisz</span></button>
       <button class="btn icon-btn" id="btn-open" title="Otwórz" aria-label="Otwórz"><img src="icons/otworz.png" alt="Otwórz"><span class="btn-label">Otwórz</span></button>
-      <button class="btn icon-btn" id="btn-notes" data-main="notes" title="Notatki" aria-label="Notatki"><img src="icons/notatki.png" alt="Notatki"><span class="btn-label">Notatki</span></button>
+      <button class="btn icon-btn" id="btn-settings" data-main="settings" title="Ustawienia" aria-label="Ustawienia"><img src="icons/settings.png" alt="Ustawienia"><span class="btn-label">Ustawienia</span></button>
 
     </div>
     <div id="db-name-badge"></div>

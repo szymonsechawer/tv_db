@@ -6,10 +6,8 @@ function initTabs(){
   document.querySelectorAll("#main-tabs .tab-btn").forEach(btn=>{
     btn.addEventListener("click", ()=> switchMainTab(btn.dataset.main));
   });
-  const settingsIconBtn = document.getElementById("settings-icon-btn");
-  if (settingsIconBtn) settingsIconBtn.addEventListener("click", ()=> switchMainTab("settings"));
-  const notesBtn = document.getElementById("btn-notes");
-  if (notesBtn) notesBtn.addEventListener("click", ()=> switchMainTab("notes"));
+  const settingsBtn = document.getElementById("btn-settings");
+  if (settingsBtn) settingsBtn.addEventListener("click", ()=> switchMainTab("settings"));
 
 
   for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
@@ -48,8 +46,14 @@ function initTabs(){
     pane.className = "status-pane";
     pane.id = `pane-planned-${type}`;
     pane.innerHTML = `<div class="table-wrap"><table class="data"><thead><tr><th class="col-title">Tytuł</th></tr></thead><tbody id="planned-tbody-${type}"></tbody></table></div>`;
-    plannedContent.appendChild(pane);
+    plannedContent.insertBefore(pane, document.getElementById("pane-planned-notes"));
   }
+  const notesBtn = document.createElement("button");
+  notesBtn.className = "tab-btn";
+  notesBtn.textContent = "Notatki";
+  notesBtn.dataset.plannedType = "notes";
+  notesBtn.addEventListener("click", ()=> switchPlannedTab("notes"));
+  plannedBar.appendChild(notesBtn);
 
   initNotesAutosave();
   switchMainTab(TYPE_MOVIE);
@@ -63,7 +67,11 @@ function switchPlannedTab(type){
   });
   document.querySelectorAll("#subcontent-planned .status-pane").forEach(p=>p.classList.remove("active"));
   document.getElementById(`pane-planned-${type}`).classList.add("active");
-  renderPlannedTable();
+  if (type==="notes") {
+    renderNotesTab();
+  } else {
+    renderPlannedTable();
+  }
 }
 
 let activeStatsTab = "general";
@@ -90,17 +98,13 @@ function switchMainTab(tab){
   document.querySelectorAll("#main-tabs .tab-btn").forEach(b=>{
     b.classList.toggle("active", b.dataset.main===tab);
   });
-  const _sib = document.getElementById("settings-icon-btn");
-  if (_sib) _sib.classList.toggle("active", tab==="settings");
-  const _nb = document.getElementById("btn-notes");
-  if (_nb) _nb.classList.toggle("active", tab==="notes");
+  const _sb = document.getElementById("btn-settings");
+  if (_sb) _sb.classList.toggle("active", tab==="settings");
   document.querySelectorAll(".type-tab").forEach(el=>el.classList.remove("active"));
 
   document.getElementById(`tab-${tab}`).classList.add("active");
   if (tab===TYPE_MOVIE || tab===TYPE_SERIES) {
     switchStatusTab(tab, activeStatus[tab]);
-  } else if (tab==="notes") {
-    renderNotesTab();
   } else if (tab==="planned") {
     switchPlannedTab(activePlannedType);
   } else if (tab==="stats") {
