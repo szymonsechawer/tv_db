@@ -45,6 +45,7 @@ let currentDbName = DEFAULT_DB_FILENAME;
 let dirty = false;
 
 let activeMain = TYPE_MOVIE;
+let activePlannedType = TYPE_MOVIE;
 let activeNoteId = null;
 let activeStatus = {
   [TYPE_MOVIE]: TYPE_STATUS_ORDER[TYPE_MOVIE][0],

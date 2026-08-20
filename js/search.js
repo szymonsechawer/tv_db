@@ -2,42 +2,42 @@
 // search.js — pasek wyszukiwania i podpowiedzi tagów
 // ============================================================
 
+// Tryb wyszukiwania jest teraz wykrywany automatycznie na podstawie treści
+// pola: jeśli tekst zaczyna się od "#" — szukamy po tagach, w przeciwnym
+// razie — po tytule (fraza). Nie ma już osobnych przełączników.
+function getSearchMode(query){
+  return (query||"").trim().startsWith("#") ? "tags" : "phrase";
+}
+
 function updateSearchClearBtn(){
   const btn = document.getElementById("search-clear-btn");
   if (btn) btn.style.display = searchQuery ? "flex" : "none";
 }
 
+function updateSearchPlaceholder(){
+  const searchInputEl = document.getElementById("search-input");
+  if (!searchInputEl) return;
+  searchInputEl.placeholder = "";
+}
+
 document.getElementById("search-input").addEventListener("input", (e)=>{
   searchQuery = e.target.value;
+  searchMode = getSearchMode(searchQuery);
+  updateSearchPlaceholder();
   updateSearchClearBtn();
-  for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
-    for (const status of TYPE_STATUS_ORDER[type]) renderTable(type, status);
-  }
+  runSearchFilter();
 });
 
 document.getElementById("search-clear-btn").addEventListener("click", ()=>{
   const searchInputEl = document.getElementById("search-input");
   searchInputEl.value = "";
   searchQuery = "";
+  searchMode = getSearchMode(searchQuery);
+  updateSearchPlaceholder();
   updateSearchClearBtn();
   searchInputEl.focus();
-  for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
-    for (const status of TYPE_STATUS_ORDER[type]) renderTable(type, status);
-  }
-});
-
-function setSearchMode(mode){
-  searchMode = mode;
-  document.getElementById("mode-phrase-btn").classList.toggle("active", mode==="phrase");
-  document.getElementById("mode-tags-btn").classList.toggle("active", mode==="tags");
-  const searchInputEl = document.getElementById("search-input");
-  searchInputEl.placeholder = mode==="tags" ? "Szukaj po tagach…" : "Szukaj po tytule…";
-  const suggestBox = document.getElementById("search-tag-suggest");
-  if (suggestBox) suggestBox.style.display = "none";
   runSearchFilter();
-}
-document.getElementById("mode-phrase-btn").addEventListener("click", ()=> setSearchMode("phrase"));
-document.getElementById("mode-tags-btn").addEventListener("click", ()=> setSearchMode("tags"));
+});
 
 function getAllTags(){
   const set = new Set();
@@ -115,12 +115,14 @@ function runSearchFilter(){
     const needCommaAfter = suffix.trim() && !suffix.trim().startsWith(",");
     let newVal = prefix;
     if (needCommaBefore) newVal = newVal.replace(/[\s,]*$/, "") + ", ";
-    newVal += tag;
+    newVal += "#" + tag;
     if (needCommaAfter) newVal += ", ";
     newVal += suffix;
     searchInput.value = newVal;
     searchQuery = newVal;
-    const cursorPos = (prefix.replace(/[\s,]*$/,"") + (needCommaBefore ? ", " : "") + tag).length;
+    searchMode = getSearchMode(newVal);
+    updateSearchPlaceholder();
+    const cursorPos = (prefix.replace(/[\s,]*$/,"") + (needCommaBefore ? ", " : "") + "#" + tag).length;
     searchInput.focus();
     searchInput.setSelectionRange(cursorPos, cursorPos);
     closeSuggest();
@@ -128,11 +130,11 @@ function runSearchFilter(){
   }
 
   function runSuggest(){
-    if (searchMode !== "tags") { closeSuggest(); return; }
+    if (getSearchMode(searchInput.value) !== "tags") { closeSuggest(); return; }
     const tok = getCurrentToken();
-    const query = tok.before.trim().toLowerCase();
+    const query = tok.before.trim().replace(/^#/, "").toLowerCase();
     const allTags = getAllTags();
-    const used = searchInput.value.split(/[,]+/).map(t=>t.trim().toLowerCase()).filter(Boolean);
+    const used = searchInput.value.split(/[,]+/).map(t=>t.trim().replace(/^#/, "").toLowerCase()).filter(Boolean);
     let matches;
     if (query) {
       matches = allTags.filter(t => t.toLowerCase().includes(query) && !used.includes(t.toLowerCase()));
@@ -154,7 +156,7 @@ function runSearchFilter(){
     suggestTimer = setTimeout(runSuggest, 150);
   });
   searchInput.addEventListener("focus", ()=>{
-    if (searchMode !== "tags") return;
+    if (getSearchMode(searchInput.value) !== "tags") return;
     if (suggestTimer) clearTimeout(suggestTimer);
     suggestTimer = setTimeout(runSuggest, 0);
   });

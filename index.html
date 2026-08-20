@@ -31,10 +31,6 @@
       <button type="button" id="search-clear-btn" aria-label="Wyczyść" style="display:none;">&times;</button>
       <div class="search-suggest" id="search-tag-suggest" style="display:none;"></div>
     </div>
-    <div id="search-mode-toggle">
-      <button type="button" class="seg-btn active" id="mode-phrase-btn" data-mode="phrase">Fraza</button>
-      <button type="button" class="seg-btn" id="mode-tags-btn" data-mode="tags">Tagi</button>
-    </div>
     <button class="btn small secondary tab-btn" id="settings-icon-btn" data-main="settings" type="button" style="padding:4px 7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><img src="icons/settings.png" alt="Ustawienia" style="width:20px;height:20px;filter:invert(1);display:block;"></button>
   </div>
 
@@ -73,12 +69,8 @@
       </div>
     </div>
     <div class="type-tab" id="tab-planned">
-      <div class="table-wrap">
-        <table class="data" id="planned-table">
-          <thead><tr><th class="col-title">Tytuł</th><th class="col-rodzaj">Rodzaj</th></tr></thead>
-          <tbody id="planned-tbody"></tbody>
-        </table>
-      </div>
+      <div class="tabbar" id="subtabs-planned"></div>
+      <div class="sub-content" id="subcontent-planned"></div>
     </div>
     <div class="type-tab" id="tab-stats">
       <div class="tabbar" id="subtabs-stats">

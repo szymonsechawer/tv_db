@@ -74,7 +74,7 @@ function renderUpcomingTable(){
     .map(e=>({...e, days: daysUntil(e.air_date)}))
     .filter(r => r.days !== null);
   const search = searchQuery.trim().toLowerCase();
-  if (search && searchMode !== "tags") {
+  if (search && getSearchMode(search) !== "tags") {
     const tokens = search.split(/[,]+|\s+/).map(t=>t.trim()).filter(Boolean);
     rows = rows.filter(r => tokens.every(tok => (r.title||"").toLowerCase().includes(tok)));
   }
@@ -192,13 +192,17 @@ function renderTable(type, status){
   let items = db.items.filter(i => i.type===type && (i.status||STATUS_WATCHING)===status);
   const search = searchQuery.trim().toLowerCase();
   if (search) {
-    const tokens = search.split(/[,]+|\s+/).map(t=>t.trim()).filter(Boolean);
-    items = items.filter(i => {
-      const hay = searchMode === "tags"
-        ? (i.tags||[]).join(" ").toLowerCase()
-        : (i.title||"").toLowerCase();
-      return tokens.every(tok => hay.includes(tok));
-    });
+    const mode = getSearchMode(search);
+    if (mode === "tags") {
+      const tokens = search.replace(/#/g, "").split(/[,]+/).map(t=>t.trim()).filter(Boolean);
+      items = items.filter(i => {
+        const hay = (i.tags||[]).join(" ").toLowerCase();
+        return tokens.every(tok => hay.includes(tok));
+      });
+    } else {
+      const tokens = search.split(/[,]+|\s+/).map(t=>t.trim()).filter(Boolean);
+      items = items.filter(i => tokens.every(tok => (i.title||"").toLowerCase().includes(tok)));
+    }
   }
 
   const lpMap = new Map();
@@ -334,15 +338,19 @@ function getPlannedRows(){
 }
 
 function renderPlannedTable(){
-  const tbody = document.getElementById("planned-tbody");
+  for (const type of [TYPE_MOVIE, TYPE_SERIES]) renderPlannedTableFor(type);
+}
+
+function renderPlannedTableFor(type){
+  const tbody = document.getElementById(`planned-tbody-${type}`);
   if (!tbody) return;
-  const rows = getPlannedRows();
+  const rows = getPlannedRows().filter(r => r.type === type);
   tbody.innerHTML = "";
   if (!rows.length) {
     const tr = document.createElement("tr");
     tr.className = "empty-row";
     const td = document.createElement("td");
-    td.colSpan = 2;
+    td.colSpan = 1;
     td.textContent = "Brak planowanych pozycji.";
     tr.appendChild(td);
     tbody.appendChild(tr);
@@ -363,11 +371,7 @@ function renderPlannedTable(){
       dateLine.textContent = entry.premiere_date;
       tdTitle.appendChild(dateLine);
     }
-    const tdRodzaj = document.createElement("td");
-    tdRodzaj.className = "col-rodzaj";
-    tdRodzaj.textContent = entry.type === TYPE_SERIES ? "Serial" : "Film";
     tr.appendChild(tdTitle);
-    tr.appendChild(tdRodzaj);
     if (!entry.legacy) {
       tr.style.cursor = "pointer";
       tr.addEventListener("click", ()=>{ openViewDialog(entry.id, {readOnly:true}); });
