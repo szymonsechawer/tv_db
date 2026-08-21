@@ -1,4 +1,4 @@
-# tv_db
+# tv_db_
 
 Prosta aplikacja PWA (Progressive Web App) do prowadzenia własnej bazy
 obejrzanych/oglądanych filmów i seriali: statusy, oceny, tagi, postęp
