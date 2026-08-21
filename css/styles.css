@@ -308,18 +308,22 @@
 
   .genre-stats-list{display:flex;flex-direction:column;gap:7px;}
   .genre-stat-row{
-    display:flex;align-items:center;gap:10px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;
     padding:8px 10px;
     background:var(--bg-entry);border:1px solid var(--border);border-radius:8px;
   }
-  .genre-stat-name{width:160px;flex-shrink:0;color:var(--text-light);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .genre-bar-track{flex:1;height:10px;background:var(--bg-medium,#33383c);border-radius:6px;overflow:hidden;}
+  .genre-stat-name{
+    order:1;flex:1 1 auto;min-width:0;
+    color:var(--text-light);font-size:13px;
+    white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;
+  }
+  .genre-stat-pct{order:2;flex-shrink:0;text-align:right;font-weight:800;color:var(--text-light);font-size:13px;}
+  .genre-bar-track{order:3;flex:1 1 100%;height:10px;background:var(--bg-medium,#33383c);border-radius:6px;overflow:hidden;}
   .genre-bar-fill{height:100%;background:var(--accent);border-radius:6px;}
-  .genre-stat-pct{width:42px;flex-shrink:0;text-align:right;font-weight:800;color:var(--text-light);font-size:13px;}
 
   .person-stat-row{justify-content:space-between;}
-  .person-stat-row .genre-stat-name{width:auto;flex:1;white-space:normal;}
-  .person-stat-row .genre-stat-pct{width:auto;}
+  .person-stat-row .genre-stat-name{flex:1 1 auto;}
+  .person-stat-row .genre-stat-pct{flex-shrink:0;}
 
   .overlay{
     position:fixed;inset:0;background:rgba(0,0,0,.55);
