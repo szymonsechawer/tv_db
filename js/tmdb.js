@@ -308,6 +308,76 @@ async function tmdbSeriesOriginalLanguage(seriesId){
   return lang;
 }
 
+// ------------------------------------------------------------------
+// Kategoria wiekowa, kolekcje oraz popularne teraz (trending) - dane
+// pobierane "na żywo" przy każdym otwarciu (cache tylko w pamięci sesji,
+// żeby nie odpytywać TMDb wielokrotnie w trakcie jednej sesji aplikacji).
+// ------------------------------------------------------------------
+
+const TMDB_WATCH_REGION = "PL";
+const tmdbCertificationCache = new Map();
+const tmdbCollectionCache = new Map();
+const tmdbTrendingCache = new Map();
+
+function pickMovieCertification(data, region){
+  const entry = (data && Array.isArray(data.results)) ? data.results.find(r=>r.iso_3166_1===region) : null;
+  if (!entry || !Array.isArray(entry.release_dates)) return "";
+  const withCert = entry.release_dates.find(rd=>rd.certification);
+  return withCert ? withCert.certification : "";
+}
+function pickTvCertification(data, region){
+  const entry = (data && Array.isArray(data.results)) ? data.results.find(r=>r.iso_3166_1===region) : null;
+  return (entry && entry.rating) ? entry.rating : "";
+}
+
+// Pobiera kategorię wiekową (np. "PG-13", "16+") - najpierw dla Polski,
+// a w razie braku danych - dla USA jako rozsądny fallback.
+async function tmdbFetchCertification(type, id){
+  const cacheKey = type + ":" + id;
+  if (tmdbCertificationCache.has(cacheKey)) return tmdbCertificationCache.get(cacheKey);
+  let cert = "";
+  try {
+    if (type===TYPE_MOVIE) {
+      const data = await tmdbFetch("/movie/" + id + "/release_dates", {});
+      cert = pickMovieCertification(data, TMDB_WATCH_REGION) || pickMovieCertification(data, "US") || "";
+    } else {
+      const data = await tmdbFetch("/tv/" + id + "/content_ratings", {});
+      cert = pickTvCertification(data, TMDB_WATCH_REGION) || pickTvCertification(data, "US") || "";
+    }
+  } catch(err) { cert = ""; }
+  tmdbCertificationCache.set(cacheKey, cert);
+  return cert;
+}
+
+// Dla filmu należącego do kolekcji/sagi zwraca pełne dane kolekcji (z listą
+// wszystkich części) - albo null, gdy film nie należy do żadnej kolekcji.
+async function tmdbFetchCollection(movieId){
+  const data = await tmdbFetch("/movie/" + movieId, {});
+  if (!data || !data.belongs_to_collection) return null;
+  const collId = data.belongs_to_collection.id;
+  if (tmdbCollectionCache.has(collId)) return tmdbCollectionCache.get(collId);
+  let coll = null;
+  try { coll = await tmdbFetch("/collection/" + collId, {}); } catch(err) { coll = null; }
+  tmdbCollectionCache.set(collId, coll);
+  return coll;
+}
+
+// Pobiera listę popularnych teraz filmów/seriali (trending) na potrzeby
+// zakładki "Odkrywaj".
+async function tmdbFetchTrending(type, window_){
+  const win = window_ || "week";
+  const cacheKey = type + ":" + win;
+  if (tmdbTrendingCache.has(cacheKey)) return tmdbTrendingCache.get(cacheKey);
+  const path = "/trending/" + (type===TYPE_MOVIE ? "movie" : "tv") + "/" + win;
+  let results = [];
+  try {
+    const data = await tmdbFetch(path, {});
+    results = (data && Array.isArray(data.results)) ? data.results : [];
+  } catch(err) { results = []; }
+  tmdbTrendingCache.set(cacheKey, results);
+  return results;
+}
+
 async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   const cacheKey = seriesId + ":" + seasonNumber;
   if (!forceRefresh && tmdbSeasonCache.has(cacheKey)) return tmdbSeasonCache.get(cacheKey);

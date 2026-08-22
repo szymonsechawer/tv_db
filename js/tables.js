@@ -374,7 +374,7 @@ function renderPlannedTableFor(type){
     tr.appendChild(tdTitle);
     if (!entry.legacy) {
       tr.style.cursor = "pointer";
-      tr.addEventListener("click", ()=>{ openViewDialog(entry.id, {readOnly:true}); });
+      addDoubleActivation(tr, ()=>{ openViewDialog(entry.id, {readOnly:true}); });
     }
     tbody.appendChild(tr);
   }

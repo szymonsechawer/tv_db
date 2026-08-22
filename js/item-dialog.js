@@ -42,6 +42,15 @@ function computeLp(type, status, itemId){
   return idx===-1 ? null : idx+1;
 }
 
+// Zapewnia, że dana pozycja ma znane id TMDb - jeśli go brakuje, próbuje je
+// znaleźć po tytule/dacie premiery (i od razu zapisuje na obiekcie).
+async function ensureItemTmdbId(cur){
+  if (cur.tmdb_id) return cur.tmdb_id;
+  const hit = await tmdbSearch(cur.type, cur.title, cur.premiere_date);
+  if (hit) { cur.tmdb_id = hit.id; return hit.id; }
+  return null;
+}
+
 async function markNextEpisodeWatched(id){
   const item = findItem(id);
   if (!item) return null;
@@ -83,10 +92,86 @@ async function markNextEpisodeWatched(id){
   return null;
 }
 
-function openViewDialog(id, opts){
-  const readOnly = !!(opts && opts.readOnly);
+// Znajduje pozycję w bazie na podstawie id TMDb (używane przez wiersze
+// "Kolekcja" / "Odkrywaj", żeby rozpoznać, czy dana propozycja jest już
+// dodana do bazy).
+function findItemByTmdbId(type, tmdbId){
+  return db.items.find(i=>i.type===type && i.tmdb_id===tmdbId) || null;
+}
+
+// Otwiera okno dodawania nowej pozycji, wstępnie wypełnione danymi z
+// wyniku wyszukiwania/rekomendacji TMDb (poster, opis, obsada itd. zostaną
+// pobrane automatycznie tak samo jak przy wybraniu podpowiedzi w polu tytułu).
+async function addItemFromTmdb(type, hit){
+  const result = await openItemDialog({item:null, itemType:type, prefillTmdb:hit});
+  if (result) {
+    db.items.push(result);
+    setDirty(true);
+    renderAll();
+  }
+}
+
+// Buduje wiersz tabeli (tekst) używany w sekcji "Kolekcja" oraz w zakładce
+// "Odkrywaj" — wygląda i zachowuje się tak samo jak rekordy filmów/seriali
+// w zakładce "Planowane": dwuklik otwiera podgląd, jeśli pozycja jest już
+// w bazie, albo okno dodawania wypełnione danymi z TMDb.
+function buildTmdbRecordRow(type, r){
+  const tr = document.createElement("tr");
+  const title = (type===TYPE_MOVIE ? r.title : r.name) || (type===TYPE_MOVIE ? r.original_title : r.original_name) || "(bez tytułu)";
+  const year = ((type===TYPE_MOVIE ? r.release_date : r.first_air_date) || "").slice(0,4);
+  const existing = findItemByTmdbId(type, r.id);
+  const td = document.createElement("td");
+  td.className = "col-title";
+  const titleLine = document.createElement("div");
+  titleLine.className = "title-main";
+  titleLine.textContent = title;
+  if (existing) {
+    const badge = document.createElement("span");
+    badge.className = "muted";
+    badge.textContent = "  •  w bazie";
+    titleLine.appendChild(badge);
+  }
+  td.appendChild(titleLine);
+  if (year) {
+    const dateLine = document.createElement("div");
+    dateLine.className = "title-date";
+    dateLine.textContent = year;
+    td.appendChild(dateLine);
+  }
+  tr.appendChild(td);
+  tr.style.cursor = "pointer";
+  addDoubleActivation(tr, async ()=>{
+    if (existing) { await openViewDialog(existing.id, {readOnly:true}); return; }
+    const originalTitleRaw = (type===TYPE_MOVIE ? r.original_title : r.original_name) || "";
+    const previewItem = {
+      id: "preview:" + type + ":" + r.id,
+      type,
+      title,
+      original_title: (originalTitleRaw && originalTitleRaw!==title) ? originalTitleRaw : "",
+      premiere_date: year,
+      poster_path: r.poster_path || null,
+      tmdb_id: r.id,
+      tags: [],
+      rating: 0,
+      seasons: [],
+    };
+    await openViewDialog(previewItem, {preview:true, tmdbHit:r, tmdbType:type});
+  });
+  return tr;
+}
+
+function openViewDialog(idOrItem, opts){
+  const preview = !!(opts && opts.preview);
+  const readOnly = !!(opts && (opts.readOnly || preview));
   return new Promise(resolve=>{
-    const item = findItem(id);
+    let id, item;
+    if (idOrItem && typeof idOrItem === "object") {
+      item = idOrItem;
+      id = item.id;
+    } else {
+      id = idOrItem;
+      item = findItem(id);
+    }
     if (!item) { resolve(null); return; }
     const type = item.type;
 
@@ -117,6 +202,7 @@ function openViewDialog(id, opts){
             ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
             <div class="view-row"><div class="vlabel">Czas:</div><div class="vval">${escapeHtml(timeTxt)}</div></div>
             <div class="view-row"><div class="vlabel">Data (rok):</div><div class="vval">${escapeHtml(item.premiere_date||"—")}</div></div>
+            <div class="view-row" id="view-cert-row"></div>
             <div class="view-row" id="view-genres-row"></div>
             <div class="view-row" id="view-status-row"></div>
             <div class="view-row" id="view-rating-row"></div>
@@ -134,6 +220,11 @@ function openViewDialog(id, opts){
             <div style="margin-top:6px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz dane</button>
             </div>
+            ${type===TYPE_MOVIE ? `
+            <div class="view-section" id="view-collection-section" style="display:none;">
+              <div class="vlabel view-section-label" id="view-collection-title">Kolekcja:</div>
+              <div class="table-wrap"><table class="data"><tbody id="view-collection-content"></tbody></table></div>
+            </div>` : ''}
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
         </div>
@@ -145,8 +236,8 @@ function openViewDialog(id, opts){
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
-        ${readOnly ? "" : '<button class="btn" id="edit-from-view-btn">Edytuj</button>'}
-        <button class="btn" id="delete-from-view-btn">Usuń</button>
+        ${(!readOnly && !preview) ? '<button class="btn" id="edit-from-view-btn">Edytuj</button>' : ''}
+        ${preview ? '<button class="btn" id="add-from-view-btn">Dodaj do bazy</button>' : '<button class="btn" id="delete-from-view-btn">Usuń</button>'}
       </div>
     `, {wide:true});
 
@@ -352,6 +443,45 @@ function openViewDialog(id, opts){
     fetchPosterIfNeeded();
     refreshGenres();
     fetchGenresIfNeeded();
+
+    // Kategoria wiekowa (certyfikacja) - pobierana na żywo, bez zapisu do bazy.
+    async function refreshCertification(){
+      const cur = findItem(id) || item;
+      const row = overlay.querySelector("#view-cert-row");
+      if (!row) return;
+      try {
+        const tid = await ensureItemTmdbId(cur);
+        if (!tid) { row.innerHTML = ""; return; }
+        const cert = await tmdbFetchCertification(cur.type, tid);
+        row.innerHTML = cert
+          ? `<div class="vlabel">Kategoria wiekowa:</div><div class="vval"><span class="age-badge">${escapeHtml(cert)}</span></div>`
+          : "";
+      } catch(err) { row.innerHTML = ""; }
+    }
+    refreshCertification();
+
+    // Kolekcja/saga (np. seria filmów) - tylko dla filmów, tylko gdy kolekcja
+    // ma więcej niż jedną część. Wyświetlana tekstowo, tak jak zwykłe rekordy
+    // filmów/seriali (dwuklik otwiera podgląd/dodawanie).
+    async function refreshCollection(){
+      if (type !== TYPE_MOVIE) return;
+      const cur = findItem(id) || item;
+      const section = overlay.querySelector("#view-collection-section");
+      const content = overlay.querySelector("#view-collection-content");
+      if (!section || !content) return;
+      try {
+        const tid = await ensureItemTmdbId(cur);
+        if (!tid) return;
+        const coll = await tmdbFetchCollection(tid);
+        if (!coll || !Array.isArray(coll.parts) || coll.parts.length < 2) return;
+        overlay.querySelector("#view-collection-title").textContent = `Kolekcja: ${coll.name || ""}`;
+        content.innerHTML = "";
+        const sortedParts = [...coll.parts].sort((a,b)=>String(a.release_date||"9999").localeCompare(String(b.release_date||"9999")));
+        for (const part of sortedParts) content.appendChild(buildTmdbRecordRow(TYPE_MOVIE, part));
+        section.style.display = "";
+      } catch(err) { /* cicho ignoruj - sekcja kolekcji nie jest krytyczna */ }
+    }
+    refreshCollection();
 
     overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
       const cur = findItem(id) || item;
@@ -564,23 +694,30 @@ function openViewDialog(id, opts){
     document.addEventListener("keydown", onKey);
 
     overlay.querySelector("#close-view-btn").addEventListener("click", ()=>finish(null));
-    overlay.querySelector("#delete-from-view-btn").addEventListener("click", async ()=>{
-      const cur = findItem(id) || item;
-      const ok = await showConfirm("Usuń pozycję", `Czy na pewno usunąć „${cur.title||""}”?`);
-      if (!ok) return;
-      db.items = db.items.filter(i=>i.id!==id);
-      setDirty(true);
-      renderAll();
-      finish(null);
-    });
-    if (!readOnly) overlay.querySelector("#edit-from-view-btn").addEventListener("click", async ()=>{
+    if (preview) {
+      overlay.querySelector("#add-from-view-btn").addEventListener("click", async ()=>{
+        finish(null);
+        await addItemFromTmdb(opts.tmdbType || type, opts.tmdbHit);
+      });
+    } else {
+      overlay.querySelector("#delete-from-view-btn").addEventListener("click", async ()=>{
+        const cur = findItem(id) || item;
+        const ok = await showConfirm("Usuń pozycję", `Czy na pewno usunąć „${cur.title||""}”?`);
+        if (!ok) return;
+        db.items = db.items.filter(i=>i.id!==id);
+        setDirty(true);
+        renderAll();
+        finish(null);
+      });
+    }
+    if (!readOnly && !preview) overlay.querySelector("#edit-from-view-btn").addEventListener("click", async ()=>{
       finish(null);
       await openEditDialog(id);
     });
   });
 }
 
-function openItemDialog({item, itemType}){
+function openItemDialog({item, itemType, prefillTmdb}){
   return new Promise(resolve=>{
     const isNew = item==null;
     const type = isNew ? itemType : item.type;
@@ -1371,6 +1508,10 @@ function openItemDialog({item, itemType}){
     }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
     document.addEventListener("keydown", onKey);
+
+    if (isNew && prefillTmdb) {
+      applySuggestion(prefillTmdb);
+    }
 
     overlay.querySelector("#cancel-item-btn").addEventListener("click", ()=>finish(null));
 
