@@ -355,6 +355,12 @@
   .view-poster-placeholder{width:130px;height:195px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;text-align:center;padding:6px;}
   .poster-lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:2000;cursor:zoom-out;padding:20px;}
   .poster-lightbox-img{max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 6px 34px rgba(0,0,0,.65);}
+  .info-box{
+    display:flex;flex-direction:column;
+    padding:2px 12px;
+    background:var(--bg-entry);border:1px solid var(--border);border-radius:8px;
+  }
+  .info-box .view-row{padding:8px 0;}
   .view-row{display:flex;flex-direction:row;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--border,#333);text-align:left;}
   .view-row:last-child{border-bottom:none;}
   .view-row .vlabel{min-width:110px;width:110px;flex:none;color:#9a9a9a;font-weight:700;}
@@ -384,7 +390,7 @@
   }
 
   #seasons-list{display:flex;flex-direction:column;gap:10px;}
-  .season-box{border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+  .season-box{border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--bg-entry);}
   .season-title{font-weight:700;margin-bottom:8px;}
   .season-title-toggle{display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;user-select:none;padding:2px 0;}
   .season-toggle-arrow{flex-shrink:0;font-size:11px;color:var(--text-muted);width:12px;display:inline-block;}
@@ -399,7 +405,7 @@
   .episode-row .ep-check{flex-shrink:0;color:var(--accent-hover);font-weight:700;}
   .episode-row .ep-title-input{
     flex:1;min-width:0;
-    background:var(--bg-entry);color:var(--text-light);
+    background:var(--bg-medium);color:var(--text-light);
     border:1px solid var(--border);border-radius:6px;
     padding:4px 6px;font-family:inherit;font-weight:600;font-size:13px;
     outline:none;
@@ -407,7 +413,7 @@
   .episode-row .ep-title-input:focus{border-color:var(--accent);}
   .episode-row .ep-title-input::placeholder{color:var(--text-muted);font-weight:600;}
   .episode-row input[type="number"]{
-    width:60px;flex-shrink:0;background:var(--bg-entry);color:var(--text-light);
+    width:60px;flex-shrink:0;background:var(--bg-medium);color:var(--text-light);
     border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;font-weight:600;
   }
   .episode-row .ep-title-static{

@@ -111,6 +111,7 @@ function openViewDialog(id, opts){
               <img class="view-poster" id="view-poster-img" alt="Okładka" style="display:none;">
               <div class="view-poster-placeholder" id="view-poster-placeholder">Brak okładki</div>
             </div>
+            <div class="info-box">
             <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
             <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
             ${item.original_title ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(item.original_title)}</div></div>` : ""}
@@ -128,6 +129,7 @@ function openViewDialog(id, opts){
             <div class="view-row"><div class="vlabel">Oryg. język:</div><div class="vval desc-inline" id="view-language-text"></div></div>
             <div class="view-row"><div class="vlabel">Wytwórnia:</div><div class="vval desc-inline" id="view-companies-text"></div></div>
             <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
+            </div>
             <div class="tmdb-status" id="view-desc-status"></div>
             <div style="margin-top:6px;">
               <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz dane</button>
