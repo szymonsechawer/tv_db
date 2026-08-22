@@ -58,7 +58,6 @@ function initTabs(){
   plannedBar.appendChild(notesBtn);
 
   initNotesAutosave();
-  initDiscoverTab();
   switchMainTab(TYPE_MOVIE);
 }
 
@@ -114,8 +113,6 @@ function switchMainTab(tab){
     switchPlannedTab(activePlannedType);
   } else if (tab==="stats") {
     switchStatsTab(activeStatsTab);
-  } else if (tab==="discover") {
-    switchDiscoverType(discoverType);
   }
   updateCheckButtonVisibility();
 }

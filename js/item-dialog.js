@@ -189,7 +189,6 @@ function openViewDialog(idOrItem, opts){
         <div class="inner-tabs">
           <button class="tab-btn active" id="vtab-info" type="button">Informacje</button>
           ${type===TYPE_SERIES ? '<button class="tab-btn" id="vtab-seasons" type="button">Sezony i odcinki</button>' : ''}
-          <button class="tab-btn" id="vtab-similar" type="button">Podobne</button>
         </div>
         <div class="tab-scroll">
           <div id="vpane-info">
@@ -228,13 +227,6 @@ function openViewDialog(idOrItem, opts){
             </div>` : ''}
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
-          <div id="vpane-similar" style="display:none;">
-            <div class="view-section" style="margin-top:0;padding-top:0;border-top:none;">
-              <div class="vlabel view-section-label">Podobne pozycje:</div>
-              <div class="tmdb-status" id="view-similar-status"></div>
-              <div class="table-wrap"><table class="data"><tbody id="view-similar-content"></tbody></table></div>
-            </div>
-          </div>
         </div>
         ${type===TYPE_SERIES ? `
         <div id="mark-next-ep-wrap" style="display:none;">
@@ -482,7 +474,7 @@ function openViewDialog(idOrItem, opts){
         if (!tid) return;
         const coll = await tmdbFetchCollection(tid);
         if (!coll || !Array.isArray(coll.parts) || coll.parts.length < 2) return;
-        overlay.querySelector("#view-collection-title").textContent = `Kolekcja: ${coll.name || ""}`;
+        overlay.querySelector("#view-collection-title").textContent = `Kolekcja:`;
         content.innerHTML = "";
         const sortedParts = [...coll.parts].sort((a,b)=>String(a.release_date||"9999").localeCompare(String(b.release_date||"9999")));
         for (const part of sortedParts) content.appendChild(buildTmdbRecordRow(TYPE_MOVIE, part));
@@ -490,37 +482,6 @@ function openViewDialog(idOrItem, opts){
       } catch(err) { /* cicho ignoruj - sekcja kolekcji nie jest krytyczna */ }
     }
     refreshCollection();
-
-    // Podobne pozycje / rekomendacje TMDb - osobna zakładka, wyświetlana
-    // tekstowo tak samo jak "Kolekcja" (dwuklik otwiera podgląd/dodawanie).
-    let similarLoaded = false;
-    async function refreshSimilarPane(){
-      const cur = findItem(id) || item;
-      const content = overlay.querySelector("#view-similar-content");
-      const statusEl = overlay.querySelector("#view-similar-status");
-      if (!content) return;
-      if (similarLoaded) return;
-      content.innerHTML = `<tr class="empty-row"><td class="col-title muted">Wczytywanie…</td></tr>`;
-      if (statusEl) { statusEl.textContent = ""; statusEl.classList.remove("err"); }
-      try {
-        const tid = await ensureItemTmdbId(cur);
-        if (!tid) {
-          content.innerHTML = `<tr class="empty-row"><td class="col-title muted">Brak powiązania z TMDb.</td></tr>`;
-          return;
-        }
-        const results = await tmdbFetchRecommendations(cur.type, tid);
-        similarLoaded = true;
-        if (!results.length) {
-          content.innerHTML = `<tr class="empty-row"><td class="col-title muted">Brak podobnych pozycji.</td></tr>`;
-          return;
-        }
-        content.innerHTML = "";
-        for (const r of results) content.appendChild(buildTmdbRecordRow(cur.type, r));
-      } catch(err) {
-        content.innerHTML = "";
-        if (statusEl) { statusEl.textContent = "Nie udało się pobrać podobnych pozycji."; statusEl.classList.add("err"); }
-      }
-    }
 
     overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
       const cur = findItem(id) || item;
@@ -611,17 +572,14 @@ function openViewDialog(idOrItem, opts){
 
     const vtabInfo = overlay.querySelector("#vtab-info");
     const vtabSeasons = overlay.querySelector("#vtab-seasons");
-    const vtabSimilar = overlay.querySelector("#vtab-similar");
     const vpaneInfo = overlay.querySelector("#vpane-info");
     const vpaneSeasons = overlay.querySelector("#vpane-seasons");
-    const vpaneSimilar = overlay.querySelector("#vpane-similar");
     const markNextEpWrap = overlay.querySelector("#mark-next-ep-wrap");
 
     const viewTabs = [
       {tab: vtabInfo, pane: vpaneInfo},
     ];
     if (vtabSeasons) viewTabs.push({tab: vtabSeasons, pane: vpaneSeasons, onShow: refreshSeasonsPane, showMarkNextEp: true});
-    if (vtabSimilar) viewTabs.push({tab: vtabSimilar, pane: vpaneSimilar, onShow: refreshSimilarPane});
 
     function activateViewTab(target){
       for (const t of viewTabs) {
