@@ -8,6 +8,8 @@ function initTabs(){
   });
   const settingsBtn = document.getElementById("btn-settings");
   if (settingsBtn) settingsBtn.addEventListener("click", ()=> switchMainTab("settings"));
+  const statsBtn = document.getElementById("btn-stats");
+  if (statsBtn) statsBtn.addEventListener("click", ()=> switchMainTab("stats"));
 
 
   for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
@@ -101,6 +103,8 @@ function switchMainTab(tab){
   });
   const _sb = document.getElementById("btn-settings");
   if (_sb) _sb.classList.toggle("active", tab==="settings");
+  const _stb = document.getElementById("btn-stats");
+  if (_stb) _stb.classList.toggle("active", tab==="stats");
   document.querySelectorAll(".type-tab").forEach(el=>el.classList.remove("active"));
 
   document.getElementById(`tab-${tab}`).classList.add("active");
