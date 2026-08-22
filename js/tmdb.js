@@ -362,6 +362,28 @@ async function tmdbFetchCollection(movieId){
   return coll;
 }
 
+// Zwraca listę rekomendacji TMDb (oparte o oceny/ulubione widzów), a gdy
+// brak wyników - próbuje starszego mechanizmu "podobne" (gatunki/słowa kluczowe).
+const tmdbRecommendationsCache = new Map();
+async function tmdbFetchRecommendations(type, id){
+  const cacheKey = type + ":" + id;
+  if (tmdbRecommendationsCache.has(cacheKey)) return tmdbRecommendationsCache.get(cacheKey);
+  const base = (type===TYPE_MOVIE ? "/movie/" : "/tv/") + id;
+  let results = [];
+  try {
+    const data = await tmdbFetch(base + "/recommendations", {});
+    results = (data && Array.isArray(data.results)) ? data.results : [];
+  } catch(err) { results = []; }
+  if (!results.length) {
+    try {
+      const simData = await tmdbFetch(base + "/similar", {});
+      results = (simData && Array.isArray(simData.results)) ? simData.results : [];
+    } catch(err) { /* brak danych - zostaw pustą listę */ }
+  }
+  tmdbRecommendationsCache.set(cacheKey, results);
+  return results;
+}
+
 // Pobiera listę popularnych teraz filmów/seriali (trending) na potrzeby
 // zakładki "Odkrywaj".
 async function tmdbFetchTrending(type, window_){
