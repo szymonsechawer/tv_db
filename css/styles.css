@@ -379,7 +379,6 @@
   .view-link:hover{text-decoration:underline;}
 
   /* Kategoria wiekowa (certyfikacja TMDb) */
-  .age-badge{display:inline-block;background:var(--chip-bg,#333);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:800;letter-spacing:.3px;}
 
   /* Sekcje w oknie podglądu: "Gdzie obejrzeć", "Kolekcja", "Podobne pozycje" */
   .view-section{margin-top:16px;padding-top:12px;border-top:1px solid var(--border,#333);}

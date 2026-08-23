@@ -215,6 +215,51 @@ function addDoubleActivation(element, handler){
   }, {passive:false});
 }
 
+// Mapa skrótów kategorii wiekowej (amerykańskie MPAA dla filmów oraz
+// TV Parental Guidelines dla seriali) na ich pełne polskie znaczenie.
+// Klucze są znormalizowane (wielkie litery, bez spacji).
+const AGE_CERT_MEANINGS = {
+  // MPAA (filmy, USA)
+  "G": "bez ograniczeń wiekowych",
+  "PG": "zalecana opieka rodziców",
+  "PG-13": "niewskazane dla dzieci poniżej 13 lat",
+  "R": "tylko dla widzów od 17 lat (z opiekunem)",
+  "NC-17": "tylko dla dorosłych, od 18 lat",
+  "NR": "brak klasyfikacji wiekowej",
+  "UR": "wersja nieocenzurowana, brak klasyfikacji wiekowej",
+  // TV Parental Guidelines (seriale, USA)
+  "TV-Y": "dla wszystkich dzieci",
+  "TV-Y7": "dla dzieci od 7 lat",
+  "TV-Y7-FV": "dla dzieci od 7 lat (zawiera fantastyczną przemoc)",
+  "TV-G": "dla całej rodziny",
+  "TV-PG": "zalecana opieka rodziców",
+  "TV-14": "dla widzów od 14 lat",
+  "TV-MA": "tylko dla dorosłych",
+};
+
+// Zamienia surowy kod kategorii wiekowej (np. z TMDb) na czytelny tekst
+// po polsku. Gdy nie ma lepszego odpowiednika i jest to skrót, pokazuje
+// skrót wraz z jego znaczeniem w nawiasie; dla liczbowych kategorii (np.
+// polskie "12", "16", "18") zwraca "od X lat".
+function formatAgeCertification(raw){
+  const cert = String(raw||"").trim();
+  if (!cert) return "";
+  const normalized = cert.toUpperCase().replace(/\s+/g, "");
+  if (AGE_CERT_MEANINGS[normalized]) {
+    return `${cert} (${AGE_CERT_MEANINGS[normalized]})`;
+  }
+  const numMatch = /^(\d{1,2})\+?$/.exec(cert);
+  if (numMatch) {
+    const age = parseInt(numMatch[1], 10);
+    return age > 0 ? `od ${age} lat` : "bez ograniczeń wiekowych";
+  }
+  if (/^0\+?$/.test(cert) || /bez\s*ogranicze/i.test(cert)) {
+    return "bez ograniczeń wiekowych";
+  }
+  // brak dopasowania - zwróć tekst tak, jak przyszedł (nie ma lepszej możliwości)
+  return cert;
+}
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 }

@@ -444,17 +444,22 @@ function openViewDialog(idOrItem, opts){
     refreshGenres();
     fetchGenresIfNeeded();
 
-    // Kategoria wiekowa (certyfikacja) - pobierana na żywo, bez zapisu do bazy.
+    // Kategoria wiekowa (certyfikacja) - jeśli ustawiono ją ręcznie w edycji,
+    // pokaż tę wartość; w przeciwnym razie pobierz na żywo z TMDb (bez zapisu).
     async function refreshCertification(){
       const cur = findItem(id) || item;
       const row = overlay.querySelector("#view-cert-row");
       if (!row) return;
+      if (cur.age_certification && cur.age_certification.trim()) {
+        row.innerHTML = `<div class="vlabel">Kategoria wiekowa:</div><div class="vval">${escapeHtml(formatAgeCertification(cur.age_certification))}</div>`;
+        return;
+      }
       try {
         const tid = await ensureItemTmdbId(cur);
         if (!tid) { row.innerHTML = ""; return; }
         const cert = await tmdbFetchCertification(cur.type, tid);
         row.innerHTML = cert
-          ? `<div class="vlabel">Kategoria wiekowa:</div><div class="vval"><span class="age-badge">${escapeHtml(cert)}</span></div>`
+          ? `<div class="vlabel">Kategoria wiekowa:</div><div class="vval">${escapeHtml(formatAgeCertification(cert))}</div>`
           : "";
       } catch(err) { row.innerHTML = ""; }
     }
@@ -744,6 +749,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             <div class="form-row"><label>Tytuł org.:</label><input class="entry" id="f-original-title" type="text" style="flex:1;" placeholder="opcjonalnie"></div>
             <div class="form-row"><label>Data (rok):</label><input class="entry" id="f-date" type="text" style="flex:1;"></div>
             ${type===TYPE_MOVIE ? '<div class="form-row"><label>Czas trwania (min):</label><input class="entry" id="f-duration" type="text" style="flex:1;"></div>' : ''}
+            <div class="form-row"><label>Kategoria wiekowa:</label><input class="entry" id="f-age-cert" type="text" style="flex:1;" placeholder="np. 16, PG-13, TV-MA (puste = pobierz automatycznie)"></div>
             <div class="form-row"><label>Status:</label>
               <select class="entry" id="f-status" style="flex:1;">
                 ${statusOptions.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("")}
@@ -798,7 +804,14 @@ function openItemDialog({item, itemType, prefillTmdb}){
               </div>
             </div>
             <div class="form-row"><label>Oryg. język:</label><input class="entry" id="f-language" type="text" style="flex:1;" placeholder="np. en"></div>
-            <div class="form-row"><label>Okładka (TMDb):</label><input class="entry" id="f-poster" type="text" style="flex:1;" placeholder="np. /abc123.jpg"></div>
+            <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Wytwórnia:</label>
+              <div style="flex:1;">
+                <div id="companies-chip-list"></div>
+                <input class="entry" id="f-companies-input" type="text" placeholder="dodaj wytwórnię i Enter">
+              </div>
+            </div>
+            <div class="form-row"><label>Zwiastun:</label><input class="entry" id="f-trailer" type="text" style="flex:1;" placeholder="link lub ID YouTube"></div>
             <div class="form-row" style="align-items:flex-start;">
               <label>Opis:</label>
               <textarea class="entry" id="f-description" rows="5" style="flex:1;resize:vertical;font-weight:500;line-height:1.5;"></textarea>
@@ -824,6 +837,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
     const originalTitleInput = overlay.querySelector("#f-original-title");
     const dateInput = overlay.querySelector("#f-date");
     const durationInput = overlay.querySelector("#f-duration");
+    const ageCertInput = overlay.querySelector("#f-age-cert");
     const statusSelect = overlay.querySelector("#f-status");
     const ratingSelect = overlay.querySelector("#f-rating");
     const descriptionInput = overlay.querySelector("#f-description");
@@ -837,6 +851,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       originalTitleInput.value = item.original_title || "";
       dateInput.value = item.premiere_date || "";
       if (type===TYPE_MOVIE && durationInput) durationInput.value = item.duration ? String(item.duration) : "";
+      ageCertInput.value = item.age_certification || "";
       statusSelect.value = STATUS_LABELS[item.status] || defaultStatus;
       ratingSelect.value = String(parseInt(item.rating||0,10));
       descriptionInput.value = item.description || "";
@@ -1302,11 +1317,23 @@ function openItemDialog({item, itemType, prefillTmdb}){
 
     const countriesField = setupChipField(isNew ? [] : item.production_countries, "countries-chip-list", "f-countries-input", "Usuń kraj produkcji");
     const originField = setupChipField(isNew ? [] : item.origin_country, "origin-chip-list", "f-origin-input", "Usuń kraj pochodzenia");
+    const companiesField = setupChipField(isNew ? [] : item.production_companies, "companies-chip-list", "f-companies-input", "Usuń wytwórnię");
     const languageInput = overlay.querySelector("#f-language");
-    const posterInput = overlay.querySelector("#f-poster");
+    const trailerInput = overlay.querySelector("#f-trailer");
+    // Okładka nie jest ręcznie edytowalna - pobierana automatycznie z TMDb.
+    let currentPosterPath = isNew ? null : (item.poster_path || null);
     if (!isNew) {
       languageInput.value = item.original_language || "";
-      posterInput.value = item.poster_path || "";
+      trailerInput.value = item.trailer_key || "";
+    }
+
+    // Zaakceptuj pełny link YouTube albo sam identyfikator filmu.
+    function extractYoutubeId(val){
+      const v = String(val||"").trim();
+      if (!v) return "";
+      let m = /(?:youtu\.be\/|v=|\/embed\/)([A-Za-z0-9_-]{6,})/.exec(v);
+      if (m) return m[1];
+      return v;
     }
 
     if (type===TYPE_SERIES) {
@@ -1495,10 +1522,18 @@ function openItemDialog({item, itemType, prefillTmdb}){
         }
       } catch(err) { /* brak danych o kraju/jezyku nie blokuje reszty */ }
       try {
-        let posterPath = details && details.poster_path ? details.poster_path : null;
-        if (!posterPath) posterPath = await tmdbFetchPoster(type, tid);
-        if (posterPath && posterInput) posterInput.value = posterPath;
+        let fetchedPoster = details && details.poster_path ? details.poster_path : null;
+        if (!fetchedPoster) fetchedPoster = await tmdbFetchPoster(type, tid);
+        if (fetchedPoster) currentPosterPath = fetchedPoster;
       } catch(err) { /* brak okladki nie blokuje reszty */ }
+      try {
+        const extras = await tmdbFetchExtras(type, tid);
+        if (extras && extras.companies && extras.companies.length) companiesField.set(extras.companies);
+      } catch(err) { /* brak wytworni nie blokuje reszty */ }
+      try {
+        const trailerKey = await tmdbFetchTrailerKey(type, tid);
+        if (trailerKey && trailerInput) trailerInput.value = trailerKey;
+      } catch(err) { /* brak zwiastuna nie blokuje reszty */ }
     }
 
     function finish(result){
@@ -1572,6 +1607,9 @@ function openItemDialog({item, itemType, prefillTmdb}){
       if (origTitleVal) resultItem.original_title = origTitleVal;
       else delete resultItem.original_title;
       resultItem.premiere_date = premiereDate;
+      const ageCertVal = ageCertInput.value.trim();
+      if (ageCertVal) resultItem.age_certification = ageCertVal;
+      else delete resultItem.age_certification;
       resultItem.status = statusKey;
       resultItem.rating = parseInt(ratingSelect.value||"0",10);
       resultItem.tags = [...tags];
@@ -1582,8 +1620,11 @@ function openItemDialog({item, itemType, prefillTmdb}){
       resultItem.production_countries = countriesField.get();
       resultItem.origin_country = originField.get();
       resultItem.original_language = languageInput ? languageInput.value.trim() : "";
-      const posterVal = posterInput ? posterInput.value.trim() : "";
-      if (posterVal) resultItem.poster_path = posterVal;
+      resultItem.production_companies = companiesField.get();
+      const trailerVal = trailerInput ? extractYoutubeId(trailerInput.value) : "";
+      if (trailerVal) resultItem.trailer_key = trailerVal;
+      else delete resultItem.trailer_key;
+      if (currentPosterPath) resultItem.poster_path = currentPosterPath;
       else delete resultItem.poster_path;
       if (tmdbId) resultItem.tmdb_id = tmdbId;
       if (type===TYPE_MOVIE) {

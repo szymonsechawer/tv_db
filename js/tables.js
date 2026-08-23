@@ -151,6 +151,12 @@ function renderUpcomingTable(){
     tr.appendChild(tdTitle);
     tr.appendChild(tdDays);
     tr.appendChild(tdDel);
+    if (selectedId[key] === upcomingKeyOf(row)) tr.classList.add("selected");
+    tr.addEventListener("click", ()=>{
+      selectedId[key] = upcomingKeyOf(row);
+      tbody.querySelectorAll("tr").forEach(r=>r.classList.remove("selected"));
+      tr.classList.add("selected");
+    });
     addDoubleActivation(tr, ()=>{ openUpcomingViewDialog(row); });
     tbody.appendChild(tr);
   });
@@ -356,6 +362,7 @@ function renderPlannedTableFor(type){
     tbody.appendChild(tr);
     return;
   }
+  const key = `planned:${type}`;
   for (const entry of rows) {
     const tr = document.createElement("tr");
     tr.dataset.id = entry.id;
@@ -372,6 +379,12 @@ function renderPlannedTableFor(type){
       tdTitle.appendChild(dateLine);
     }
     tr.appendChild(tdTitle);
+    if (selectedId[key] === entry.id) tr.classList.add("selected");
+    tr.addEventListener("click", ()=>{
+      selectedId[key] = entry.id;
+      tbody.querySelectorAll("tr").forEach(r=>r.classList.remove("selected"));
+      tr.classList.add("selected");
+    });
     if (!entry.legacy) {
       tr.style.cursor = "pointer";
       addDoubleActivation(tr, ()=>{ openViewDialog(entry.id, {readOnly:true}); });
