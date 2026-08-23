@@ -18,7 +18,7 @@ const STATUS_LABELS = {
   [STATUS_WATCHED]:  "Zakończone",
   [STATUS_PAUSED]:   "Wstrzymane",
   [STATUS_PLANNED]:  "Planowane",
-  [STATUS_UPCOMING]: "Nadchodzące",
+  [STATUS_UPCOMING]: "Nowości",
 };
 const LABEL_TO_STATUS = Object.fromEntries(Object.entries(STATUS_LABELS).map(([k,v])=>[v,k]));
 
@@ -27,8 +27,8 @@ const TYPE_SERIES = "series";
 const TYPE_LABELS = {[TYPE_MOVIE]:"Filmy", [TYPE_SERIES]:"Seriale"};
 
 const TYPE_STATUS_ORDER = {
-  [TYPE_MOVIE]: [STATUS_WATCHED],
-  [TYPE_SERIES]: [STATUS_WATCHING, STATUS_WATCHED, STATUS_UPCOMING],
+  [TYPE_MOVIE]: [STATUS_WATCHED, STATUS_PLANNED],
+  [TYPE_SERIES]: [STATUS_WATCHING, STATUS_WATCHED, STATUS_UPCOMING, STATUS_PLANNED],
 };
 
 const MIN_PER_HOUR = 60;
@@ -45,7 +45,6 @@ let currentDbName = DEFAULT_DB_FILENAME;
 let dirty = false;
 
 let activeMain = TYPE_MOVIE;
-let activePlannedType = TYPE_MOVIE;
 let activeNoteId = null;
 let activeStatus = {
   [TYPE_MOVIE]: TYPE_STATUS_ORDER[TYPE_MOVIE][0],

@@ -339,7 +339,7 @@ async function checkUpcomingSeasons(){
   if (fresh.length) {
     await showAlert(
       "Nowe nadchodzące sezony",
-      `Do zakładki „Nadchodzące” dodano:\n\n${fresh
+      `Do zakładki „Nowości” dodano:\n\n${fresh
         .map(e => `• ${e.title} — sezon ${e.season_number}, ${formatDaysLabel(daysUntil(e.air_date))}`)
         .join("\n")}`,
       "info"
@@ -348,7 +348,7 @@ async function checkUpcomingSeasons(){
     await showAlert(
       "Nowości",
       upcoming.length
-        ? `Brak nowych pozycji.\nNadchodzące seriale: ${upcoming.length} — sprawdź zakładkę „Nadchodzące”.`
+        ? `Brak nowych pozycji.\nNadchodzące seriale: ${upcoming.length} — sprawdź zakładkę „Nowości”.`
         : "Brak nadchodzących seriali ze znaną datą premiery.",
       "info"
     );

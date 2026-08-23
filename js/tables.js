@@ -4,6 +4,7 @@
 
 function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days","del"];
+  if (status === STATUS_PLANNED) return ["title"];
   if (type === TYPE_SERIES) {
     if (status === STATUS_WATCHING) return ["title","progress"];
     if (status === STATUS_WATCHED) return ["title","rating"];
@@ -98,7 +99,7 @@ function renderUpcomingTable(){
     tr.className = "empty-row";
     const td = document.createElement("td");
     td.colSpan = columns.length;
-    td.textContent = "Brak nadchodzących sezonów. Kliknij „Sprawdź”.";
+    td.textContent = "Brak nowości. Kliknij „Sprawdź”.";
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -332,89 +333,8 @@ function renderAll(){
     }
   }
   renderNotesTab();
-  renderPlannedTable();
   updateStats();
   updateDbBadge();
-}
-
-function getPlannedRows(){
-  const fromItems = (db.items || []).filter(i=>i.status===STATUS_PLANNED && (i.type===TYPE_MOVIE || i.type===TYPE_SERIES));
-  const legacy = (db.planned || []).map(p=>({...p, legacy:true}));
-  return [...fromItems, ...legacy];
-}
-
-function renderPlannedTable(){
-  for (const type of [TYPE_MOVIE, TYPE_SERIES]) renderPlannedTableFor(type);
-}
-
-function renderPlannedTableFor(type){
-  const tbody = document.getElementById(`planned-tbody-${type}`);
-  if (!tbody) return;
-  const rows = getPlannedRows().filter(r => r.type === type);
-  tbody.innerHTML = "";
-  if (!rows.length) {
-    const tr = document.createElement("tr");
-    tr.className = "empty-row";
-    const td = document.createElement("td");
-    td.colSpan = 1;
-    td.textContent = "Brak planowanych pozycji.";
-    tr.appendChild(td);
-    tbody.appendChild(tr);
-    return;
-  }
-  const key = `planned:${type}`;
-  for (const entry of rows) {
-    const tr = document.createElement("tr");
-    tr.dataset.id = entry.id;
-    const tdTitle = document.createElement("td");
-    tdTitle.className = "col-title";
-    const titleLine = document.createElement("div");
-    titleLine.className = "title-main";
-    titleLine.textContent = entry.title || "";
-    tdTitle.appendChild(titleLine);
-    if (entry.premiere_date) {
-      const dateLine = document.createElement("div");
-      dateLine.className = "title-date";
-      dateLine.textContent = entry.premiere_date;
-      tdTitle.appendChild(dateLine);
-    }
-    tr.appendChild(tdTitle);
-    if (selectedId[key] === entry.id) tr.classList.add("selected");
-    tr.addEventListener("click", ()=>{
-      selectedId[key] = entry.id;
-      tbody.querySelectorAll("tr").forEach(r=>r.classList.remove("selected"));
-      tr.classList.add("selected");
-    });
-    if (!entry.legacy) {
-      tr.style.cursor = "pointer";
-      addDoubleActivation(tr, ()=>{ openViewDialog(entry.id, {readOnly:true}); });
-    }
-    tbody.appendChild(tr);
-  }
-}
-
-async function deletePlannedItem(id){
-  const item = findItem(id);
-  if (item && item.status===STATUS_PLANNED) {
-    const ok = await showConfirm("Usuń z planowanych", `Czy na pewno usunąć „${item.title||""}” z planowanych?`);
-    if (!ok) return;
-    db.items = db.items.filter(i=>i.id!==id);
-    setDirty(true);
-    renderAll();
-    return;
-  }
-  await deleteLegacyPlannedItem(id);
-}
-
-async function deleteLegacyPlannedItem(id){
-
-  const entry = findPlanned(id);
-  if (!entry) return;
-  const ok = await showConfirm("Usuń z planowanych", `Czy na pewno usunąć „${entry.title}” z planowanych?`);
-  if (!ok) return;
-  db.planned = (db.planned || []).filter(p=>p.id!==id);
-  setDirty(true);
-  renderPlannedTable();
 }
 
 function getCurrentKey(){

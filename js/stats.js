@@ -433,7 +433,58 @@ function renderGenreStats(){
   renderGenreStatsInto("stat-genres-movies-list", "stat-genres-movies-empty", TYPE_MOVIE);
   renderGenreStatsInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES);
   renderCountryStats();
+  renderAgeCertStats();
   renderExtraStats();
+}
+
+// Zlicza kategorie wiekowe (pole age_certification) dla danego typu (film/serial)
+// wśród pozycji uznanych za oglądane/obejrzane — analogicznie do computeGenreStats.
+// Kategorie są grupowane po znormalizowanej wartości (wielkie litery, bez spacji),
+// a wyświetlana nazwa to czytelna forma z formatAgeCertification. Pozycje bez
+// ustawionej kategorii trafiają do zbiorczego wiersza "Brak danych".
+function computeAgeCertStats(type){
+  const relevant = db.items.filter(i=>{
+    if (i.type !== type) return false;
+    if (type === TYPE_MOVIE) return i.status === STATUS_WATCHED;
+    return i.status===STATUS_WATCHED || i.status===STATUS_WATCHING || i.status===STATUS_PAUSED;
+  });
+  const counts = {};
+  let total = 0;
+  for (const it of relevant) {
+    const raw = String(it.age_certification||"").trim();
+    const key = raw ? raw.toUpperCase().replace(/\s+/g,"") : "__BRAK__";
+    if (!counts[key]) counts[key] = {count: 0, label: raw ? formatAgeCertification(raw) : "Brak danych"};
+    counts[key].count++;
+    total++;
+  }
+  return Object.values(counts)
+    .map(c=>({name: c.label, count: c.count, pct: total ? (c.count/total*100) : 0}))
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
+}
+
+function renderAgeCertListInto(listId, emptyId, type){
+  const list = document.getElementById(listId);
+  const empty = document.getElementById(emptyId);
+  if (!list) return;
+  const data = computeAgeCertStats(type);
+  if (!data.length) {
+    list.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  list.innerHTML = data.map(g=>`
+    <div class="genre-stat-row">
+      <div class="genre-stat-name">${escapeHtml(g.name)}</div>
+      <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${g.pct.toFixed(1)}%;"></div></div>
+      <div class="genre-stat-pct">${formatGenrePct(g.pct)}</div>
+    </div>
+  `).join("");
+}
+
+function renderAgeCertStats(){
+  renderAgeCertListInto("stat-agecert-movies-list", "stat-agecert-movies-empty", TYPE_MOVIE);
+  renderAgeCertListInto("stat-agecert-series-list", "stat-agecert-series-empty", TYPE_SERIES);
 }
 
 // Zlicza wystąpienia wartości pola krajowego (production_countries / origin_country)

@@ -94,7 +94,6 @@ function normalizePlanned(p){
   return out;
 }
 
-function findPlanned(id){ return (db.planned||[]).find(p=>p.id===id) || null; }
 
 function findNote(id){ return db.notes.find(n=>n.id===id) || null; }
 function noteByTitle(title){ return db.notes.find(n=>n.title===title) || null; }
