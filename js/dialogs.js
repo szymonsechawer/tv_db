@@ -181,6 +181,86 @@ function askInt({title, prompt, initial=null, min=null, max=null}){
   });
 }
 
+// Menu sortowania listy (Nazwa/Data/Ocena, rosnąco/malejąco) - używane we
+// wszystkich zakładkach z tabelami filmów/seriali (w tym "Nowości").
+function openSortMenu({title, current, includeRating=true}){
+  return new Promise(resolve=>{
+    const options = [
+      {col:"title", reverse:false, label:"Nazwa (A → Z)"},
+      {col:"title", reverse:true,  label:"Nazwa (Z → A)"},
+      {col:"date",  reverse:false, label:"Data ↑"},
+      {col:"date",  reverse:true,  label:"Data ↓"},
+    ];
+    if (includeRating) {
+      options.push({col:"rating", reverse:false, label:"Ocena ↑"});
+      options.push({col:"rating", reverse:true,  label:"Ocena ↓"});
+    }
+    const overlay = openOverlay(`
+      <div class="modal-header">${escapeHtml(title||"Sortuj")}</div>
+      <div class="modal-body">
+        <div class="sort-menu" id="sort-menu-list"></div>
+        <div class="sort-menu" id="sort-menu-reset-wrap" style="margin-top:12px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" id="sort-menu-cancel">Anuluj</button>
+      </div>
+    `);
+    const list = overlay.querySelector("#sort-menu-list");
+    options.forEach(opt=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn secondary sort-menu-item";
+      if (current && current[0]===opt.col && !!current[1]===opt.reverse) btn.classList.add("active");
+      btn.textContent = opt.label;
+      btn.addEventListener("click", ()=>finish([opt.col, opt.reverse]));
+      list.appendChild(btn);
+    });
+    // Osobna opcja resetu - przywraca oryginalną (niesortowaną) kolejność
+    // rekordów, niezależnie od wybranej wcześniej kolumny/kierunku.
+    const resetWrap = overlay.querySelector("#sort-menu-reset-wrap");
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "btn secondary sort-menu-item";
+    if (current && current[0]==="lp") resetBtn.classList.add("active");
+    resetBtn.textContent = "Reset";
+    resetBtn.addEventListener("click", ()=>finish(["lp", false]));
+    resetWrap.appendChild(resetBtn);
+    function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
+    function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
+    overlay.querySelector("#sort-menu-cancel").addEventListener("click", ()=>finish(null));
+    document.addEventListener("keydown", onKey);
+  });
+}
+
+// Generyczne okno wyboru jednej pozycji z listy (np. wyniki wyszukiwania
+// TMDb przy ręcznym dodawaniu pozycji do kolekcji).
+function openPickListDialog({title, items, renderLabel}){
+  return new Promise(resolve=>{
+    const overlay = openOverlay(`
+      <div class="modal-header">${escapeHtml(title||"Wybierz")}</div>
+      <div class="modal-body">
+        <div class="sort-menu" id="pick-list-items"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" id="pick-list-cancel">Anuluj</button>
+      </div>
+    `);
+    const list = overlay.querySelector("#pick-list-items");
+    (items||[]).forEach(it=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn secondary sort-menu-item";
+      btn.textContent = renderLabel ? renderLabel(it) : String(it);
+      btn.addEventListener("click", ()=>finish(it));
+      list.appendChild(btn);
+    });
+    function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
+    function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
+    overlay.querySelector("#pick-list-cancel").addEventListener("click", ()=>finish(null));
+    document.addEventListener("keydown", onKey);
+  });
+}
+
 function askText({title, prompt, initial="", password=false}){
   return new Promise(resolve=>{
     const overlay = openOverlay(`

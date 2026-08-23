@@ -36,6 +36,29 @@ function migrateItems(items){
     item.production_companies = item.production_companies.map(c=>String(c||"").trim()).filter(Boolean);
     if (typeof item.trailer_key !== "string") item.trailer_key = "";
     { const b = parseInt(item.budget, 10); item.budget = (Number.isInteger(b) && b > 0) ? b : null; }
+    if (item.type === TYPE_MOVIE) {
+      // "collection" (kolekcja/saga) - undefined = jeszcze nie sprawdzano w
+      // TMDb, tablica (nawet pusta) = użytkownik już ją widział/edytował,
+      // więc nie próbujemy jej już pobierać automatycznie ponownie.
+      if (item.collection !== undefined) {
+        if (!Array.isArray(item.collection)) {
+          item.collection = undefined;
+        } else {
+          item.collection = item.collection
+            .filter(p => p && typeof p === "object")
+            .map(p => ({
+              id: (typeof p.id === "number") ? p.id : null,
+              title: String(p.title || p.name || "").trim(),
+              original_title: String(p.original_title || p.original_name || "").trim(),
+              release_date: String(p.release_date || p.first_air_date || "").trim(),
+              poster_path: p.poster_path || null,
+            }))
+            .filter(p => p.title);
+        }
+      }
+    } else {
+      delete item.collection;
+    }
     if (item.type === TYPE_SERIES) {
       if (!Array.isArray(item.seasons)) item.seasons = [];
       for (const season of item.seasons) {

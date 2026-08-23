@@ -52,9 +52,15 @@ function switchStatsTab(tab){
 
 function updateCheckButtonVisibility(){
   const row = document.getElementById("button-bar-check-row");
-  if (!row) return;
-  const show = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
-  row.style.display = show ? "" : "none";
+  if (row) {
+    const show = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
+    row.style.display = show ? "" : "none";
+  }
+  const sortRow = document.getElementById("button-bar-sort-row");
+  if (sortRow) {
+    const showSort = activeMain===TYPE_MOVIE || activeMain===TYPE_SERIES;
+    sortRow.style.display = showSort ? "" : "none";
+  }
 }
 
 function switchMainTab(tab){

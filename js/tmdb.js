@@ -370,6 +370,35 @@ async function tmdbFetchCollection(movieId){
   return coll;
 }
 
+// Sprowadza obiekt "części kolekcji" zwrócony przez TMDb (albo wpis wpisany
+// ręcznie przez użytkownika) do jednolitego kształtu zapisywanego w
+// item.collection.
+function normalizeCollectionPart(p){
+  return {
+    id: (typeof p.id === "number") ? p.id : null,
+    title: p.title || p.name || "",
+    original_title: p.original_title || p.original_name || "",
+    release_date: p.release_date || p.first_air_date || "",
+    poster_path: p.poster_path || null,
+  };
+}
+
+// Sprawdza w TMDb, czy do kolekcji danego filmu nie doszły nowe tytuły
+// (np. kolejna część sagi), i dopisuje je do item.collection. Zwraca liczbę
+// nowo dodanych pozycji (0, jeśli brak nowości lub film nie należy do
+// żadnej kolekcji). Używane zarówno przez przycisk "Pobierz/Odśwież dane"
+// w oknie informacji, jak i przez masową aktualizację w Ustawieniach.
+async function syncItemCollectionFromTmdb(item, tmdbId){
+  if (item.type !== TYPE_MOVIE) return 0;
+  const coll = await tmdbFetchCollection(tmdbId);
+  if (!coll || !Array.isArray(coll.parts) || !coll.parts.length) return 0;
+  const existingIds = new Set((item.collection||[]).map(p=>p.id).filter(v=>v!=null));
+  const newParts = coll.parts.map(normalizeCollectionPart).filter(p=>p.id==null || !existingIds.has(p.id));
+  if (!newParts.length) return 0;
+  item.collection = [...(item.collection||[]), ...newParts];
+  return newParts.length;
+}
+
 // Zwraca listę rekomendacji TMDb (oparte o oceny/ulubione widzów), a gdy
 // brak wyników - próbuje starszego mechanizmu "podobne" (gatunki/słowa kluczowe).
 const tmdbRecommendationsCache = new Map();

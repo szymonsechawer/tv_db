@@ -218,15 +218,15 @@ function openViewDialog(idOrItem, opts){
             <div class="view-row" id="view-budget-row"></div>
             <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
             </div>
-            <div class="tmdb-status" id="view-desc-status"></div>
-            <div style="margin-top:6px;">
-              <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz dane</button>
-            </div>
             ${type===TYPE_MOVIE ? `
             <div class="view-section" id="view-collection-section" style="display:none;">
               <div class="vlabel view-section-label" id="view-collection-title">Kolekcja:</div>
               <div class="table-wrap"><table class="data"><tbody id="view-collection-content"></tbody></table></div>
             </div>` : ''}
+            <div class="tmdb-status" id="view-desc-status"></div>
+            <div style="margin-top:6px;">
+              <button class="btn small secondary" id="view-desc-fetch-btn" type="button">Pobierz dane</button>
+            </div>
           </div>
           ${type===TYPE_SERIES ? '<div id="vpane-seasons" style="display:none;"></div>' : ''}
         </div>
@@ -499,28 +499,44 @@ function openViewDialog(idOrItem, opts){
     }
     refreshBudget();
 
-    // Kolekcja/saga (np. seria filmów) - tylko dla filmów, tylko gdy kolekcja
-    // ma więcej niż jedną część. Wyświetlana tekstowo, tak jak zwykłe rekordy
-    // filmów/seriali (dwuklik otwiera podgląd/dodawanie).
-    async function refreshCollection(){
+    // Kolekcja/saga (np. seria filmów) - tylko dla filmów. Kolekcja jest
+    // częścią danych pozycji (item.collection) i trafia do pliku JSON bazy
+    // tak samo jak reszta pól. W oknie informacji jest tylko wyświetlana
+    // (tekstowo, jak zwykłe rekordy filmów - dwuklik otwiera podgląd/dodawanie);
+    // dodawanie i edycja kolekcji odbywa się w oknie edycji pozycji. Przycisk
+    // "Pobierz/Odśwież dane" dosynchronizowuje ją z TMDb razem z resztą danych.
+    function renderCollectionSection(){
       if (type !== TYPE_MOVIE) return;
       const cur = findItem(id) || item;
       const section = overlay.querySelector("#view-collection-section");
       const content = overlay.querySelector("#view-collection-content");
       if (!section || !content) return;
-      try {
-        const tid = await ensureItemTmdbId(cur);
-        if (!tid) return;
-        const coll = await tmdbFetchCollection(tid);
-        if (!coll || !Array.isArray(coll.parts) || coll.parts.length < 2) return;
-        overlay.querySelector("#view-collection-title").textContent = `Kolekcja:`;
-        content.innerHTML = "";
-        const sortedParts = [...coll.parts].sort((a,b)=>String(a.release_date||"9999").localeCompare(String(b.release_date||"9999")));
-        for (const part of sortedParts) content.appendChild(buildTmdbRecordRow(TYPE_MOVIE, part));
-        section.style.display = "";
-      } catch(err) { /* cicho ignoruj - sekcja kolekcji nie jest krytyczna */ }
+      const list = Array.isArray(cur.collection) ? cur.collection : [];
+      if (!list.length) { section.style.display = "none"; return; }
+      content.innerHTML = "";
+      const sortedParts = [...list].sort((a,b)=>String(a.release_date||"9999").localeCompare(String(b.release_date||"9999")));
+      for (const part of sortedParts) content.appendChild(buildTmdbRecordRow(TYPE_MOVIE, part));
+      section.style.display = "";
+    }
+    async function refreshCollection(){
+      if (type !== TYPE_MOVIE) return;
+      const cur = findItem(id) || item;
+      if (cur.collection === undefined) {
+        try {
+          const tid = await ensureItemTmdbId(cur);
+          if (tid) {
+            const coll = await tmdbFetchCollection(tid);
+            if (coll && Array.isArray(coll.parts) && coll.parts.length >= 2) {
+              cur.collection = coll.parts.map(normalizeCollectionPart);
+              saveToLocalStorage();
+            }
+          }
+        } catch(err) { /* cicho ignoruj - sekcja kolekcji nie jest krytyczna */ }
+      }
+      renderCollectionSection();
     }
     refreshCollection();
+
 
     overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
       const cur = findItem(id) || item;
@@ -694,6 +710,12 @@ function openViewDialog(idOrItem, opts){
           const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);
           if (trailerKey) { cur.trailer_key = trailerKey; parts.push("zwiastun"); }
         } catch(err) { /* brak zwiastuna nie blokuje reszty */ }
+        if (type === TYPE_MOVIE) {
+          try {
+            const added = await syncItemCollectionFromTmdb(cur, tid);
+            if (added > 0) parts.push(`kolekcję (${added} ${added===1?"nowa pozycja":"nowe pozycje"})`);
+          } catch(err) { /* brak/błąd kolekcji nie blokuje reszty */ }
+        }
         if (parts.length) {
           saveToLocalStorage();
           setDirty(true);
@@ -709,6 +731,7 @@ function openViewDialog(idOrItem, opts){
         btn.textContent = oldLabel;
         refreshDescPane();
         refreshExtras();
+        renderCollectionSection();
       }
     });
 
@@ -846,6 +869,16 @@ function openItemDialog({item, itemType, prefillTmdb}){
               </div>
             </div>
             <div class="form-row"><label>Budżet ($):</label><input class="entry" id="f-budget" type="text" style="flex:1;" placeholder="np. 200000000 (puste = pobierz automatycznie)"></div>
+            ${type===TYPE_MOVIE ? `
+            <div class="form-row" style="align-items:flex-start;">
+              <label class="tags-label">Kolekcja:</label>
+              <div style="flex:1;">
+                <div style="display:flex;gap:6px;margin-bottom:6px;">
+                  <button class="btn small secondary" id="collection-add-btn" type="button">Dodaj</button>
+                </div>
+                <div class="table-wrap"><table class="data"><tbody id="edit-collection-content"></tbody></table></div>
+              </div>
+            </div>` : ''}
             <div class="form-row"><label>Zwiastun:</label><input class="entry" id="f-trailer" type="text" style="flex:1;" placeholder="link lub ID YouTube"></div>
             <div class="form-row" style="align-items:flex-start;">
               <label>Opis:</label>
@@ -1366,6 +1399,77 @@ function openItemDialog({item, itemType, prefillTmdb}){
       trailerInput.value = item.trailer_key || "";
     }
 
+    // Kolekcja/saga (tylko dla filmów) - edytowana lokalnie w tym oknie i
+    // zapisywana do danych pozycji (item.collection) dopiero po kliknięciu
+    // "Zapisz". `collectionKnown` odróżnia "jeszcze nie sprawdzano w TMDb"
+    // (undefined - okno informacji spróbuje pobrać automatycznie) od
+    // "sprawdzono/edytowano" (tablica, nawet pusta - nie pobieraj już
+    // automatycznie).
+    let collectionDraft = (!isNew && Array.isArray(item.collection)) ? [...item.collection] : [];
+    let collectionKnown = !isNew && item.collection !== undefined;
+    if (type === TYPE_MOVIE) {
+      const collContent = overlay.querySelector("#edit-collection-content");
+      const collAddBtn = overlay.querySelector("#collection-add-btn");
+      function renderCollectionRows(){
+        if (!collContent) return;
+        collContent.innerHTML = "";
+        if (!collectionDraft.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.className = "muted";
+          td.textContent = "Brak pozycji w kolekcji.";
+          tr.appendChild(td);
+          collContent.appendChild(tr);
+          return;
+        }
+        const sortedParts = [...collectionDraft].sort((a,b)=>String(a.release_date||"9999").localeCompare(String(b.release_date||"9999")));
+        for (const part of sortedParts) {
+          const tr = buildTmdbRecordRow(TYPE_MOVIE, part);
+          const delTd = document.createElement("td");
+          delTd.style.whiteSpace = "nowrap";
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "btn small secondary";
+          delBtn.textContent = "✕";
+          delBtn.title = "Usuń z kolekcji";
+          delBtn.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            collectionDraft = collectionDraft.filter(p=>p!==part);
+            collectionKnown = true;
+            renderCollectionRows();
+          });
+          delTd.appendChild(delBtn);
+          tr.appendChild(delTd);
+          collContent.appendChild(tr);
+        }
+      }
+      if (collAddBtn) collAddBtn.addEventListener("click", async ()=>{
+        const q = await askText({title:"Dodaj do kolekcji", prompt:"Wpisz tytuł filmu:"});
+        if (!q) return;
+        let results = [];
+        try { results = await tmdbSearchList(TYPE_MOVIE, q); } catch(err) { results = []; }
+        let chosen = null;
+        if (results.length > 1) {
+          chosen = await openPickListDialog({
+            title: "Wybierz film",
+            items: results,
+            renderLabel: r => (r.title||r.original_title||"(bez tytułu)") + (r.release_date ? ` (${r.release_date.slice(0,4)})` : ""),
+          });
+          if (!chosen) return;
+        } else if (results.length === 1) {
+          chosen = results[0];
+        } else {
+          chosen = {id:null, title:q, release_date:"", poster_path:null};
+        }
+        const part = normalizeCollectionPart(chosen);
+        if (part.id!=null && collectionDraft.some(p=>p.id===part.id)) { renderCollectionRows(); return; }
+        collectionDraft.push(part);
+        collectionKnown = true;
+        renderCollectionRows();
+      });
+      renderCollectionRows();
+    }
+
     // Zaakceptuj pełny link YouTube albo sam identyfikator filmu.
     function extractYoutubeId(val){
       const v = String(val||"").trim();
@@ -1680,6 +1784,8 @@ function openItemDialog({item, itemType, prefillTmdb}){
       resultItem.budget = budget;
       if (type===TYPE_MOVIE) {
         resultItem.duration = duration;
+        if (collectionKnown) resultItem.collection = collectionDraft;
+        else delete resultItem.collection;
         if (statusKey === STATUS_WATCHED) {
           if (!resultItem.watchedAt) resultItem.watchedAt = Date.now();
         } else {

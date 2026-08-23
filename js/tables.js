@@ -80,7 +80,15 @@ function renderUpcomingTable(){
     rows = rows.filter(r => tokens.every(tok => (r.title||"").toLowerCase().includes(tok)));
   }
 
-  rows.sort((a,b)=> compareKeys(upcomingSortKey(a, "days"), upcomingSortKey(b, "days")));
+  rows.sort((a,b)=>{
+    const [sortCol, reverse] = sortState[key] || ["lp", false];
+    if (sortCol === "title" || sortCol === "date") {
+      const r = compareKeys(upcomingSortKey(a, sortCol), upcomingSortKey(b, sortCol));
+      return reverse ? -r : r;
+    }
+    // domyślnie (i dla "ocena", która nie dotyczy nowości) sortuj po dniach do premiery
+    return compareKeys(upcomingSortKey(a, "days"), upcomingSortKey(b, "days"));
+  });
 
   thead.innerHTML = "";
   const trH = document.createElement("tr");
@@ -351,4 +359,21 @@ function getSelectedItemId(){
 function findItem(id){
   return db.items.find(i=>i.id===id) || null;
 }
+
+document.getElementById("btn-sort").addEventListener("click", async ()=>{
+  if (activeMain !== TYPE_MOVIE && activeMain !== TYPE_SERIES) return;
+  const type = activeMain;
+  const status = activeStatus[type];
+  const key = `${type}:${status}`;
+  const isUpcoming = status === STATUS_UPCOMING;
+  const current = sortState[key] || ["lp", false];
+  const choice = await openSortMenu({
+    title: `Sortuj — ${TYPE_LABELS[type]} / ${STATUS_LABELS[status]}`,
+    current,
+    includeRating: !isUpcoming,
+  });
+  if (!choice) return;
+  sortState[key] = choice;
+  renderTable(type, status);
+});
 
