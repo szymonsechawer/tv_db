@@ -128,7 +128,8 @@ function buildTmdbRecordRow(type, r){
   if (existing) {
     const badge = document.createElement("span");
     badge.className = "muted";
-    badge.textContent = "  •  w bazie";
+    const statusLabel = STATUS_LABELS[existing.status] || existing.status || "w bazie";
+    badge.textContent = "  •  " + statusLabel;
     titleLine.appendChild(badge);
   }
   td.appendChild(titleLine);
