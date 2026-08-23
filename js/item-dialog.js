@@ -445,7 +445,9 @@ function openViewDialog(idOrItem, opts){
     fetchGenresIfNeeded();
 
     // Kategoria wiekowa (certyfikacja) - jeśli ustawiono ją ręcznie w edycji,
-    // pokaż tę wartość; w przeciwnym razie pobierz na żywo z TMDb (bez zapisu).
+    // pokaż tę wartość; w przeciwnym razie pobierz z TMDb i zapisz w bazie
+    // (na wzór innych auto-pobieranych pól, np. gatunku czy okładki), żeby
+    // przy kolejnym otwarciu nie trzeba było pobierać jej ponownie.
     async function refreshCertification(){
       const cur = findItem(id) || item;
       const row = overlay.querySelector("#view-cert-row");
@@ -458,6 +460,10 @@ function openViewDialog(idOrItem, opts){
         const tid = await ensureItemTmdbId(cur);
         if (!tid) { row.innerHTML = ""; return; }
         const cert = await tmdbFetchCertification(cur.type, tid);
+        if (cert) {
+          cur.age_certification = cert;
+          saveToLocalStorage();
+        }
         row.innerHTML = cert
           ? `<div class="vlabel">Kategoria wiekowa:</div><div class="vval">${escapeHtml(formatAgeCertification(cert))}</div>`
           : "";
