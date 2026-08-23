@@ -214,6 +214,7 @@ function openViewDialog(idOrItem, opts){
             <div class="view-row"><div class="vlabel">Kraj pochodzenia:</div><div class="vval desc-inline" id="view-origin-text"></div></div>
             <div class="view-row"><div class="vlabel">Oryg. język:</div><div class="vval desc-inline" id="view-language-text"></div></div>
             <div class="view-row"><div class="vlabel">Wytwórnia:</div><div class="vval desc-inline" id="view-companies-text"></div></div>
+            <div class="view-row" id="view-budget-row"></div>
             <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
             </div>
             <div class="tmdb-status" id="view-desc-status"></div>
@@ -470,6 +471,32 @@ function openViewDialog(idOrItem, opts){
       } catch(err) { row.innerHTML = ""; }
     }
     refreshCertification();
+
+    // Budżet produkcji - jeśli ustawiono go ręcznie w edycji, pokaż tę
+    // wartość; w przeciwnym razie spróbuj pobrać z TMDb (głównie filmy) i
+    // zapisz w bazie, żeby przy kolejnym otwarciu nie trzeba było pobierać
+    // jej ponownie.
+    async function refreshBudget(){
+      const cur = findItem(id) || item;
+      const row = overlay.querySelector("#view-budget-row");
+      if (!row) return;
+      if (cur.budget) {
+        row.innerHTML = `<div class="vlabel">Budżet:</div><div class="vval">${escapeHtml(formatMoney(cur.budget))}</div>`;
+        return;
+      }
+      row.innerHTML = `<div class="vlabel">Budżet:</div><div class="vval muted">—</div>`;
+      try {
+        const tid = await ensureItemTmdbId(cur);
+        if (!tid) return;
+        const budget = await tmdbFetchBudget(cur.type, tid);
+        if (budget) {
+          cur.budget = budget;
+          saveToLocalStorage();
+          row.innerHTML = `<div class="vlabel">Budżet:</div><div class="vval">${escapeHtml(formatMoney(budget))}</div>`;
+        }
+      } catch(err) { /* brak danych o budżecie nie blokuje okna informacji */ }
+    }
+    refreshBudget();
 
     // Kolekcja/saga (np. seria filmów) - tylko dla filmów, tylko gdy kolekcja
     // ma więcej niż jedną część. Wyświetlana tekstowo, tak jak zwykłe rekordy
@@ -817,6 +844,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
                 <input class="entry" id="f-companies-input" type="text" placeholder="dodaj wytwórnię i Enter">
               </div>
             </div>
+            <div class="form-row"><label>Budżet ($):</label><input class="entry" id="f-budget" type="text" style="flex:1;" placeholder="np. 200000000 (puste = pobierz automatycznie)"></div>
             <div class="form-row"><label>Zwiastun:</label><input class="entry" id="f-trailer" type="text" style="flex:1;" placeholder="link lub ID YouTube"></div>
             <div class="form-row" style="align-items:flex-start;">
               <label>Opis:</label>
@@ -843,6 +871,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
     const originalTitleInput = overlay.querySelector("#f-original-title");
     const dateInput = overlay.querySelector("#f-date");
     const durationInput = overlay.querySelector("#f-duration");
+    const budgetInput = overlay.querySelector("#f-budget");
     const ageCertInput = overlay.querySelector("#f-age-cert");
     const statusSelect = overlay.querySelector("#f-status");
     const ratingSelect = overlay.querySelector("#f-rating");
@@ -857,6 +886,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       originalTitleInput.value = item.original_title || "";
       dateInput.value = item.premiere_date || "";
       if (type===TYPE_MOVIE && durationInput) durationInput.value = item.duration ? String(item.duration) : "";
+      if (budgetInput) budgetInput.value = item.budget ? String(item.budget) : "";
       ageCertInput.value = item.age_certification || "";
       statusSelect.value = STATUS_LABELS[item.status] || defaultStatus;
       ratingSelect.value = String(parseInt(item.rating||0,10));
@@ -930,6 +960,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
           const details = await tmdbFetch("/movie/" + r.id, {});
           const runtime = details && details.runtime ? details.runtime : null;
           if (durationInput && runtime) durationInput.value = String(runtime);
+          if (budgetInput && details && details.budget) budgetInput.value = String(details.budget);
           genres = tmdbGenreNames(details);
           try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
           try { const cr = await tmdbFetchCreators(type, r.id); if (cr && cr.length) creators = cr; } catch(err) {}
@@ -940,6 +971,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
           setTmdbStatus("Uzupełniono dane z TMDb" + (runtime ? ` (czas: ${runtime} min).` : "."));
         } else {
           const details = await tmdbFetch("/tv/" + r.id, {});
+          if (budgetInput && details && details.budget) budgetInput.value = String(details.budget);
           genres = tmdbGenreNames(details);
           try { const c = await tmdbFetchCast(type, r.id); if (c && c.length) cast = c; } catch(err) {}
           try { const cr = await tmdbFetchCreators(type, r.id); if (cr && cr.length) creators = cr; } catch(err) {}
@@ -1574,6 +1606,17 @@ function openItemDialog({item, itemType, prefillTmdb}){
           duration = parseInt(durStr,10);
         }
       }
+      let budget = null;
+      if (budgetInput) {
+        const budgetStr = budgetInput.value.trim();
+        if (budgetStr) {
+          if (!/^\d+$/.test(budgetStr)) {
+            await showAlert("Błędny budżet", "Budżet musi być liczbą całkowitą (w dolarach).", "error");
+            return;
+          }
+          budget = parseInt(budgetStr,10);
+        }
+      }
       const statusKey = LABEL_TO_STATUS[statusSelect.value] || STATUS_WATCHING;
       const premiereDate = dateInput.value.trim();
       const excludeId = isNew ? null : item.id;
@@ -1633,6 +1676,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       if (currentPosterPath) resultItem.poster_path = currentPosterPath;
       else delete resultItem.poster_path;
       if (tmdbId) resultItem.tmdb_id = tmdbId;
+      resultItem.budget = budget;
       if (type===TYPE_MOVIE) {
         resultItem.duration = duration;
         if (statusKey === STATUS_WATCHED) {

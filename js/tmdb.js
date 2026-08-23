@@ -277,6 +277,14 @@ async function tmdbFetchExtras(type, id){
   return {companies};
 }
 
+// Pobiera budżet produkcji (w dolarach) dla filmu/serialu o danym id TMDb.
+// TMDb udostępnia to pole głównie dla filmów; dla seriali zwykle brak danych.
+async function tmdbFetchBudget(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id : "/tv/" + id;
+  const data = await tmdbFetch(path, {});
+  return (data && data.budget) ? data.budget : null;
+}
+
 // Pobiera klucz YouTube pierwszego sensownego zwiastuna (oficjalny trailer w
 // miarę możliwości) dla filmu/serialu o danym id TMDb. Zwiastuny rzadko mają
 // polską wersję, więc w razie braku wyników próbuje wersji angielskiej.

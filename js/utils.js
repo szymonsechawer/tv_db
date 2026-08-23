@@ -141,6 +141,14 @@ function formatDuration(totalMinutesRaw){
   return parts.join(", ");
 }
 
+// Formatuje budżet (liczba całkowita w dolarach) do czytelnej postaci,
+// np. 200000000 -> "200 000 000 $".
+function formatMoney(amount){
+  const n = Math.trunc(Number(amount) || 0);
+  if (n <= 0) return "";
+  return n.toLocaleString("pl-PL").replace(/\u00a0/g, " ") + " $";
+}
+
 function uuidv4(){
   if (crypto.randomUUID) return crypto.randomUUID();
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c=>{

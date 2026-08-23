@@ -35,6 +35,7 @@ function migrateItems(items){
     if (!Array.isArray(item.production_companies)) item.production_companies = [];
     item.production_companies = item.production_companies.map(c=>String(c||"").trim()).filter(Boolean);
     if (typeof item.trailer_key !== "string") item.trailer_key = "";
+    { const b = parseInt(item.budget, 10); item.budget = (Number.isInteger(b) && b > 0) ? b : null; }
     if (item.type === TYPE_SERIES) {
       if (!Array.isArray(item.seasons)) item.seasons = [];
       for (const season of item.seasons) {
