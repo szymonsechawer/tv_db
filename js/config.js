@@ -69,7 +69,6 @@ const supportsFSAccess = typeof window !== "undefined"
   && typeof window.showSaveFilePicker === "function";
 
 const TMDB_KEY_STORAGE = "tv_db_tmdb_key";
-const BUTTON_STYLE_STORAGE = "tv_db_button_style";
 const tmdbSeasonCache = new Map();
 
 const tmdbSeriesOrigLangCache = new Map();

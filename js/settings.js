@@ -1,22 +1,6 @@
 // ============================================================
-// settings.js — zakładka ustawień, aktualizacje, styl przycisków
+// settings.js — zakładka ustawień, aktualizacje
 // ============================================================
-
-function getButtonStyle(){
-  try { return localStorage.getItem(BUTTON_STYLE_STORAGE) || "icons"; } catch(e){ return "icons"; }
-}
-function setButtonStyle(v){
-  const val = (v === "text") ? "text" : "icons";
-  try { localStorage.setItem(BUTTON_STYLE_STORAGE, val); } catch(e){}
-  applyButtonStyle(val);
-}
-function applyButtonStyle(v){
-  const val = v || getButtonStyle();
-  const el = document.getElementById("button-bar-actions");
-  if (el) el.classList.toggle("mode-text", val === "text");
-  const checkRow = document.getElementById("button-bar-check-row");
-  if (checkRow) checkRow.classList.toggle("mode-text", val === "text");
-}
 
 function renderSettingsTab(){
   const input = document.getElementById("set-tmdb-key");
@@ -24,8 +8,6 @@ function renderSettingsTab(){
   input.value = (db.settings && db.settings.tmdb_key) || "";
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
-  const btnStyle = document.getElementById("set-button-style");
-  if (btnStyle) btnStyle.value = getButtonStyle();
 }
 
 function setSettingsStatus(msg, isErr){
@@ -65,12 +47,6 @@ function initSettingsTab(){
   });
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
-  const btnStyle = document.getElementById("set-button-style");
-  if (btnStyle) {
-    btnStyle.addEventListener("change", (e)=>{
-      setButtonStyle(e.target.value);
-    });
-  }
   renderSettingsTab();
 }
 

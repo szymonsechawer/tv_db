@@ -76,6 +76,5 @@ window.addEventListener("beforeunload", (e)=>{
 // przypadkach (baza wczytana lub pusta) trzeba wyrenderować interfejs.
 initTabs();
 initSettingsTab();
-applyButtonStyle();
 loadFromLocalStorage();
 renderAll();
