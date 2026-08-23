@@ -1755,7 +1755,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
         }
       }
 
-      const resultItem = isNew ? {id: uuidv4(), type} : item;
+      const resultItem = isNew ? {id: uuidv4(), type, addedAt: Date.now()} : item;
       resultItem.title = title;
       const origTitleVal = originalTitleInput.value.trim();
       if (origTitleVal) resultItem.original_title = origTitleVal;

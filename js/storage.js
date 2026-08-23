@@ -3,11 +3,18 @@
 // ============================================================
 
 function migrateItems(items){
+  let fallbackAddedCounter = 0;
   for (const item of items) {
     if (typeof item !== "object" || item===null) continue;
     if (!item.id) item.id = uuidv4();
     if (!("title" in item)) item.title = item.title_pl || item.title_en || "";
     if (typeof item.description !== "string") item.description = "";
+    // Data dodania do bazy - potrzebna do sortowania "Dodano". Dla pozycji
+    // wczytanych ze starszych baz (bez tego pola) przyjmujemy kolejność, w
+    // jakiej występują w pliku, jako przybliżenie kolejności dodania -
+    // wartości te są zawsze mniejsze niż prawdziwe znaczniki czasu, więc
+    // nowo dodawane pozycje trafiają "później" niż zmigrowane.
+    if (typeof item.addedAt !== "number") item.addedAt = fallbackAddedCounter++;
     if (!item.original_title) {
       const split = splitOriginalTitle(item.title);
       if (split.original_title) { item.title = split.title; item.original_title = split.original_title; }

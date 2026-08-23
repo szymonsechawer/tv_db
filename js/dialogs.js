@@ -183,7 +183,7 @@ function askInt({title, prompt, initial=null, min=null, max=null}){
 
 // Menu sortowania listy (Nazwa/Data/Ocena, rosnąco/malejąco) - używane we
 // wszystkich zakładkach z tabelami filmów/seriali (w tym "Nowości").
-function openSortMenu({title, current, includeRating=true}){
+function openSortMenu({title, current, includeRating=true, includeAdded=true}){
   return new Promise(resolve=>{
     const options = [
       {col:"title", reverse:false, label:"Nazwa (A → Z)"},
@@ -195,11 +195,14 @@ function openSortMenu({title, current, includeRating=true}){
       options.push({col:"rating", reverse:false, label:"Ocena ↑"});
       options.push({col:"rating", reverse:true,  label:"Ocena ↓"});
     }
+    if (includeAdded) {
+      options.push({col:"added", reverse:false, label:"Dodano ↑"});
+      options.push({col:"added", reverse:true,  label:"Dodano ↓"});
+    }
     const overlay = openOverlay(`
       <div class="modal-header">${escapeHtml(title||"Sortuj")}</div>
       <div class="modal-body">
         <div class="sort-menu" id="sort-menu-list"></div>
-        <div class="sort-menu" id="sort-menu-reset-wrap" style="margin-top:12px;"></div>
       </div>
       <div class="modal-footer">
         <button class="btn secondary" id="sort-menu-cancel">Anuluj</button>
@@ -215,16 +218,6 @@ function openSortMenu({title, current, includeRating=true}){
       btn.addEventListener("click", ()=>finish([opt.col, opt.reverse]));
       list.appendChild(btn);
     });
-    // Osobna opcja resetu - przywraca oryginalną (niesortowaną) kolejność
-    // rekordów, niezależnie od wybranej wcześniej kolumny/kierunku.
-    const resetWrap = overlay.querySelector("#sort-menu-reset-wrap");
-    const resetBtn = document.createElement("button");
-    resetBtn.type = "button";
-    resetBtn.className = "btn secondary sort-menu-item";
-    if (current && current[0]==="lp") resetBtn.classList.add("active");
-    resetBtn.textContent = "Reset";
-    resetBtn.addEventListener("click", ()=>finish(["lp", false]));
-    resetWrap.appendChild(resetBtn);
     function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
     overlay.querySelector("#sort-menu-cancel").addEventListener("click", ()=>finish(null));

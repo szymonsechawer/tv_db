@@ -48,6 +48,7 @@ function dateSortKey(item){
 function sortKey(item, column, type){
   if (column === "title") return item.title ? item.title.toLowerCase() : "";
   if (column === "date") return dateSortKey(item);
+  if (column === "added") return item.addedAt || 0;
   if (column === "time") {
     if (type === TYPE_MOVIE) return item.duration || 0;
     let sum = 0;
@@ -371,6 +372,7 @@ document.getElementById("btn-sort").addEventListener("click", async ()=>{
     title: `Sortuj — ${TYPE_LABELS[type]} / ${STATUS_LABELS[status]}`,
     current,
     includeRating: !isUpcoming,
+    includeAdded: !isUpcoming,
   });
   if (!choice) return;
   sortState[key] = choice;
