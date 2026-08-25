@@ -262,8 +262,9 @@
   .btn.danger-outline:hover{background:var(--danger);color:#fff;}
 
   #db-name-badge{
-    margin-left:auto;color:var(--text-muted);font-size:11px;
-    align-self:center;text-align:right;font-weight:600;
+    color:var(--text-muted);font-size:11px;
+    text-align:right;font-weight:600;
+    flex-basis:100%;width:100%;order:1;
   }
   #db-name-badge .dirty{color:var(--danger);}
 
@@ -491,7 +492,7 @@
     table.data tbody td{padding:9px 7px;font-size:13px;}
     .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
     .progress-cell .prog-toprow{font-size:11px;}
-    #db-name-badge{margin-left:0;text-align:left;width:100%;}
+    #db-name-badge{text-align:left;}
     .modal{max-height:78vh;max-height:78dvh;}
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}
