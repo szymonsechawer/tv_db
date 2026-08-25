@@ -127,8 +127,7 @@ function setDirty(v){
 }
 
 function updateDbBadge(){
-  const el = document.getElementById("db-name-badge");
-  el.innerHTML = `${escapeHtml(currentDbName)}${dirty ? ' <span class="dirty">(niezapisane zmiany)</span>' : ''}`;
+  // Odznaka z nazwą pliku bazy i statusem zapisu została usunięta z UI.
 }
 
 document.getElementById("btn-open").addEventListener("click", async ()=>{

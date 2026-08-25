@@ -261,13 +261,6 @@
   .btn.danger-outline{background:var(--bg-medium);color:var(--danger);border:1px solid var(--danger);}
   .btn.danger-outline:hover{background:var(--danger);color:#fff;}
 
-  #db-name-badge{
-    color:var(--text-muted);font-size:11px;
-    text-align:right;font-weight:600;
-    flex-basis:100%;width:100%;order:1;
-  }
-  #db-name-badge .dirty{color:var(--danger);}
-
   #tab-stats{padding:6px 2px;}
   #subcontent-stats{flex:1;min-height:0;}
   #subcontent-stats .status-pane{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px;}
@@ -492,7 +485,6 @@
     table.data tbody td{padding:9px 7px;font-size:13px;}
     .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
     .progress-cell .prog-toprow{font-size:11px;}
-    #db-name-badge{text-align:left;}
     .modal{max-height:78vh;max-height:78dvh;}
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}
