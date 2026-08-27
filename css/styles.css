@@ -91,7 +91,18 @@
   #f-tag-input{margin-top:6px;}
   .form-row .tags-label{padding-top:13px;}
 
-  .tabbar{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:6px;flex-shrink:0;}
+  /* Zakładki (Filmy, Seriale, Statystyki, Notatki, Planowane) oraz podzakładki
+     zawsze rozciągnięte równo na całą szerokość (jak przyciski na dole),
+     niezależnie od urządzenia/rozmiaru ekranu */
+  .tabbar{
+    display:flex;gap:4px;flex-wrap:nowrap;padding-bottom:6px;flex-shrink:0;
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  }
+  .tabbar::-webkit-scrollbar, .inner-tabs::-webkit-scrollbar { display:none; }
+  .tabbar .tab-btn, .inner-tabs .tab-btn{
+    flex:1 1 0;
+    min-width:0;
+  }
   .tab-btn{
     background:var(--bg-medium);color:var(--text-light);
     border:none;border-radius:10px;
@@ -99,31 +110,18 @@
     font-family:inherit;font-weight:600;font-size:13px;
     cursor:pointer;
     transition:background .1s;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    text-align:center;
   }
 
-  /* Główne zakładki (Filmy, Seriale, Statystyki, Notatki, Planowane)
-     oraz pozostałe zakładki (podzakładki, wewnętrzne) zawsze w jednej linii
-     i tym samym rozmiarze na mobilnych ekranach */
   @media (max-width:600px){
-    .tabbar, .inner-tabs {
-      flex-wrap:nowrap;
-      gap:4px;
-      overflow-x:auto;
-      scrollbar-width:none;
-      -webkit-overflow-scrolling:touch;
-    }
-    .tabbar::-webkit-scrollbar, .inner-tabs::-webkit-scrollbar { display:none; }
     .tabbar .tab-btn, .inner-tabs .tab-btn {
-      flex:1 1 0;
-      min-width:0;
       padding:9px 4px;
       font-size:12.5px;
       min-height:42px;
       border-radius:9px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      text-align:center;
     }
     #search-input-wrap, #search-input{min-height:42px;}
   }
