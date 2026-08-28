@@ -2,74 +2,6 @@
 // tables.js — renderowanie tabel (filmy/seriale/nadchodzące)
 // ============================================================
 
-// Buduje zawartość komórki tytułu: małą, czytelną miniaturę okładki (jeśli
-// dostępna) obok tytułu (i ewentualnej daty). Miniatura po najechaniu myszą
-// powiększa się do wygodnego podglądu, a po kliknięciu otwiera pełny
-// podgląd na cały ekran (openPosterLightbox z dialogs.js).
-function buildTitleCell(container, titleText, dateText, posterPath){
-  container.innerHTML = "";
-  container.className = (container.className ? container.className + " " : "") + "title-cell";
-  if (posterPath) {
-    const img = document.createElement("img");
-    img.className = "row-poster";
-    img.loading = "lazy";
-    img.alt = "";
-    img.src = tmdbPosterUrl(posterPath, "w92");
-    attachPosterHoverPreview(img, posterPath);
-    container.appendChild(img);
-  }
-  const textWrap = document.createElement("div");
-  textWrap.className = "title-cell-text";
-  const titleLine = document.createElement("div");
-  titleLine.className = "title-main";
-  titleLine.textContent = titleText || "";
-  textWrap.appendChild(titleLine);
-  if (dateText) {
-    const dateLine = document.createElement("div");
-    dateLine.className = "title-date";
-    dateLine.textContent = dateText;
-    textWrap.appendChild(dateLine);
-  }
-  container.appendChild(textWrap);
-}
-
-// Podpina pod miniaturę okładki podgląd na hover (większy obrazek śledzący
-// pozycję miniatury, wyświetlany nad resztą interfejsu) oraz otwieranie
-// pełnoekranowego podglądu po kliknięciu.
-let activePosterPreviewEl = null;
-function removePosterPreview(){
-  if (activePosterPreviewEl) {
-    activePosterPreviewEl.remove();
-    activePosterPreviewEl = null;
-  }
-}
-function attachPosterHoverPreview(img, posterPath){
-  img.addEventListener("mouseenter", ()=>{
-    removePosterPreview();
-    const preview = document.createElement("img");
-    preview.className = "row-poster-preview";
-    preview.src = tmdbPosterUrl(posterPath, "w342");
-    document.body.appendChild(preview);
-    const rect = img.getBoundingClientRect();
-    const previewW = 130, previewH = 195;
-    let left = rect.right + 10;
-    if (left + previewW > window.innerWidth) left = rect.left - previewW - 10;
-    if (left < 4) left = 4;
-    let top = rect.top + rect.height/2 - previewH/2;
-    top = Math.max(4, Math.min(top, window.innerHeight - previewH - 4));
-    preview.style.left = left + "px";
-    preview.style.top = top + "px";
-    activePosterPreviewEl = preview;
-  });
-  img.addEventListener("mouseleave", removePosterPreview);
-  img.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    removePosterPreview();
-    openPosterLightbox(tmdbPosterUrl(posterPath, "w780"));
-  });
-}
-document.addEventListener("scroll", removePosterPreview, true);
-
 function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days","del"];
   if (status === STATUS_PLANNED) return ["title"];
@@ -185,8 +117,16 @@ function renderUpcomingTable(){
     const tr = document.createElement("tr");
     const tdTitle = document.createElement("td");
     tdTitle.className = "col-title";
-    const linkedItem = row.item_id ? findItem(row.item_id) : null;
-    buildTitleCell(tdTitle, row.title, row.air_date ? formatDateDMY(row.air_date) : "", linkedItem && linkedItem.poster_path);
+    const titleLine = document.createElement("div");
+    titleLine.className = "title-main";
+    titleLine.textContent = row.title || "";
+    tdTitle.appendChild(titleLine);
+    if (row.air_date) {
+      const dateLine = document.createElement("div");
+      dateLine.className = "title-date";
+      dateLine.textContent = formatDateDMY(row.air_date);
+      tdTitle.appendChild(dateLine);
+    }
     const tdDays = document.createElement("td");
     tdDays.className = "col-days";
     tdDays.textContent = formatDaysLabel(row.days);
@@ -349,7 +289,16 @@ function renderTable(type, status){
           wrap.appendChild(track);
           td.appendChild(wrap);
         } else if (col === "title") {
-          buildTitleCell(td, item.title, item.premiere_date, item.poster_path);
+          const titleLine = document.createElement("div");
+          titleLine.className = "title-main";
+          titleLine.textContent = item.title || "";
+          td.appendChild(titleLine);
+          if (item.premiere_date) {
+            const dateLine = document.createElement("div");
+            dateLine.className = "title-date";
+            dateLine.textContent = item.premiere_date;
+            td.appendChild(dateLine);
+          }
         } else {
           td.textContent = cellValue(item, col, type);
         }
