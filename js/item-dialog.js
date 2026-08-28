@@ -122,22 +122,13 @@ function buildTmdbRecordRow(type, r){
   const existing = findItemByTmdbId(type, r.id);
   const td = document.createElement("td");
   td.className = "col-title";
-  const titleLine = document.createElement("div");
-  titleLine.className = "title-main";
-  titleLine.textContent = title;
+  buildTitleCell(td, title, year, r.poster_path);
   if (existing) {
     const badge = document.createElement("span");
     badge.className = "muted";
     const statusLabel = STATUS_LABELS[existing.status] || existing.status || "w bazie";
     badge.textContent = "  •  " + statusLabel;
-    titleLine.appendChild(badge);
-  }
-  td.appendChild(titleLine);
-  if (year) {
-    const dateLine = document.createElement("div");
-    dateLine.className = "title-date";
-    dateLine.textContent = year;
-    td.appendChild(dateLine);
+    td.querySelector(".title-main").appendChild(badge);
   }
   tr.appendChild(td);
   tr.style.cursor = "pointer";
@@ -193,10 +184,6 @@ function openViewDialog(idOrItem, opts){
         </div>
         <div class="tab-scroll">
           <div id="vpane-info">
-            <div class="view-poster-wrap" id="view-poster-wrap">
-              <img class="view-poster" id="view-poster-img" alt="Okładka" style="display:none;">
-              <div class="view-poster-placeholder" id="view-poster-placeholder">Brak okładki</div>
-            </div>
             <div class="info-box">
             <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
             <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
@@ -407,21 +394,9 @@ function openViewDialog(idOrItem, opts){
     }
     fetchOriginInfoIfNeeded();
 
-    function refreshPoster(){
-      const cur = findItem(id) || item;
-      const img = overlay.querySelector("#view-poster-img");
-      const placeholder = overlay.querySelector("#view-poster-placeholder");
-      if (cur.poster_path) {
-        img.src = tmdbPosterUrl(cur.poster_path, "w342");
-        img.style.display = "";
-        placeholder.style.display = "none";
-      } else {
-        img.style.display = "none";
-        placeholder.style.display = "";
-      }
-    }
-    refreshPoster();
-
+    // Okładka nie jest już pokazywana w oknie informacji - jest widoczna
+    // jako miniatura obok tytułu w tabelach. Tutaj tylko dociągamy w tle
+    // poster_path (jeśli go jeszcze brak), żeby miniatura miała skąd się wziąć.
     async function fetchPosterIfNeeded(){
       const cur = findItem(id) || item;
       if (cur.poster_path) return;
@@ -436,7 +411,7 @@ function openViewDialog(idOrItem, opts){
         if (posterPath) {
           cur.poster_path = posterPath;
           saveToLocalStorage();
-          refreshPoster();
+          renderAll();
         }
       } catch(err) {
         // cicho ignoruj błąd pobierania okładki - nie blokuje okna informacji
@@ -536,12 +511,6 @@ function openViewDialog(idOrItem, opts){
       renderCollectionSection();
     }
     refreshCollection();
-
-
-    overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
-      const cur = findItem(id) || item;
-      openPosterLightbox(tmdbPosterUrl(cur.poster_path, "w780"));
-    });
 
     function refreshMarkNextEp(){
       if (type!==TYPE_SERIES) return;
