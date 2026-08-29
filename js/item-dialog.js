@@ -193,6 +193,10 @@ function openViewDialog(idOrItem, opts){
         </div>
         <div class="tab-scroll">
           <div id="vpane-info">
+            ${isUiV1() ? `<div class="view-poster-wrap" id="view-poster-wrap">
+              <img class="view-poster" id="view-poster-img" alt="Okładka" style="display:none;">
+              <div class="view-poster-placeholder" id="view-poster-placeholder">Brak okładki</div>
+            </div>` : ''}
             <div class="info-box">
             <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
             <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
@@ -403,10 +407,26 @@ function openViewDialog(idOrItem, opts){
     }
     fetchOriginInfoIfNeeded();
 
-    // Okładka nie jest już pokazywana w oknie informacji (widoczna jest
-    // teraz jako miniatura na liście, po lewej stronie tytułu), ale wciąż
-    // dociągamy ją w tle przy pierwszym otwarciu pozycji, żeby miniatura
-    // na liście miała się skąd wziąć.
+    // W wersji v1 okładka jest pokazywana bezpośrednio w oknie informacji;
+    // w wersji v2 widoczna jest jako miniatura na liście, po lewej stronie
+    // tytułu. W obu przypadkach dociągamy ją w tle przy pierwszym otwarciu
+    // pozycji, jeśli jeszcze jej nie mamy w bazie.
+    function refreshPoster(){
+      const cur = findItem(id) || item;
+      const img = overlay.querySelector("#view-poster-img");
+      const placeholder = overlay.querySelector("#view-poster-placeholder");
+      if (!img || !placeholder) return;
+      if (cur.poster_path) {
+        img.src = tmdbPosterUrl(cur.poster_path, "w342");
+        img.style.display = "";
+        placeholder.style.display = "none";
+      } else {
+        img.style.display = "none";
+        placeholder.style.display = "";
+      }
+    }
+    refreshPoster();
+
     async function fetchPosterIfNeeded(){
       const cur = findItem(id) || item;
       if (cur.poster_path) return;
@@ -421,6 +441,7 @@ function openViewDialog(idOrItem, opts){
         if (posterPath) {
           cur.poster_path = posterPath;
           saveToLocalStorage();
+          refreshPoster();
           renderTable(cur.type, cur.status || STATUS_WATCHING);
         }
       } catch(err) {
@@ -523,6 +544,14 @@ function openViewDialog(idOrItem, opts){
     refreshCollection();
 
 
+    const posterImgEl = overlay.querySelector("#view-poster-img");
+    if (posterImgEl) {
+      posterImgEl.addEventListener("click", ()=>{
+        const cur = findItem(id) || item;
+        openPosterLightbox(tmdbPosterUrl(cur.poster_path, "w780"));
+      });
+    }
+
     function refreshMarkNextEp(){
       if (type!==TYPE_SERIES) return;
       const cur = findItem(id) || item;
@@ -622,7 +651,7 @@ function openViewDialog(idOrItem, opts){
         t.tab.classList.toggle("active", active);
         t.pane.style.display = active ? "" : "none";
       }
-      if (markNextEpWrap) markNextEpWrap.style.display = (target.showMarkNextEp && !readOnly) ? "flex" : "none";
+      if (markNextEpWrap) markNextEpWrap.style.display = (target.showMarkNextEp && !readOnly && isUiV1()) ? "flex" : "none";
       if (target.onShow) target.onShow();
     }
     for (const t of viewTabs) {

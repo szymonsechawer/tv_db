@@ -8,6 +8,11 @@ function renderSettingsTab(){
   input.value = (db.settings && db.settings.tmdb_key) || "";
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
+  const curVer = (db.settings && db.settings.ui_version) || "v2";
+  const v1Btn = document.getElementById("set-ui-v1");
+  const v2Btn = document.getElementById("set-ui-v2");
+  if (v1Btn) v1Btn.classList.toggle("active", curVer === "v1");
+  if (v2Btn) v2Btn.classList.toggle("active", curVer === "v2");
 }
 
 function setSettingsStatus(msg, isErr){
@@ -47,6 +52,16 @@ function initSettingsTab(){
   });
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
+  for (const btn of [document.getElementById("set-ui-v1"), document.getElementById("set-ui-v2")]) {
+    if (!btn) continue;
+    btn.addEventListener("click", ()=>{
+      if (!db.settings) db.settings = {...DEFAULT_SETTINGS};
+      db.settings.ui_version = btn.dataset.ver;
+      setDirty(true);
+      renderSettingsTab();
+      renderAll();
+    });
+  }
   renderSettingsTab();
 }
 

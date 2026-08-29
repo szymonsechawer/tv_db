@@ -276,14 +276,30 @@
   table.data tbody td.col-progress{padding:8px 8px;}
   table.data tbody td:first-child{border-left:1px solid var(--border);border-radius:8px 0 0 8px;}
   table.data tbody td:last-child{border-right:1px solid var(--border);border-radius:0 8px 8px 0;}
+  .next-ep-wrap{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:104px;}
   .next-ep-btn{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:4px;min-width:104px;padding:12px 14px;line-height:1.15;border-radius:12px;
+    gap:4px;width:100%;box-sizing:border-box;padding:12px 14px;line-height:1.15;border-radius:12px;
   }
   .next-ep-btn .next-ep-code{font-weight:700;font-size:14px;white-space:nowrap;}
   .next-ep-btn .next-ep-counts{font-size:12px;font-weight:400;opacity:.85;white-space:nowrap;}
   .next-ep-btn:disabled{opacity:.6;cursor:default;}
-  .next-ep-btn.secondary{background:var(--bg-medium);color:var(--text-light);}
+  .btn.next-ep-btn{background:var(--bg-medium);color:var(--text-light);}
+  .btn.next-ep-btn:hover{background:var(--accent-hover);color:#fff;}
+  .btn.next-ep-btn:active{background:var(--accent-pressed);color:#fff;}
+  .btn.next-ep-btn.secondary{background:var(--bg-medium);color:var(--text-light);}
+  .next-ep-wrap .progress-bar-track{width:100%;height:6px;border-radius:4px;overflow:hidden;background:var(--bg-darker,#1c1c1c);}
+  .next-ep-wrap .progress-bar-fill{height:100%;border-radius:4px;background:var(--accent-hover);transition:width .2s ease;}
+  /* --- Wersja 1 (starszy wygląd list): pasek postępu zamiast przycisku --- */
+  .progress-cell{
+    display:flex;flex-direction:column;justify-content:center;
+    gap:5px;padding:8px 10px;min-width:130px;
+  }
+  .progress-cell .prog-toprow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;}
+  .progress-cell .prog-next{white-space:nowrap;font-weight:700;color:var(--text-light);}
+  .progress-cell .prog-counts{white-space:nowrap;color:var(--text-muted);}
+  .progress-bar-track{width:100%;height:6px;border-radius:4px;overflow:hidden;background:var(--bg-medium,#33383c);}
+  .progress-bar-fill{height:100%;border-radius:4px;background:var(--accent-hover);transition:width .2s ease;}
   table.data tbody tr{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   table.data tbody td{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
   .empty-row td{color:var(--text-muted);text-align:center;padding:18px;font-weight:600;border-radius:8px;}
@@ -400,6 +416,15 @@
   .form-row .value-static{font-weight:700;}
   .poster-lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:2000;cursor:zoom-out;padding:20px;}
   .poster-lightbox-img{max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 6px 34px rgba(0,0,0,.65);}
+  /* --- Wersja 1: okładka pokazywana w oknie informacji (zamiast na liście) --- */
+  .view-poster-wrap{
+    display:flex;justify-content:center;margin-bottom:12px;
+    padding:12px;
+    background:var(--bg-entry);border:1px solid var(--border);border-radius:8px;
+  }
+  .view-poster{width:130px;height:195px;object-fit:cover;border-radius:8px;cursor:zoom-in;box-shadow:0 2px 12px rgba(0,0,0,.45);transition:transform .15s ease;}
+  .view-poster:hover{transform:scale(1.03);}
+  .view-poster-placeholder{width:130px;height:195px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-medium);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;text-align:center;padding:6px;}
   .info-box{
     display:flex;flex-direction:column;
     padding:2px 12px;
@@ -533,9 +558,12 @@
     table.data tbody td{padding:9px 7px;font-size:13px;}
     .row-poster,.row-poster-placeholder{width:52px;height:78px;}
     .title-row-wrap{gap:8px;}
-    .next-ep-btn{min-width:90px;padding:10px 10px;}
+    .next-ep-wrap{min-width:90px;gap:5px;}
+    .next-ep-btn{padding:10px 10px;}
     .next-ep-btn .next-ep-code{font-size:14px;}
     .next-ep-btn .next-ep-counts{font-size:11px;}
+    .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
+    .progress-cell .prog-toprow{font-size:11px;}
     .modal{max-height:78vh;max-height:78dvh;}
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}

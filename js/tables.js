@@ -138,24 +138,37 @@ function renderUpcomingTable(){
     const tr = document.createElement("tr");
     const tdTitle = document.createElement("td");
     tdTitle.className = "col-title";
-    const linkedItem = row.item_id ? findItem(row.item_id) : null;
-    const wrapTitle = document.createElement("div");
-    wrapTitle.className = "title-row-wrap";
-    wrapTitle.appendChild(buildRowPosterEl(linkedItem && linkedItem.poster_path));
-    const textCol = document.createElement("div");
-    textCol.className = "title-text-col";
-    const titleLine = document.createElement("div");
-    titleLine.className = "title-main";
-    titleLine.textContent = row.title || "";
-    textCol.appendChild(titleLine);
-    if (row.air_date) {
-      const dateLine = document.createElement("div");
-      dateLine.className = "title-date";
-      dateLine.textContent = formatDateDMY(row.air_date);
-      textCol.appendChild(dateLine);
+    if (isUiV1()) {
+      const titleLine = document.createElement("div");
+      titleLine.className = "title-main";
+      titleLine.textContent = row.title || "";
+      tdTitle.appendChild(titleLine);
+      if (row.air_date) {
+        const dateLine = document.createElement("div");
+        dateLine.className = "title-date";
+        dateLine.textContent = formatDateDMY(row.air_date);
+        tdTitle.appendChild(dateLine);
+      }
+    } else {
+      const linkedItem = row.item_id ? findItem(row.item_id) : null;
+      const wrapTitle = document.createElement("div");
+      wrapTitle.className = "title-row-wrap";
+      wrapTitle.appendChild(buildRowPosterEl(linkedItem && linkedItem.poster_path));
+      const textCol = document.createElement("div");
+      textCol.className = "title-text-col";
+      const titleLine = document.createElement("div");
+      titleLine.className = "title-main";
+      titleLine.textContent = row.title || "";
+      textCol.appendChild(titleLine);
+      if (row.air_date) {
+        const dateLine = document.createElement("div");
+        dateLine.className = "title-date";
+        dateLine.textContent = formatDateDMY(row.air_date);
+        textCol.appendChild(dateLine);
+      }
+      wrapTitle.appendChild(textCol);
+      tdTitle.appendChild(wrapTitle);
     }
-    wrapTitle.appendChild(textCol);
-    tdTitle.appendChild(wrapTitle);
     const tdDays = document.createElement("td");
     tdDays.className = "col-days";
     tdDays.textContent = formatDaysLabel(row.days);
@@ -293,48 +306,101 @@ function renderTable(type, status){
         td.className = `col-${col}`;
         if (col === "progress") {
           const p = formatProgress(item);
-          const btn = document.createElement("button");
-          btn.type = "button";
-          const codeEl = document.createElement("span");
-          codeEl.className = "next-ep-code";
-          const countsEl = document.createElement("span");
-          countsEl.className = "next-ep-counts";
-          countsEl.textContent = p.counts;
-          const canMark = p.next && p.next !== "✓";
-          btn.className = "btn small next-ep-btn" + (canMark ? "" : " secondary");
-          codeEl.textContent = canMark ? p.next : (p.next === "✓" ? "✓" : "—");
-          btn.appendChild(codeEl);
-          btn.appendChild(countsEl);
-          if (canMark) {
-            btn.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
-            btn.addEventListener("click", async (e)=>{
-              e.stopPropagation();
-              btn.disabled = true;
-              try { await markNextEpisodeWatched(item.id); }
-              catch(err) { btn.disabled = false; }
-            });
+          if (isUiV1()) {
+            let total = 0, watched = 0;
+            for (const s of item.seasons||[]) for (const e of s.episodes||[]) { total++; if (e.watched) watched++; }
+            const pct = total ? Math.round((watched/total)*100) : 0;
+            const wrap = document.createElement("div");
+            wrap.className = "progress-cell";
+            const top = document.createElement("div");
+            top.className = "prog-toprow";
+            const next = document.createElement("span");
+            next.className = "prog-next";
+            next.textContent = (status === STATUS_WATCHED) ? "" : p.next;
+            const cnt = document.createElement("span");
+            cnt.className = "prog-counts";
+            cnt.textContent = p.counts;
+            top.appendChild(next);
+            top.appendChild(cnt);
+            const track = document.createElement("div");
+            track.className = "progress-bar-track";
+            const fill = document.createElement("div");
+            fill.className = "progress-bar-fill";
+            fill.style.width = pct + "%";
+            track.appendChild(fill);
+            wrap.appendChild(top);
+            wrap.appendChild(track);
+            td.appendChild(wrap);
           } else {
-            btn.disabled = true;
+            const wrap = document.createElement("div");
+            wrap.className = "next-ep-wrap";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const codeEl = document.createElement("span");
+            codeEl.className = "next-ep-code";
+            const countsEl = document.createElement("span");
+            countsEl.className = "next-ep-counts";
+            countsEl.textContent = p.counts;
+            const canMark = p.next && p.next !== "✓";
+            btn.className = "btn small next-ep-btn" + (canMark ? "" : " secondary");
+            codeEl.textContent = canMark ? p.next : (p.next === "✓" ? "✓" : "—");
+            btn.appendChild(codeEl);
+            btn.appendChild(countsEl);
+            if (canMark) {
+              btn.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
+              btn.addEventListener("click", async (e)=>{
+                e.stopPropagation();
+                btn.disabled = true;
+                try { await markNextEpisodeWatched(item.id); }
+                catch(err) { btn.disabled = false; }
+              });
+            } else {
+              btn.disabled = true;
+            }
+            wrap.appendChild(btn);
+            let total = 0, watched = 0;
+            for (const s of item.seasons||[]) for (const e of s.episodes||[]) { total++; if (e.watched) watched++; }
+            const pct = total ? Math.round((watched/total)*100) : 0;
+            const track = document.createElement("div");
+            track.className = "progress-bar-track";
+            const fill = document.createElement("div");
+            fill.className = "progress-bar-fill";
+            fill.style.width = pct + "%";
+            track.appendChild(fill);
+            wrap.appendChild(track);
+            td.appendChild(wrap);
           }
-          td.appendChild(btn);
         } else if (col === "title") {
-          const wrap = document.createElement("div");
-          wrap.className = "title-row-wrap";
-          wrap.appendChild(buildRowPosterEl(item.poster_path));
-          const textCol = document.createElement("div");
-          textCol.className = "title-text-col";
-          const titleLine = document.createElement("div");
-          titleLine.className = "title-main";
-          titleLine.textContent = item.title || "";
-          textCol.appendChild(titleLine);
-          if (item.premiere_date) {
-            const dateLine = document.createElement("div");
-            dateLine.className = "title-date";
-            dateLine.textContent = item.premiere_date;
-            textCol.appendChild(dateLine);
+          if (isUiV1()) {
+            const titleLine = document.createElement("div");
+            titleLine.className = "title-main";
+            titleLine.textContent = item.title || "";
+            td.appendChild(titleLine);
+            if (item.premiere_date) {
+              const dateLine = document.createElement("div");
+              dateLine.className = "title-date";
+              dateLine.textContent = item.premiere_date;
+              td.appendChild(dateLine);
+            }
+          } else {
+            const wrap = document.createElement("div");
+            wrap.className = "title-row-wrap";
+            wrap.appendChild(buildRowPosterEl(item.poster_path));
+            const textCol = document.createElement("div");
+            textCol.className = "title-text-col";
+            const titleLine = document.createElement("div");
+            titleLine.className = "title-main";
+            titleLine.textContent = item.title || "";
+            textCol.appendChild(titleLine);
+            if (item.premiere_date) {
+              const dateLine = document.createElement("div");
+              dateLine.className = "title-date";
+              dateLine.textContent = item.premiere_date;
+              textCol.appendChild(dateLine);
+            }
+            wrap.appendChild(textCol);
+            td.appendChild(wrap);
           }
-          wrap.appendChild(textCol);
-          td.appendChild(wrap);
         } else {
           td.textContent = cellValue(item, col, type);
         }

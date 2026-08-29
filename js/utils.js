@@ -27,8 +27,16 @@ function normalizeSettings(s){
   if (s && typeof s === "object") {
     if (typeof s.tmdb_key === "string") out.tmdb_key = s.tmdb_key;
     if (typeof s.tmdb_auto === "boolean") out.tmdb_auto = s.tmdb_auto;
+    if (s.ui_version === "v1" || s.ui_version === "v2") out.ui_version = s.ui_version;
   }
   return out;
+}
+
+// Zwraca true, jeśli w Ustawieniach wybrano starszy wygląd list (v1): bez
+// okładek na liście (za to z okładką w oknie informacji) i z klasycznym
+// paskiem postępu zamiast przycisku do odhaczania odcinków.
+function isUiV1(){
+  return !!(db.settings && db.settings.ui_version === "v1");
 }
 
 // Waliduje/porzadkuje archiwum rekordow rocznych ({movies:{rok:{...}}, episodes:{rok:{...}}}),
