@@ -45,11 +45,16 @@
   /* Na szerszych ekranach (tablety w poziomie, desktop) apka nie ma się
      rozciągać na całą szerokość - dostaje wyraźną, wyśrodkowaną "kartę". */
   @media (min-width:721px){
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
     #app{
       box-shadow:0 0 0 1px var(--border), 0 20px 60px rgba(0,0,0,.5);
       border-radius:14px;
-      margin-top:16px;
-      margin-bottom:16px;
+      margin-top:0;
+      margin-bottom:0;
       height:calc(100vh - 32px);
       height:calc(100dvh - 32px);
     }
@@ -244,7 +249,7 @@
     cursor:default;user-select:none;
     white-space:nowrap;
     border-bottom:1px solid var(--border);
-    font-size:16px;
+    font-size:13px;
   }
   table.data thead th.col-title{text-align:left;}
   table.data tbody td{
@@ -523,7 +528,7 @@
     .genre-stat-row{gap:8px;}
     .genre-stat-name{width:96px;font-size:12px;}
     .genre-stat-pct{width:34px;font-size:12px;}
-    table.data thead th{padding:8px 6px;font-size:15px;}
+    table.data thead th{padding:8px 6px;font-size:12.5px;}
     table.data tbody td{padding:9px 7px;font-size:13px;}
     .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
     .progress-cell .prog-toprow{font-size:11px;}
