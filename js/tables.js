@@ -176,7 +176,7 @@ function renderUpcomingTable(){
     tdDel.className = "col-del";
     const addBtn = document.createElement("button");
     addBtn.type = "button";
-    addBtn.className = "btn small";
+    addBtn.className = "btn small next-ep-btn";
     addBtn.textContent = "Dodaj";
     addBtn.addEventListener("click", async (e)=>{
       e.stopPropagation();
