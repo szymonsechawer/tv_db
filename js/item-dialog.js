@@ -193,10 +193,6 @@ function openViewDialog(idOrItem, opts){
         </div>
         <div class="tab-scroll">
           <div id="vpane-info">
-            <div class="view-poster-wrap" id="view-poster-wrap">
-              <img class="view-poster" id="view-poster-img" alt="Okładka" style="display:none;">
-              <div class="view-poster-placeholder" id="view-poster-placeholder">Brak okładki</div>
-            </div>
             <div class="info-box">
             <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">${escapeHtml(TYPE_LABELS[type]||"")}</div></div>
             <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(item.title||"—")}</div></div>
@@ -407,21 +403,10 @@ function openViewDialog(idOrItem, opts){
     }
     fetchOriginInfoIfNeeded();
 
-    function refreshPoster(){
-      const cur = findItem(id) || item;
-      const img = overlay.querySelector("#view-poster-img");
-      const placeholder = overlay.querySelector("#view-poster-placeholder");
-      if (cur.poster_path) {
-        img.src = tmdbPosterUrl(cur.poster_path, "w342");
-        img.style.display = "";
-        placeholder.style.display = "none";
-      } else {
-        img.style.display = "none";
-        placeholder.style.display = "";
-      }
-    }
-    refreshPoster();
-
+    // Okładka nie jest już pokazywana w oknie informacji (widoczna jest
+    // teraz jako miniatura na liście, po lewej stronie tytułu), ale wciąż
+    // dociągamy ją w tle przy pierwszym otwarciu pozycji, żeby miniatura
+    // na liście miała się skąd wziąć.
     async function fetchPosterIfNeeded(){
       const cur = findItem(id) || item;
       if (cur.poster_path) return;
@@ -436,7 +421,7 @@ function openViewDialog(idOrItem, opts){
         if (posterPath) {
           cur.poster_path = posterPath;
           saveToLocalStorage();
-          refreshPoster();
+          renderTable(cur.type, cur.status || STATUS_WATCHING);
         }
       } catch(err) {
         // cicho ignoruj błąd pobierania okładki - nie blokuje okna informacji
@@ -537,11 +522,6 @@ function openViewDialog(idOrItem, opts){
     }
     refreshCollection();
 
-
-    overlay.querySelector("#view-poster-img").addEventListener("click", ()=>{
-      const cur = findItem(id) || item;
-      openPosterLightbox(tmdbPosterUrl(cur.poster_path, "w780"));
-    });
 
     function refreshMarkNextEp(){
       if (type!==TYPE_SERIES) return;

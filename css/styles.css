@@ -260,21 +260,30 @@
     text-align:center;
     font-size:14px;
   }
-  table.data tbody td.col-title{white-space:normal;width:100%;text-align:left;}
+  table.data tbody td.col-title{white-space:normal;width:100%;text-align:left;padding-top:8px;padding-bottom:8px;}
+  .title-row-wrap{display:flex;align-items:center;gap:10px;}
+  .row-poster{
+    width:64px;height:96px;flex-shrink:0;object-fit:cover;border-radius:6px;
+    background:var(--bg-medium);box-shadow:0 1px 5px rgba(0,0,0,.4);cursor:zoom-in;
+  }
+  .row-poster-placeholder{
+    width:64px;height:96px;flex-shrink:0;border-radius:6px;
+    background:var(--bg-medium);border:1px solid var(--border);
+  }
+  .title-text-col{display:flex;flex-direction:column;min-width:0;flex:1;gap:5px;}
   .title-main{font-weight:600;}
-  .title-date{color:var(--text-muted);font-size:11px;font-weight:400;margin-top:2px;}
-  table.data tbody td.col-progress{padding:0;}
+  .title-date{color:var(--text-muted);font-size:11px;font-weight:400;}
+  table.data tbody td.col-progress{padding:8px 8px;}
   table.data tbody td:first-child{border-left:1px solid var(--border);border-radius:8px 0 0 8px;}
   table.data tbody td:last-child{border-right:1px solid var(--border);border-radius:0 8px 8px 0;}
-  .progress-cell{
-    display:flex;flex-direction:column;justify-content:center;
-    gap:5px;padding:8px 10px;min-width:130px;
+  .next-ep-btn{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;min-width:104px;padding:12px 14px;line-height:1.15;border-radius:12px;
   }
-  .progress-cell .prog-toprow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;}
-  .progress-cell .prog-next{white-space:nowrap;font-weight:700;color:var(--text-light);}
-  .progress-cell .prog-counts{white-space:nowrap;color:var(--text-muted);}
-  .progress-bar-track{width:100%;height:6px;border-radius:4px;overflow:hidden;background:var(--bg-medium,#33383c);}
-  .progress-bar-fill{height:100%;border-radius:4px;background:var(--accent-hover);transition:width .2s ease;}
+  .next-ep-btn .next-ep-code{font-weight:700;font-size:14px;white-space:nowrap;}
+  .next-ep-btn .next-ep-counts{font-size:12px;font-weight:400;opacity:.85;white-space:nowrap;}
+  .next-ep-btn:disabled{opacity:.6;cursor:default;}
+  .next-ep-btn.secondary{background:var(--bg-medium);color:var(--text-light);}
   table.data tbody tr{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   table.data tbody td{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
   .empty-row td{color:var(--text-muted);text-align:center;padding:18px;font-weight:600;border-radius:8px;}
@@ -389,14 +398,6 @@
   .form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .form-row label{width:150px;flex-shrink:0;}
   .form-row .value-static{font-weight:700;}
-  .view-poster-wrap{
-    display:flex;justify-content:center;margin-bottom:12px;
-    padding:12px;
-    background:var(--bg-entry);border:1px solid var(--border);border-radius:8px;
-  }
-  .view-poster{width:130px;height:195px;object-fit:cover;border-radius:8px;cursor:zoom-in;box-shadow:0 2px 12px rgba(0,0,0,.45);transition:transform .15s ease;}
-  .view-poster:hover{transform:scale(1.03);}
-  .view-poster-placeholder{width:130px;height:195px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-medium);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;text-align:center;padding:6px;}
   .poster-lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:2000;cursor:zoom-out;padding:20px;}
   .poster-lightbox-img{max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 6px 34px rgba(0,0,0,.65);}
   .info-box{
@@ -530,8 +531,11 @@
     .genre-stat-pct{width:34px;font-size:12px;}
     table.data thead th{padding:8px 6px;font-size:12.5px;}
     table.data tbody td{padding:9px 7px;font-size:13px;}
-    .progress-cell{min-width:100px;gap:4px;padding:4px 6px;}
-    .progress-cell .prog-toprow{font-size:11px;}
+    .row-poster,.row-poster-placeholder{width:52px;height:78px;}
+    .title-row-wrap{gap:8px;}
+    .next-ep-btn{min-width:90px;padding:10px 10px;}
+    .next-ep-btn .next-ep-code{font-size:14px;}
+    .next-ep-btn .next-ep-counts{font-size:11px;}
     .modal{max-height:78vh;max-height:78dvh;}
     .modal-body{padding:12px;}
     .modal-header,.modal-footer{padding:10px 12px;}
