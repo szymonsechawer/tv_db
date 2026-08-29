@@ -285,7 +285,7 @@
   .next-ep-btn .next-ep-counts{font-size:12px;font-weight:400;opacity:.85;white-space:nowrap;}
   .next-ep-btn:disabled{opacity:.6;cursor:default;}
   .btn.next-ep-btn{background:var(--bg-medium);color:var(--text-light);}
-  .btn.next-ep-btn:hover{background:var(--accent-hover);color:#fff;}
+  .btn.next-ep-btn:hover{background:var(--bg-medium);color:var(--text-light);}
   .btn.next-ep-btn:active{background:var(--accent-pressed);color:#fff;}
   .btn.next-ep-btn.secondary{background:var(--bg-medium);color:var(--text-light);}
   .next-ep-wrap .progress-bar-track{width:100%;height:6px;border-radius:4px;overflow:hidden;background:var(--bg-darker,#1c1c1c);}
