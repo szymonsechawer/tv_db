@@ -546,28 +546,3 @@
 
 /* Przycisk „Notatki” na dolnym pasku (obok „Otwórz”) */
 #btn-settings.active{background:var(--accent);color:#fff;}
-
-/* ==========================================================
-   Blokada orientacji - aplikacja ma działać tylko poziomo.
-   Prawdziwej blokady obrotu w przeglądarce (Safari/iPadOS) nie da
-   się wymusić programowo, więc gdy urządzenie dotykowe jest trzymane
-   pionowo, chowamy apkę i pokazujemy komunikat o obróceniu ekranu.
-   ========================================================== */
-#rotate-overlay{
-  display:none;
-  position:fixed;inset:0;z-index:9999;
-  background:var(--bg-darker);
-  color:var(--text-light);
-  flex-direction:column;align-items:center;justify-content:center;
-  gap:16px;text-align:center;padding:24px;
-}
-#rotate-overlay .rotate-icon{font-size:52px;animation:rotate-hint 1.6s ease-in-out infinite;}
-#rotate-overlay p{margin:0;font-weight:600;font-size:16px;max-width:280px;}
-@keyframes rotate-hint{
-  0%,100%{transform:rotate(0deg);}
-  50%{transform:rotate(90deg);}
-}
-@media (orientation:portrait) and (pointer:coarse){
-  #app{display:none;}
-  #rotate-overlay{display:flex;}
-}

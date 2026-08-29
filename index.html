@@ -23,11 +23,6 @@
 </head>
 <body>
 
-<div id="rotate-overlay">
-  <div class="rotate-icon">📱</div>
-  <p>Obróć urządzenie do pozycji poziomej, aby korzystać z aplikacji.</p>
-</div>
-
 <div id="app">
   <div id="search-bar">
     <div id="search-input-wrap">
@@ -280,19 +275,6 @@
       navigator.serviceWorker.register("service-worker.js").catch(() => {});
     });
   }
-
-  // Próba programowej blokady orientacji na poziomą. Działa głównie
-  // w zainstalowanej PWA na Androidzie (Chrome) - Safari/iPadOS nie
-  // wspiera tego API, dlatego dodatkowo jest overlay w CSS jako fallback.
-  function lockLandscape(){
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock("landscape").catch(() => {});
-    }
-  }
-  window.addEventListener("load", lockLandscape);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) lockLandscape();
-  });
 </script>
 </body>
 </html>
