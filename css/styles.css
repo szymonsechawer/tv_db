@@ -19,7 +19,7 @@
   *{box-sizing:border-box;}
   html,body{
     margin:0;padding:0;
-    background:var(--bg-dark);
+    background:var(--bg-darker);
     color:var(--text-light);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
     font-weight:600;
@@ -32,13 +32,27 @@
     display:flex;flex-direction:column;
     height:100vh;
     height:100dvh;
-    max-width:900px;
+    max-width:720px;
+    width:100%;
     margin:0 auto;
+    background:var(--bg-dark);
     padding:10px;
     padding-left:max(10px, env(safe-area-inset-left));
     padding-right:max(10px, env(safe-area-inset-right));
     padding-top:max(10px, env(safe-area-inset-top));
     padding-bottom:max(10px, env(safe-area-inset-bottom));
+  }
+  /* Na szerszych ekranach (tablety w poziomie, desktop) apka nie ma się
+     rozciągać na całą szerokość - dostaje wyraźną, wyśrodkowaną "kartę". */
+  @media (min-width:721px){
+    #app{
+      box-shadow:0 0 0 1px var(--border), 0 20px 60px rgba(0,0,0,.5);
+      border-radius:14px;
+      margin-top:16px;
+      margin-bottom:16px;
+      height:calc(100vh - 32px);
+      height:calc(100dvh - 32px);
+    }
   }
   button{ -webkit-appearance:none; appearance:none; touch-action:manipulation; }
   input,select,textarea{ font-size:16px !important; }
@@ -532,3 +546,28 @@
 
 /* Przycisk „Notatki” na dolnym pasku (obok „Otwórz”) */
 #btn-settings.active{background:var(--accent);color:#fff;}
+
+/* ==========================================================
+   Blokada orientacji - aplikacja ma działać tylko poziomo.
+   Prawdziwej blokady obrotu w przeglądarce (Safari/iPadOS) nie da
+   się wymusić programowo, więc gdy urządzenie dotykowe jest trzymane
+   pionowo, chowamy apkę i pokazujemy komunikat o obróceniu ekranu.
+   ========================================================== */
+#rotate-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg-darker);
+  color:var(--text-light);
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;text-align:center;padding:24px;
+}
+#rotate-overlay .rotate-icon{font-size:52px;animation:rotate-hint 1.6s ease-in-out infinite;}
+#rotate-overlay p{margin:0;font-weight:600;font-size:16px;max-width:280px;}
+@keyframes rotate-hint{
+  0%,100%{transform:rotate(0deg);}
+  50%{transform:rotate(90deg);}
+}
+@media (orientation:portrait) and (pointer:coarse){
+  #app{display:none;}
+  #rotate-overlay{display:flex;}
+}
