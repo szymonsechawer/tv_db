@@ -613,8 +613,10 @@ function openViewDialog(idOrItem, opts){
               <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
               <span class="season-pct">${pct}%</span>
             </div>
-            ${season.air_date ? `<div class="title-date" style="margin:-4px 0 6px 20px;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
-            ${season.overview ? `<div class="overview-box season-overview-box">${escapeHtml(season.overview)}</div>` : ""}
+            <div class="season-details" style="${isCollapsed ? "display:none;" : ""}">
+              ${season.air_date ? `<div class="title-date" style="margin:-4px 0 6px 20px;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
+              ${season.overview ? `<div class="overview-box season-overview-box">${escapeHtml(season.overview)}</div>` : ""}
+            </div>
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;
           box.querySelector(".season-title-toggle").addEventListener("click", ()=>{
