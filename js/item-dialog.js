@@ -712,7 +712,12 @@ function openViewDialog(idOrItem, opts){
           try {
             let seasonInfoChanged = false;
             for (const season of (cur.seasons||[])) {
-              const eps = await tmdbSeasonEpisodes(tid, season.number);
+              // forceRefresh=true: ten przycisk ma naprawiać/aktualizować dane,
+              // więc musi ominąć pamięć podręczną sezonu z tej sesji (inaczej,
+              // jeśli sezon był już raz pobrany wcześniej - np. przy otwarciu
+              // zakładki "Sezony i odcinki" - dostawalibyśmy z powrotem ten sam,
+              // stary opis, nawet jeśli był po angielsku i wymagał tłumaczenia)
+              const eps = await tmdbSeasonEpisodes(tid, season.number, true);
               if (eps) {
                 if (eps.season_overview) { season.overview = eps.season_overview; seasonInfoChanged = true; }
                 if (eps.season_air_date) { season.air_date = eps.season_air_date; seasonInfoChanged = true; }
