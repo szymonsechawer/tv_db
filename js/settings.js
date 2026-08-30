@@ -223,12 +223,11 @@ async function refreshAllEpisodeTitles(){
             if (eps.season_overview && eps.season_overview !== (season.overview||"")) season.overview = eps.season_overview;
             if (eps.season_air_date && eps.season_air_date !== (season.air_date||"")) season.air_date = eps.season_air_date;
           }
-          // dłuższa przerwa między kolejnymi sezonami - jeśli opis trzeba było
-          // tłumaczyć, znacząco zmniejsza to ryzyko wpadnięcia w limit zapytań
-          // Google Translate przy aktualizacji wielu seriali pod rząd
-          // (aktualizacja zbiorcza potrwa przez to zauważalnie dłużej, ale
-          // priorytetem jest tu pewność, że tłumaczenie się uda)
-          await new Promise(r => setTimeout(r, 2500));
+          // krótka przerwa między kolejnymi sezonami - dzięki dwóm niezależnym
+          // usługom tłumaczeniowym (Google Translate + MyMemory) ryzyko
+          // wpadnięcia w limit jest dużo mniejsze, więc nie trzeba już czekać
+          // tak długo jak przy jednej usłudze
+          await new Promise(r => setTimeout(r, 400));
         }
         if (itemUpdated>0) { updatedEpisodes += itemUpdated; updatedSeries++; }
       }

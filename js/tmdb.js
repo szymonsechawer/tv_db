@@ -46,12 +46,11 @@ async function tmdbFetch(path, params){
   return res.json();
 }
 
-// Tłumaczy podany tekst na język polski za pomocą darmowego, nieoficjalnego
-// API Tłumacza Google (nie wymaga klucza). Używane tam, gdzie TMDb nie ma
-// polskiego opisu i zwraca tekst w innym języku (np. opis sezonu) - żeby
-// użytkownik i tak zobaczył treść po polsku. W razie chwilowego niepowodzenia
-// (np. limit zapytań) próbuje ponownie kilka razy z rosnącą przerwą, zanim
-// odda oryginalny (nieprzetłumaczony) tekst.
+// Tłumaczy podany tekst na język polski. Próbuje kolejno dwóch niezależnych,
+// darmowych usług tłumaczeniowych (Google Translate i MyMemory - żadna nie
+// wymaga klucza API). Jeśli jedna zawiedzie (np. przez chwilowy limit
+// zapytań), od razu próbuje drugiej - dzięki temu nie trzeba długo czekać
+// i ponawiać prób w kółko na tej samej, przeciążonej usłudze.
 async function translateChunkGoogle(text, sourceLang){
   const url = new URL("https://translate.googleapis.com/translate_a/single");
   url.searchParams.set("client", "gtx");
@@ -67,20 +66,33 @@ async function translateChunkGoogle(text, sourceLang){
   if (!translated.trim()) throw new Error("Google Translate: pusta odpowiedź");
   return translated.trim();
 }
-async function translateChunkGoogleWithRetry(text, sourceLang){
-  const delays = [3000, 8000, 15000]; // rosnąca przerwa między kolejnymi próbami (ms)
-  for (let attempt = 0; attempt <= delays.length; attempt++) {
-    try { return await translateChunkGoogle(text, sourceLang); }
-    catch(err) {
-      console.warn(`Tłumaczenie nie powiodło się (próba ${attempt+1}/${delays.length+1}):`, err.message || err);
-      if (attempt < delays.length) await new Promise(r => setTimeout(r, delays[attempt]));
-    }
+async function translateChunkMyMemory(text, sourceLang){
+  const url = new URL("https://api.mymemory.translated.net/get");
+  url.searchParams.set("q", text);
+  url.searchParams.set("langpair", (sourceLang || "en") + "|pl");
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("MyMemory: HTTP " + res.status);
+  const data = await res.json();
+  const translated = (data && data.responseData && typeof data.responseData.translatedText === "string")
+    ? data.responseData.translatedText.trim() : "";
+  if (!translated) throw new Error("MyMemory: pusta odpowiedź");
+  if (/MYMEMORY WARNING/i.test(translated)) throw new Error("MyMemory: przekroczono dzienny darmowy limit");
+  return translated;
+}
+async function translateChunkWithFallback(text, sourceLang){
+  const providers = [
+    () => translateChunkGoogle(text, sourceLang),
+    () => translateChunkMyMemory(text, sourceLang),
+  ];
+  for (const provider of providers) {
+    try { return await provider(); }
+    catch(err) { console.warn("Tłumaczenie nie powiodło się, próbuję innej usługi:", err.message || err); }
   }
-  return null; // wszystkie próby zawiodły - wywołujący zostawi oryginalny tekst
+  return null; // obie usługi zawiodły - wywołujący zostawi oryginalny tekst
 }
 // Tnie długi tekst na fragmenty nie dłuższe niż maxLen znaków, starając się
-// ciąć po końcu zdania, żeby nie psuć sensu tłumaczonych kawałków (Google
-// Translate ma ograniczenie długości pojedynczego zapytania).
+// ciąć po końcu zdania, żeby nie psuć sensu tłumaczonych kawałków (obie
+// usługi mają ograniczenie długości pojedynczego zapytania).
 function splitTextForTranslation(text, maxLen){
   const sentences = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
   const chunks = [];
@@ -98,11 +110,10 @@ async function translateTextToPolish(text, sourceLang){
   const chunks = splitTextForTranslation(t, 450);
   const out = [];
   for (let i=0; i<chunks.length; i++) {
-    const translatedChunk = await translateChunkGoogleWithRetry(chunks[i], sourceLang);
+    const translatedChunk = await translateChunkWithFallback(chunks[i], sourceLang);
     out.push(translatedChunk != null ? translatedChunk : chunks[i]);
-    // krótki odstęp między kolejnymi fragmentami tego samego opisu, żeby nie
-    // odpytywać Google Translate zbyt szybko pod rząd
-    if (i < chunks.length-1) await new Promise(r => setTimeout(r, 2000));
+    // krótki odstęp między kolejnymi fragmentami tego samego opisu
+    if (i < chunks.length-1) await new Promise(r => setTimeout(r, 500));
   }
   return out.join(" ").replace(/\s+/g, " ").trim();
 }
