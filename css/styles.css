@@ -518,7 +518,7 @@
   .episode-wrap{display:flex;flex-direction:column;gap:2px;}
   .ep-overview-input{
     width:100%;box-sizing:border-box;resize:vertical;
-    font-size:12px;min-height:44px;margin:2px 0 6px 0;
+    font-size:12px;min-height:66px;margin:2px 0 6px 0;
     font-family:inherit;
   }
   .episode-row .ep-delete-btn{

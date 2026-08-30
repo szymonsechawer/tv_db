@@ -158,13 +158,13 @@ function normalizeRating(value){
   return Math.round(clamped * 10) / 10;
 }
 
-// Formatuje ocenę do wyświetlenia: bez zbędnego ".0" dla pełnych liczb
-// (np. 8 zamiast 8.0), ale z jedną cyfrą po przecinku, gdy jest niezerowa
-// (np. 7.8). Zwraca pusty string dla braku oceny (0).
+// Formatuje ocenę do wyświetlenia: zawsze z jedną cyfrą po przecinku
+// (np. 7.0 zamiast 7, 7.2 pozostaje 7.2). Zwraca pusty string dla braku
+// oceny (0).
 function formatRating(value){
   const r = normalizeRating(value);
   if (!r) return "";
-  return (Math.round(r * 10) % 10 === 0) ? String(Math.round(r)) : r.toFixed(1);
+  return r.toFixed(1);
 }
 
 function formatDuration(totalMinutesRaw){

@@ -1625,7 +1625,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       box.innerHTML = `
         <div class="season-title">Sezon ${season.number}  (${watchedCount}/${total} obejrzane, ${escapeHtml(formatDuration(seasonMinutes))} obejrzane)</div>
         ${season.air_date ? `<div class="title-date" style="margin:-2px 0 6px 0;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
-        <textarea class="entry season-overview-input" rows="4" placeholder="Opis sezonu" style="display:block;width:100%;box-sizing:border-box;margin:0 0 8px 0;font-size:12px;resize:vertical;">${escapeHtml(season.overview||"")}</textarea>
+        <textarea class="entry season-overview-input" rows="5" placeholder="Opis sezonu" style="display:block;width:100%;box-sizing:border-box;margin:0 0 8px 0;font-size:12px;resize:vertical;">${escapeHtml(season.overview||"")}</textarea>
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
           <button class="btn small" data-act="uncheck-all">Odznacz cały</button>
@@ -1725,7 +1725,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       wrap.appendChild(row);
       const overviewInput = document.createElement("textarea");
       overviewInput.className = "entry ep-overview-input";
-      overviewInput.rows = 2;
+      overviewInput.rows = 3;
       overviewInput.placeholder = "Opis odcinka";
       overviewInput.value = ep.overview || "";
       overviewInput.addEventListener("input", ()=>{
