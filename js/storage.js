@@ -63,8 +63,17 @@ function migrateItems(items){
             .filter(p => p.title);
         }
       }
+      // Tytuł całej kolekcji/sagi (np. "Kolekcja Iron Man"), osobno od
+      // listy jej części - musi trafiać do pliku JSON tak samo jak reszta pól.
+      if (typeof item.collection_title === "string") {
+        item.collection_title = item.collection_title.trim();
+        if (!item.collection_title) delete item.collection_title;
+      } else {
+        delete item.collection_title;
+      }
     } else {
       delete item.collection;
+      delete item.collection_title;
     }
     if (item.type === TYPE_SERIES) {
       if (!Array.isArray(item.seasons)) item.seasons = [];
@@ -74,6 +83,10 @@ function migrateItems(items){
           if (!("duration" in ep) || ep.duration==null) ep.duration = 0;
           if (!("title" in ep)) ep.title = "";
         }
+        // Opis i data premiery danego sezonu - zapisywane osobno dla
+        // każdego sezonu (odróżnia je od ogólnego opisu/daty serialu).
+        season.overview = (typeof season.overview === "string") ? season.overview.trim() : "";
+        season.air_date = (typeof season.air_date === "string") ? season.air_date.trim() : "";
       }
     }
   }

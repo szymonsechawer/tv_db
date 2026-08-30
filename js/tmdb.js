@@ -46,6 +46,33 @@ async function tmdbFetch(path, params){
   return res.json();
 }
 
+// Tłumaczy podany tekst na język polski za pomocą darmowego, nieoficjalnego
+// API Tłumacza Google (nie wymaga klucza). Używane tam, gdzie TMDb nie
+// posiada polskiego tłumaczenia i zwraca tekst w innym języku (np. opis
+// sezonu) - żeby użytkownik i tak zobaczył treść po polsku. W razie
+// jakiegokolwiek błędu (brak sieci, inny problem) zwracany jest oryginalny
+// tekst bez zmian, aby nie blokować reszty aktualizacji danych.
+async function translateTextToPolish(text, sourceLang){
+  const t = String(text||"").trim();
+  if (!t) return t;
+  try {
+    const url = new URL("https://translate.googleapis.com/translate_a/single");
+    url.searchParams.set("client", "gtx");
+    url.searchParams.set("sl", sourceLang || "auto");
+    url.searchParams.set("tl", "pl");
+    url.searchParams.set("dt", "t");
+    url.searchParams.set("q", t);
+    const res = await fetch(url.toString());
+    if (!res.ok) return t;
+    const data = await res.json();
+    if (Array.isArray(data) && Array.isArray(data[0])) {
+      const translated = data[0].map(chunk => (Array.isArray(chunk) ? (chunk[0]||"") : "")).join("");
+      return translated.trim() || t;
+    }
+  } catch(err) { /* brak połączenia z usługą tłumaczenia - zostaw oryginalny tekst */ }
+  return t;
+}
+
 // Buduje pełny URL obrazka okładki (poster) na podstawie poster_path z TMDb.
 function tmdbPosterUrl(posterPath, size){
   if (!posterPath) return null;
@@ -391,7 +418,11 @@ function normalizeCollectionPart(p){
 async function syncItemCollectionFromTmdb(item, tmdbId){
   if (item.type !== TYPE_MOVIE) return 0;
   const coll = await tmdbFetchCollection(tmdbId);
-  if (!coll || !Array.isArray(coll.parts) || !coll.parts.length) return 0;
+  if (!coll) return 0;
+  // Nazwa całej kolekcji/sagi (np. "Kolekcja Iron Man") - zapisywana osobno
+  // od listy części, bo dotyczy sagi jako całości, a nie pojedynczego filmu.
+  if (coll.name) item.collection_title = String(coll.name);
+  if (!Array.isArray(coll.parts) || !coll.parts.length) return 0;
   const existingIds = new Set((item.collection||[]).map(p=>p.id).filter(v=>v!=null));
   const newParts = coll.parts.map(normalizeCollectionPart).filter(p=>p.id==null || !existingIds.has(p.id));
   if (!newParts.length) return 0;
@@ -442,6 +473,16 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   if (!forceRefresh && tmdbSeasonCache.has(cacheKey)) return tmdbSeasonCache.get(cacheKey);
   const data = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {});
   let eps = (data && Array.isArray(data.episodes)) ? data.episodes : [];
+  // Opis i data premiery samego sezonu (nie mylić z opisem/datą serialu) -
+  // dostępne w tej samej odpowiedzi TMDb co lista odcinków.
+  let seasonOverview = (data && typeof data.overview === "string") ? data.overview.trim() : "";
+  // Język, w jakim faktycznie udało się uzyskać opis sezonu - "pl", dopóki
+  // opis pochodzi z pierwszego (polskiego) zapytania; zmieniany na kod
+  // języka zapasowego, gdy opis trzeba było pobrać w innym języku (patrz
+  // pętla fallbacku niżej) - potrzebne, żeby wiedzieć, czy opis wymaga
+  // jeszcze przetłumaczenia na polski.
+  let seasonOverviewLang = seasonOverview ? "pl" : "";
+  const seasonAirDate = (data && data.air_date) ? String(data.air_date) : "";
 
   // wyczyść generyczne nazwy, aby fallback mógł je zastąpić
   for (const ep of eps) {
@@ -449,15 +490,16 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   }
 
   const stillMissing = () => eps.length===0 || eps.some(e=>!e.name || !e.name.trim());
+  const needsOverviewFallback = () => !seasonOverview;
 
-  if (stillMissing()) {
+  if (stillMissing() || needsOverviewFallback()) {
     // kolejność prób: angielski, język oryginalny serialu, bez języka (wersja domyślna TMDb)
     const langs = ["en-US"];
     const orig = await tmdbSeriesOriginalLanguage(seriesId);
     if (orig && orig !== "en" && orig !== "pl") langs.push(orig);
 
     for (const lang of langs) {
-      if (!stillMissing()) break;
+      if (!stillMissing() && !needsOverviewFallback()) break;
       try {
         const alt = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {language: lang});
         let epsAlt = (alt && Array.isArray(alt.episodes)) ? alt.episodes : [];
@@ -466,18 +508,32 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
         }
         if (eps.length===0 && epsAlt.length>0) {
           eps = epsAlt;
-          continue;
+        } else {
+          for (const ep of eps) {
+            if (ep.name && ep.name.trim()) continue;
+            const match = epsAlt.find(e=>e.episode_number===ep.episode_number);
+            if (match && match.name && match.name.trim()) ep.name = match.name;
+          }
         }
-        for (const ep of eps) {
-          if (ep.name && ep.name.trim()) continue;
-          const match = epsAlt.find(e=>e.episode_number===ep.episode_number);
-          if (match && match.name && match.name.trim()) ep.name = match.name;
+        if (needsOverviewFallback() && alt && typeof alt.overview === "string" && alt.overview.trim()) {
+          seasonOverview = alt.overview.trim();
+          seasonOverviewLang = lang;
         }
       } catch(err) {
         // brak danych w tym języku - próbuj dalej
       }
     }
   }
+
+  // TMDb nie ma polskiego opisu tego sezonu - opis został pobrany w innym
+  // języku (angielski albo oryginalny język serialu). Tłumaczymy go na
+  // polski, żeby w zakładce "Sezony i odcinki" nie zostawał po angielsku.
+  if (seasonOverview && seasonOverviewLang && seasonOverviewLang !== "pl") {
+    seasonOverview = await translateTextToPolish(seasonOverview, seasonOverviewLang.split("-")[0]);
+  }
+
+  eps.season_overview = seasonOverview;
+  eps.season_air_date = seasonAirDate;
 
   tmdbSeasonCache.set(cacheKey, eps);
   return eps;

@@ -138,7 +138,7 @@ function renderUpcomingTable(){
     const tr = document.createElement("tr");
     const tdTitle = document.createElement("td");
     tdTitle.className = "col-title";
-    if (isUiV1()) {
+    if (!showPosterInList()) {
       const titleLine = document.createElement("div");
       titleLine.className = "title-main";
       titleLine.textContent = row.title || "";
@@ -306,7 +306,7 @@ function renderTable(type, status){
         td.className = `col-${col}`;
         if (col === "progress") {
           const p = formatProgress(item);
-          if (isUiV1()) {
+          if (useProgressBarOnly()) {
             let total = 0, watched = 0;
             for (const s of item.seasons||[]) for (const e of s.episodes||[]) { total++; if (e.watched) watched++; }
             const pct = total ? Math.round((watched/total)*100) : 0;
@@ -371,7 +371,7 @@ function renderTable(type, status){
             td.appendChild(wrap);
           }
         } else if (col === "title") {
-          if (isUiV1()) {
+          if (!showPosterInList()) {
             const titleLine = document.createElement("div");
             titleLine.className = "title-main";
             titleLine.textContent = item.title || "";

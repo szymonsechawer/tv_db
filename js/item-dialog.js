@@ -117,9 +117,17 @@ async function addItemFromTmdb(type, hit){
 // w bazie, albo okno dodawania wypełnione danymi z TMDb.
 function buildTmdbRecordRow(type, r){
   const tr = document.createElement("tr");
-  const title = (type===TYPE_MOVIE ? r.title : r.name) || (type===TYPE_MOVIE ? r.original_title : r.original_name) || "(bez tytułu)";
-  const year = ((type===TYPE_MOVIE ? r.release_date : r.first_air_date) || "").slice(0,4);
   const existing = findItemByTmdbId(type, r.id);
+  // Jeśli ta pozycja (np. część kolekcji/sagi) jest już w bazie użytkownika,
+  // pokazujemy jej własny tytuł zapisany w bazie, a nie surowy tytuł z TMDb.
+  // Dzięki temu ręczna poprawka tytułu na polski (np. w oknie edycji) od
+  // razu widać też w liście kolekcji, zamiast pozostawiać stary, często
+  // angielski tytuł pobrany wcześniej z TMDb.
+  const title = (existing && existing.title)
+    || (type===TYPE_MOVIE ? r.title : r.name)
+    || (type===TYPE_MOVIE ? r.original_title : r.original_name)
+    || "(bez tytułu)";
+  const year = ((type===TYPE_MOVIE ? r.release_date : r.first_air_date) || "").slice(0,4);
   const td = document.createElement("td");
   td.className = "col-title";
   const titleLine = document.createElement("div");
@@ -193,7 +201,7 @@ function openViewDialog(idOrItem, opts){
         </div>
         <div class="tab-scroll">
           <div id="vpane-info">
-            ${isUiV1() ? `<div class="view-poster-wrap" id="view-poster-wrap">
+            ${!showPosterInList() ? `<div class="view-poster-wrap" id="view-poster-wrap">
               <img class="view-poster" id="view-poster-img" alt="Okładka" style="display:none;">
               <div class="view-poster-placeholder" id="view-poster-placeholder">Brak okładki</div>
             </div>` : ''}
@@ -519,6 +527,8 @@ function openViewDialog(idOrItem, opts){
       if (!section || !content) return;
       const list = Array.isArray(cur.collection) ? cur.collection : [];
       if (!list.length) { section.style.display = "none"; return; }
+      const titleEl = overlay.querySelector("#view-collection-title");
+      if (titleEl) titleEl.textContent = cur.collection_title ? `Kolekcja: ${cur.collection_title}` : "Kolekcja:";
       content.innerHTML = "";
       const sortedParts = [...list].sort((a,b)=>String(a.release_date||"9999").localeCompare(String(b.release_date||"9999")));
       for (const part of sortedParts) content.appendChild(buildTmdbRecordRow(TYPE_MOVIE, part));
@@ -534,6 +544,7 @@ function openViewDialog(idOrItem, opts){
             const coll = await tmdbFetchCollection(tid);
             if (coll && Array.isArray(coll.parts) && coll.parts.length >= 2) {
               cur.collection = coll.parts.map(normalizeCollectionPart);
+              if (coll.name) cur.collection_title = String(coll.name);
               saveToLocalStorage();
             }
           }
@@ -602,6 +613,8 @@ function openViewDialog(idOrItem, opts){
               <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
               <span class="season-pct">${pct}%</span>
             </div>
+            ${season.air_date ? `<div class="title-date" style="margin:-4px 0 6px 20px;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
+            ${season.overview ? `<div class="muted" style="margin:-2px 0 8px 20px;font-size:12px;">${escapeHtml(season.overview)}</div>` : ""}
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;
           box.querySelector(".season-title-toggle").addEventListener("click", ()=>{
@@ -695,6 +708,19 @@ function openViewDialog(idOrItem, opts){
         const parts = [];
         const overview = await tmdbOverview(cur.type, tid);
         if (overview) { cur.description = overview; parts.push("opis"); }
+        if (cur.type === TYPE_SERIES) {
+          try {
+            let seasonInfoChanged = false;
+            for (const season of (cur.seasons||[])) {
+              const eps = await tmdbSeasonEpisodes(tid, season.number);
+              if (eps) {
+                if (eps.season_overview) { season.overview = eps.season_overview; seasonInfoChanged = true; }
+                if (eps.season_air_date) { season.air_date = eps.season_air_date; seasonInfoChanged = true; }
+              }
+            }
+            if (seasonInfoChanged) parts.push("opisy i daty sezonów");
+          } catch(err) { /* brak opisów/dat sezonów nie blokuje reszty */ }
+        }
         try {
           const creators = await tmdbFetchCreators(cur.type, tid);
           if (creators && creators.length) { cur.creators = creators; parts.push("twórców"); }
@@ -741,6 +767,7 @@ function openViewDialog(idOrItem, opts){
         refreshDescPane();
         refreshExtras();
         renderCollectionSection();
+        refreshSeasonsPane();
       }
     });
 
@@ -882,6 +909,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             <div class="form-row" style="align-items:flex-start;">
               <label class="tags-label">Kolekcja:</label>
               <div style="flex:1;">
+                <input class="entry" id="collection-title-input" type="text" placeholder="Nazwa kolekcji (np. Kolekcja Iron Man)" style="margin-bottom:6px;">
                 <div style="display:flex;gap:6px;margin-bottom:6px;">
                   <button class="btn small secondary" id="collection-add-btn" type="button">Dodaj</button>
                 </div>
@@ -1027,7 +1055,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               if (!sn || sn < 1) continue;
               const eps = await tmdbSeasonEpisodes(r.id, sn);
               const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||""})).filter(e=>e.number>0);
-              fetched.push({number: sn, episodes});
+              fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
             }
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
@@ -1419,6 +1447,8 @@ function openItemDialog({item, itemType, prefillTmdb}){
     if (type === TYPE_MOVIE) {
       const collContent = overlay.querySelector("#edit-collection-content");
       const collAddBtn = overlay.querySelector("#collection-add-btn");
+      const collTitleInput = overlay.querySelector("#collection-title-input");
+      if (collTitleInput && !isNew && item.collection_title) collTitleInput.value = item.collection_title;
       function renderCollectionRows(){
         if (!collContent) return;
         collContent.innerHTML = "";
@@ -1474,6 +1504,14 @@ function openItemDialog({item, itemType, prefillTmdb}){
         if (part.id!=null && collectionDraft.some(p=>p.id===part.id)) { renderCollectionRows(); return; }
         collectionDraft.push(part);
         collectionKnown = true;
+        // Jeśli dodawany film należy do kolekcji w TMDb, a użytkownik nie
+        // wpisał jeszcze własnej nazwy - podpowiedz nazwę kolekcji z TMDb.
+        if (chosen && chosen.id!=null && collTitleInput && !collTitleInput.value.trim()) {
+          try {
+            const coll = await tmdbFetchCollection(chosen.id);
+            if (coll && coll.name) collTitleInput.value = coll.name;
+          } catch(err) { /* brak nazwy kolekcji nie blokuje dodawania */ }
+        }
         renderCollectionRows();
       });
       renderCollectionRows();
@@ -1535,6 +1573,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       box.className = "season-box";
       box.innerHTML = `
         <div class="season-title">Sezon ${season.number}  (${watchedCount}/${total} obejrzane, ${escapeHtml(formatDuration(seasonMinutes))} obejrzane)</div>
+        ${season.air_date ? `<div class="title-date" style="margin:-2px 0 6px 0;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
           <button class="btn small" data-act="uncheck-all">Odznacz cały</button>
@@ -1652,7 +1691,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             if (!sn || sn < 1) continue;
             const eps = await tmdbSeasonEpisodes(id, sn);
             const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||""})).filter(e=>e.number>0);
-            fetched.push({number: sn, episodes});
+            fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
           seasons = fetched;
@@ -1795,6 +1834,10 @@ function openItemDialog({item, itemType, prefillTmdb}){
         resultItem.duration = duration;
         if (collectionKnown) resultItem.collection = collectionDraft;
         else delete resultItem.collection;
+        const collTitleVal = overlay.querySelector("#collection-title-input");
+        const collTitleTrimmed = collTitleVal ? collTitleVal.value.trim() : "";
+        if (collTitleTrimmed) resultItem.collection_title = collTitleTrimmed;
+        else delete resultItem.collection_title;
         if (statusKey === STATUS_WATCHED) {
           if (!resultItem.watchedAt) resultItem.watchedAt = Date.now();
         } else {
