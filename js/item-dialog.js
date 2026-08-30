@@ -255,7 +255,7 @@ function openViewDialog(idOrItem, opts){
       const cur = findItem(id) || item;
       const statusLabel = STATUS_LABELS[cur.status] || cur.status || "—";
       const ratingVal = normalizeRating(cur.rating);
-      const ratingTxt = ratingVal ? `${formatRating(ratingVal)}/10` : "—";
+      const ratingTxt = ratingVal ? formatRating(ratingVal) : "—";
       overlay.querySelector("#view-status-row").innerHTML = `<div class="vlabel">Status:</div><div class="vval">${escapeHtml(statusLabel)}</div>`;
       overlay.querySelector("#view-rating-row").innerHTML = `<div class="vlabel">Ocena:</div><div class="vval">${escapeHtml(ratingTxt)}</div>`;
     }

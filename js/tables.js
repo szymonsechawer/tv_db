@@ -431,7 +431,7 @@ function renderTable(type, status){
     if (col === "progress") { const p = formatProgress(item); return p.next ? `${p.next}  ${p.counts}` : p.counts; }
     if (col === "rating") {
       const r = normalizeRating(item.rating);
-      return r ? `${formatRating(r)}/10` : "—";
+      return r ? formatRating(r) : "—";
     }
     return "";
   }
