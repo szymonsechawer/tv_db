@@ -15,6 +15,38 @@ function renderSettingsTab(){
   if (v1Btn) v1Btn.classList.toggle("active", curVer === "v1");
   if (v2Btn) v2Btn.classList.toggle("active", curVer === "v2");
   if (v3Btn) v3Btn.classList.toggle("active", curVer === "v3");
+  renderTranslationStats();
+}
+
+// Przechodzi po opisach WSZYSTKICH sezonów i odcinków w całej bazie i liczy,
+// ile z nich jest już po polsku (wg tej samej heurystyki co przy pobieraniu
+// danych z TMDb - patrz looksLikeNonPolishText w tmdb.js), a ile nie.
+// Puste opisy (jeszcze niepobrane z TMDb) nie są liczone - to nie jest ich
+// "brak tłumaczenia", tylko brak danych.
+function collectTranslationStats(){
+  let total = 0, translated = 0;
+  for (const item of db.items) {
+    if (item.type !== TYPE_SERIES || !Array.isArray(item.seasons)) continue;
+    for (const season of item.seasons) {
+      const so = (season.overview || "").trim();
+      if (so) { total++; if (!looksLikeNonPolishText(so)) translated++; }
+      for (const ep of (season.episodes || [])) {
+        const eo = (ep.overview || "").trim();
+        if (eo) { total++; if (!looksLikeNonPolishText(eo)) translated++; }
+      }
+    }
+  }
+  const pct = total ? Math.round((translated / total) * 100) : 100;
+  return {total, translated, pct};
+}
+
+function renderTranslationStats(){
+  const el = document.getElementById("set-translate-pct");
+  if (!el) return;
+  const {total, translated, pct} = collectTranslationStats();
+  el.textContent = total
+    ? `Przetłumaczone opisy sezonów i odcinków: ${pct}% (${translated} z ${total}).`
+    : "Brak opisów sezonów/odcinków w bazie.";
 }
 
 function setSettingsStatus(msg, isErr){
@@ -53,6 +85,7 @@ function initSettingsTab(){
     setDirty(true);
   });
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
+  document.getElementById("set-translate-update").addEventListener("click", updateTranslations);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
   for (const btn of [document.getElementById("set-ui-v1"), document.getElementById("set-ui-v2"), document.getElementById("set-ui-v3")]) {
     if (!btn) continue;
@@ -114,7 +147,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, updatedTranslations = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -231,6 +264,31 @@ async function refreshAllEpisodeTitles(){
           await new Promise(r => setTimeout(r, 400));
         }
         if (itemUpdated>0) { updatedEpisodes += itemUpdated; updatedSeries++; }
+
+        // Dodatkowy przebieg "siatki bezpieczeństwa": sprawdza opisy sezonów i
+        // odcinków TEGO serialu, które mimo powyższego kroku wciąż nie są po
+        // polsku (np. bo akurat wtedy usługi tłumaczeniowe miały chwilowy
+        // limit) i próbuje je przetłumaczyć jeszcze raz, bez ponownego
+        // odpytywania TMDb - tylko na tekście, który już mamy.
+        const srcLang = (item.original_language && item.original_language !== "pl") ? item.original_language : "en";
+        for (const season of item.seasons) {
+          if (season.overview && looksLikeNonPolishText(season.overview)) {
+            try {
+              const t = await translateTextToPolish(season.overview, srcLang);
+              if (t && t !== season.overview) { season.overview = t; updatedTranslations++; }
+            } catch(err) { /* nie udało się - zostawiamy oryginalny tekst, spróbujemy przy kolejnym uruchomieniu */ }
+            await new Promise(r => setTimeout(r, 400));
+          }
+          for (const ep of (season.episodes||[])) {
+            if (ep.overview && looksLikeNonPolishText(ep.overview)) {
+              try {
+                const t = await translateTextToPolish(ep.overview, srcLang);
+                if (t && t !== ep.overview) { ep.overview = t; updatedTranslations++; }
+              } catch(err) { /* nie udało się - zostawiamy oryginalny tekst, spróbujemy przy kolejnym uruchomieniu */ }
+              await new Promise(r => setTimeout(r, 400));
+            }
+          }
+        }
       }
 
       const overview = await tmdbOverview(item.type, tid);
@@ -248,7 +306,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0;
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0 || updatedTranslations>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   if (anyChange) {
@@ -262,10 +320,12 @@ async function refreshAllEpisodeTitles(){
     if (updatedOrigin>0) parts.push(`${updatedOrigin} ${updatedOrigin===1?"kraj/język produkcji":"kraje/języki produkcji"}`);
     if (updatedExtras>0) parts.push(`${updatedExtras} ${updatedExtras===1?"komplet dodatkowych informacji":"kompletów dodatkowych informacji"} (wytwórnia, zwiastun)`);
     if (updatedCollections>0) parts.push(`${updatedCollections} ${updatedCollections===1?"kolekcję":"kolekcji"} (nowe części)`);
+    if (updatedTranslations>0) parts.push(`${updatedTranslations} ${polishPlural(updatedTranslations,"tłumaczenie opisu","tłumaczenia opisów","tłumaczeń opisów")}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);
   }
+  renderTranslationStats();
 
   if (noMatchTitles.length || noDescTitles.length || errorTitles.length) {
     const sections = [];
@@ -280,6 +340,95 @@ async function refreshAllEpisodeTitles(){
     }
     await showAlert("Znaleziono problemy", sections.join("\n\n"), "error");
   }
+}
+
+// Przechodzi po opisach WSZYSTKICH sezonów i odcinków w całej bazie i
+// tłumaczy na polski te, które jeszcze nie są po polsku (heurystyka
+// looksLikeNonPolishText z tmdb.js). Korzysta z tych samych darmowych,
+// limitowanych usług tłumaczeniowych co automatyczne dociąganie danych z
+// TMDb, dlatego przy dużej bazie danego dnia część opisów może zostać
+// nieprzetłumaczona (limit) - wystarczy wtedy uruchomić ponownie następnego
+// dnia, licznik % pokazuje ile pracy jeszcze zostało.
+async function updateTranslations(){
+  const btn = document.getElementById("set-translate-update");
+  const statusEl = document.getElementById("set-translate-status");
+  const setStatus = (msg, isErr)=>{
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("err", !!isErr);
+  };
+
+  const seriesItems = db.items.filter(i => i.type===TYPE_SERIES && Array.isArray(i.seasons) && i.seasons.length>0);
+  if (seriesItems.length===0) { setStatus("Brak seriali w bazie."); renderTranslationStats(); return; }
+
+  // policz z góry ile opisów wymaga tłumaczenia, żeby pokazać pasek postępu X/Y
+  let totalTasks = 0;
+  for (const item of seriesItems) {
+    for (const season of item.seasons) {
+      if (season.overview && looksLikeNonPolishText(season.overview)) totalTasks++;
+      for (const ep of (season.episodes||[])) {
+        if (ep.overview && looksLikeNonPolishText(ep.overview)) totalTasks++;
+      }
+    }
+  }
+  if (totalTasks===0) {
+    setStatus("Wszystkie opisy sezonów i odcinków są już po polsku.");
+    renderTranslationStats();
+    return;
+  }
+
+  btn.disabled = true;
+  const oldLabel = btn.textContent;
+  let translatedSeasons = 0, translatedEpisodes = 0, failed = 0, done = 0;
+  btn.textContent = `Tłumaczenie 0/${totalTasks}…`;
+
+  for (const item of seriesItems) {
+    // jeśli znany jest oryginalny język serialu, tłumaczymy od razu z niego
+    // zamiast domyślnie z angielskiego - trochę dokładniejsze tłumaczenie
+    const srcLang = (item.original_language && item.original_language !== "pl") ? item.original_language : "en";
+    for (const season of item.seasons) {
+      if (season.overview && looksLikeNonPolishText(season.overview)) {
+        done++;
+        btn.textContent = `Tłumaczenie ${done}/${totalTasks}…`;
+        setStatus(`Trwa: „${item.title}” — opis sezonu ${season.number} (${done}/${totalTasks})…`);
+        try {
+          const translated = await translateTextToPolish(season.overview, srcLang);
+          if (translated && translated !== season.overview) { season.overview = translated; translatedSeasons++; }
+          else failed++;
+        } catch(err) { failed++; }
+        await new Promise(r => setTimeout(r, 400));
+      }
+      for (const ep of (season.episodes||[])) {
+        if (ep.overview && looksLikeNonPolishText(ep.overview)) {
+          done++;
+          btn.textContent = `Tłumaczenie ${done}/${totalTasks}…`;
+          setStatus(`Trwa: „${item.title}” — sezon ${season.number}, odcinek ${ep.number} (${done}/${totalTasks})…`);
+          try {
+            const translated = await translateTextToPolish(ep.overview, srcLang);
+            if (translated && translated !== ep.overview) { ep.overview = translated; translatedEpisodes++; }
+            else failed++;
+          } catch(err) { failed++; }
+          await new Promise(r => setTimeout(r, 400));
+        }
+      }
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = oldLabel;
+  const anyChange = translatedSeasons>0 || translatedEpisodes>0;
+  if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
+
+  const parts = [];
+  if (translatedSeasons>0) parts.push(`${translatedSeasons} ${polishPlural(translatedSeasons,"opis sezonu","opisy sezonów","opisów sezonów")}`);
+  if (translatedEpisodes>0) parts.push(`${translatedEpisodes} ${polishPlural(translatedEpisodes,"opis odcinka","opisy odcinków","opisów odcinków")}`);
+  if (parts.length) {
+    setStatus(`Gotowe: przetłumaczono ${parts.join(" oraz ")}.` + (failed>0 ? ` (${failed} nie udało się przetłumaczyć — prawdopodobnie limit usług, spróbuj ponownie później.)` : ""), failed>0);
+  } else {
+    setStatus("Nie udało się przetłumaczyć żadnego opisu — prawdopodobnie przekroczono dzienny limit usług tłumaczeniowych, spróbuj ponownie później.", true);
+  }
+
+  renderTranslationStats();
 }
 
 async function checkUpcomingSeasons(){

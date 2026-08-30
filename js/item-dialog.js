@@ -724,7 +724,9 @@ function openViewDialog(idOrItem, opts){
               // więc musi ominąć pamięć podręczną sezonu z tej sesji (inaczej,
               // jeśli sezon był już raz pobrany wcześniej - np. przy otwarciu
               // zakładki "Sezony i odcinki" - dostawalibyśmy z powrotem ten sam,
-              // stary opis, nawet jeśli był po angielsku i wymagał tłumaczenia)
+              // stary opis, nawet jeśli był po angielsku i wymagał tłumaczenia).
+              // tmdbSeasonEpisodes tłumaczy opisy na polski automatycznie, jeśli
+              // TMDb nie miał wersji polskiej.
               const eps = await tmdbSeasonEpisodes(tid, season.number, true);
               if (eps) {
                 if (eps.season_overview) { season.overview = eps.season_overview; seasonInfoChanged = true; }
@@ -737,6 +739,30 @@ function openViewDialog(idOrItem, opts){
             }
             if (seasonInfoChanged) parts.push("opisy i daty sezonów/odcinków");
           } catch(err) { /* brak opisów/dat sezonów nie blokuje reszty */ }
+
+          // Dodatkowy przebieg "siatki bezpieczeństwa": tłumaczy opisy sezonów/
+          // odcinków, które mimo powyższego kroku wciąż nie są po polsku (np.
+          // bo akurat wtedy usługi tłumaczeniowe miały chwilowy limit) - bez
+          // ponownego odpytywania TMDb, tylko na tekście, który już mamy.
+          try {
+            let translatedCount = 0;
+            const srcLang = (cur.original_language && cur.original_language !== "pl") ? cur.original_language : "en";
+            for (const season of (cur.seasons||[])) {
+              if (season.overview && looksLikeNonPolishText(season.overview)) {
+                const t = await translateTextToPolish(season.overview, srcLang);
+                if (t && t !== season.overview) { season.overview = t; translatedCount++; }
+                await new Promise(r => setTimeout(r, 400));
+              }
+              for (const ep of (season.episodes||[])) {
+                if (ep.overview && looksLikeNonPolishText(ep.overview)) {
+                  const t = await translateTextToPolish(ep.overview, srcLang);
+                  if (t && t !== ep.overview) { ep.overview = t; translatedCount++; }
+                  await new Promise(r => setTimeout(r, 400));
+                }
+              }
+            }
+            if (translatedCount>0) parts.push(`${translatedCount} ${polishPlural(translatedCount,"tłumaczenie opisu","tłumaczenia opisów","tłumaczeń opisów")}`);
+          } catch(err) { /* błąd tłumaczenia nie blokuje reszty */ }
         }
         try {
           const creators = await tmdbFetchCreators(cur.type, tid);
@@ -785,6 +811,7 @@ function openViewDialog(idOrItem, opts){
         refreshExtras();
         renderCollectionSection();
         refreshSeasonsPane();
+        if (typeof renderTranslationStats === "function") renderTranslationStats();
       }
     });
 
