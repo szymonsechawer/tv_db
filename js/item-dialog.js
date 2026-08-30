@@ -1574,6 +1574,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       box.innerHTML = `
         <div class="season-title">Sezon ${season.number}  (${watchedCount}/${total} obejrzane, ${escapeHtml(formatDuration(seasonMinutes))} obejrzane)</div>
         ${season.air_date ? `<div class="title-date" style="margin:-2px 0 6px 0;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
+        <textarea class="entry season-overview-input" rows="4" placeholder="Opis sezonu" style="display:block;width:100%;box-sizing:border-box;margin:0 0 8px 0;font-size:12px;resize:vertical;">${escapeHtml(season.overview||"")}</textarea>
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
           <button class="btn small" data-act="uncheck-all">Odznacz cały</button>
@@ -1581,6 +1582,10 @@ function openItemDialog({item, itemType, prefillTmdb}){
         </div>
         <div class="episodes-list"></div>
       `;
+      const overviewInput = box.querySelector(".season-overview-input");
+      overviewInput.addEventListener("input", ()=>{
+        season.overview = overviewInput.value;
+      });
       const epsList = box.querySelector(".episodes-list");
       if (total===0) {
         const p = document.createElement("div");
