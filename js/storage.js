@@ -27,7 +27,7 @@ function migrateItems(items){
       item.status = STATUS_WATCHED;
     }
     let rating = item.rating;
-    if (!Number.isInteger(rating) || rating < 0 || rating > 10) item.rating = 0;
+    item.rating = normalizeRating(rating);
     if (!Array.isArray(item.tags)) item.tags = [];
     item.tags = item.tags.map(t=>String(t||"").trim()).filter(Boolean);
     if (!Array.isArray(item.genres)) item.genres = [];
@@ -82,6 +82,10 @@ function migrateItems(items){
         for (const ep of season.episodes) {
           if (!("duration" in ep) || ep.duration==null) ep.duration = 0;
           if (!("title" in ep)) ep.title = "";
+          // Opis odcinka - analogicznie do opisu sezonu niżej: zapisywany
+          // osobno dla każdego odcinka (może być pobrany z TMDb, przetłumaczony
+          // na polski i/lub edytowany ręcznie).
+          ep.overview = (typeof ep.overview === "string") ? ep.overview.trim() : "";
         }
         // Opis i data premiery danego sezonu - zapisywane osobno dla
         // każdego sezonu (odróżnia je od ogólnego opisu/daty serialu).

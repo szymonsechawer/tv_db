@@ -148,6 +148,25 @@ function polishPlural(n, singular, few, many){
   return many;
 }
 
+// Sprowadza dowolną wartość oceny do liczby z zakresu 0-10, z dokładnością do
+// jednego miejsca po przecinku (np. 7.8, 9.5). Nieprawidłowe/puste wartości
+// dają 0 (brak oceny).
+function normalizeRating(value){
+  const n = parseFloat(String(value).replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return 0;
+  const clamped = Math.min(n, 10);
+  return Math.round(clamped * 10) / 10;
+}
+
+// Formatuje ocenę do wyświetlenia: bez zbędnego ".0" dla pełnych liczb
+// (np. 8 zamiast 8.0), ale z jedną cyfrą po przecinku, gdy jest niezerowa
+// (np. 7.8). Zwraca pusty string dla braku oceny (0).
+function formatRating(value){
+  const r = normalizeRating(value);
+  if (!r) return "";
+  return (Math.round(r * 10) % 10 === 0) ? String(Math.round(r)) : r.toFixed(1);
+}
+
 function formatDuration(totalMinutesRaw){
   let totalMinutes = Math.trunc(Number(totalMinutesRaw) || 0);
   if (totalMinutes <= 0) return "0 minut";

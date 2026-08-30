@@ -218,6 +218,7 @@ async function refreshAllEpisodeTitles(){
           for (const ep of (season.episodes||[])) {
             const match = (eps||[]).find(e=>e.episode_number===ep.number);
             if (match && match.name && match.name !== ep.title) { ep.title = match.name; itemUpdated++; }
+            if (match && match.overview && match.overview !== (ep.overview||"")) { ep.overview = match.overview; itemUpdated++; }
           }
           if (eps) {
             if (eps.season_overview && eps.season_overview !== (season.overview||"")) season.overview = eps.season_overview;
@@ -252,7 +253,7 @@ async function refreshAllEpisodeTitles(){
 
   if (anyChange) {
     const parts = [];
-    if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"nazwę":"nazw"} odcinków w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
+    if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"pole (nazwa/opis) odcinka":"pól (nazwy/opisy) odcinków"} w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
     if (updatedDesc>0) parts.push(`${updatedDesc} ${updatedDesc===1?"opis":"opisów"}`);
     if (updatedPosters>0) parts.push(`${updatedPosters} ${updatedPosters===1?"okładkę":"okładek"}`);
     if (updatedGenres>0) parts.push(`${updatedGenres} ${updatedGenres===1?"gatunek":"gatunków"}`);

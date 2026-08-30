@@ -254,8 +254,8 @@ function openViewDialog(idOrItem, opts){
     function refreshStaticRows(){
       const cur = findItem(id) || item;
       const statusLabel = STATUS_LABELS[cur.status] || cur.status || "—";
-      const ratingVal = parseInt(cur.rating||0,10);
-      const ratingTxt = ratingVal ? `${ratingVal}/10` : "—";
+      const ratingVal = normalizeRating(cur.rating);
+      const ratingTxt = ratingVal ? `${formatRating(ratingVal)}/10` : "—";
       overlay.querySelector("#view-status-row").innerHTML = `<div class="vlabel">Status:</div><div class="vval">${escapeHtml(statusLabel)}</div>`;
       overlay.querySelector("#view-rating-row").innerHTML = `<div class="vlabel">Ocena:</div><div class="vval">${escapeHtml(ratingTxt)}</div>`;
     }
@@ -614,7 +614,7 @@ function openViewDialog(idOrItem, opts){
               <span class="season-pct">${pct}%</span>
             </div>
             ${season.air_date ? `<div class="title-date" style="margin:-4px 0 6px 20px;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
-            ${season.overview ? `<div class="muted" style="margin:-2px 0 8px 20px;font-size:12px;">${escapeHtml(season.overview)}</div>` : ""}
+            ${season.overview ? `<div class="overview-box season-overview-box">${escapeHtml(season.overview)}</div>` : ""}
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;
           box.querySelector(".season-title-toggle").addEventListener("click", ()=>{
@@ -638,6 +638,12 @@ function openViewDialog(idOrItem, opts){
                 <span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>
               `;
               epsList.appendChild(row);
+              if (ep.overview) {
+                const descBox = document.createElement("div");
+                descBox.className = "overview-box episode-overview-box";
+                descBox.textContent = ep.overview;
+                epsList.appendChild(descBox);
+              }
             }
           }
           pane.appendChild(box);
@@ -721,9 +727,13 @@ function openViewDialog(idOrItem, opts){
               if (eps) {
                 if (eps.season_overview) { season.overview = eps.season_overview; seasonInfoChanged = true; }
                 if (eps.season_air_date) { season.air_date = eps.season_air_date; seasonInfoChanged = true; }
+                for (const ep of (season.episodes||[])) {
+                  const match = eps.find(e=>e.episode_number===ep.number);
+                  if (match && match.overview) { ep.overview = match.overview; seasonInfoChanged = true; }
+                }
               }
             }
-            if (seasonInfoChanged) parts.push("opisy i daty sezonów");
+            if (seasonInfoChanged) parts.push("opisy i daty sezonów/odcinków");
           } catch(err) { /* brak opisów/dat sezonów nie blokuje reszty */ }
         }
         try {
@@ -854,9 +864,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               </select>
             </div>
             <div class="form-row"><label>Ocena (0-10):</label>
-              <select class="entry" id="f-rating" style="width:80px;flex:none;">
-                ${Array.from({length:11},(_,i)=>`<option value="${i}">${i}</option>`).join("")}
-              </select>
+              <input class="entry" id="f-rating" type="number" min="0" max="10" step="0.1" style="width:80px;flex:none;">
             </div>
             <div class="form-row" style="align-items:flex-start;">
               <label class="tags-label">Tagi:</label>
@@ -965,7 +973,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       if (budgetInput) budgetInput.value = item.budget ? String(item.budget) : "";
       ageCertInput.value = item.age_certification || "";
       statusSelect.value = STATUS_LABELS[item.status] || defaultStatus;
-      ratingSelect.value = String(parseInt(item.rating||0,10));
+      ratingSelect.value = String(normalizeRating(item.rating));
       descriptionInput.value = item.description || "";
     }
     titleInput.focus();
@@ -1059,7 +1067,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               const sn = Number(s.season_number);
               if (!sn || sn < 1) continue;
               const eps = await tmdbSeasonEpisodes(r.id, sn);
-              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||""})).filter(e=>e.number>0);
+              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||""})).filter(e=>e.number>0);
               fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
             }
           }
@@ -1155,29 +1163,38 @@ function openItemDialog({item, itemType, prefillTmdb}){
     }
 
     let titlesBackfillDone = false;
+    // Uzupełnia brakujące nazwy ORAZ opisy odcinków z TMDb (opisy od razu
+    // przetłumaczone na polski, jeśli TMDb nie miał wersji polskiej - patrz
+    // tmdbSeasonEpisodes). Uruchamiane automatycznie przy pierwszym otwarciu
+    // zakładki "Sezony i odcinki".
     async function autoFillEpisodeTitles(){
       if (titlesBackfillDone) return;
-      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>isGenericEpisodeName(e.title, e.number)));
+      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>isGenericEpisodeName(e.title, e.number) || !e.overview));
       if (missingSeasons.length===0) { titlesBackfillDone = true; return; }
       if (!tmdbId && !getStoredTmdbKey()) return;
       titlesBackfillDone = true;
       try {
         const id = await ensureTmdbId();
-        let filled = 0;
+        let filledTitles = 0;
+        let filledOverviews = 0;
         for (const season of missingSeasons) {
           const eps = await tmdbSeasonEpisodes(id, season.number);
           for (const ep of season.episodes) {
-            if (ep.title) continue;
             const match = eps.find(e=>e.episode_number===ep.number);
-            if (match && match.name) { ep.title = match.name; filled++; }
+            if (!match) continue;
+            if (!ep.title && match.name) { ep.title = match.name; filledTitles++; }
+            if (!ep.overview && match.overview) { ep.overview = match.overview; filledOverviews++; }
           }
         }
-        if (filled>0) {
+        if (filledTitles>0 || filledOverviews>0) {
           renderSeasonsList();
-          setTmdbStatus(`Uzupełniono nazwy ${filled} odcinków z TMDb.`);
+          const parts = [];
+          if (filledTitles>0) parts.push(`nazwy ${filledTitles} odcinków`);
+          if (filledOverviews>0) parts.push(`opisy ${filledOverviews} odcinków`);
+          setTmdbStatus(`Uzupełniono ${parts.join(" i ")} z TMDb.`);
         }
       } catch(err) {
-        // cichy błąd - brak nazw nie blokuje pracy z sezonami
+        // cichy błąd - brak danych nie blokuje pracy z sezonami
       }
     }
 
@@ -1671,7 +1688,22 @@ function openItemDialog({item, itemType, prefillTmdb}){
           renderSeasonsList();
         });
       }
-      return row;
+
+      // Opis odcinka - edytowalne pole w ramce (analogicznie do opisu sezonu),
+      // umieszczone pod wierszem odcinka.
+      const wrap = document.createElement("div");
+      wrap.className = "episode-wrap";
+      wrap.appendChild(row);
+      const overviewInput = document.createElement("textarea");
+      overviewInput.className = "entry ep-overview-input";
+      overviewInput.rows = 2;
+      overviewInput.placeholder = "Opis odcinka";
+      overviewInput.value = ep.overview || "";
+      overviewInput.addEventListener("input", ()=>{
+        ep.overview = overviewInput.value;
+      });
+      wrap.appendChild(overviewInput);
+      return wrap;
     }
 
     if (type===TYPE_SERIES) {
@@ -1685,7 +1717,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
           return;
         }
         const episodes = [];
-        for (let i=1; i<=result.count; i++) episodes.push({number:i, watched:false, duration:0, title:""});
+        for (let i=1; i<=result.count; i++) episodes.push({number:i, watched:false, duration:0, title:"", overview:""});
         seasons.push({number: result.number, episodes});
         renderSeasonsList();
       });
@@ -1700,7 +1732,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             const sn = Number(s.season_number);
             if (!sn || sn < 1) continue;
             const eps = await tmdbSeasonEpisodes(id, sn);
-            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||""})).filter(e=>e.number>0);
+            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||""})).filter(e=>e.number>0);
             fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
@@ -1823,7 +1855,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       if (ageCertVal) resultItem.age_certification = ageCertVal;
       else delete resultItem.age_certification;
       resultItem.status = statusKey;
-      resultItem.rating = parseInt(ratingSelect.value||"0",10);
+      resultItem.rating = normalizeRating(ratingSelect.value);
       resultItem.tags = [...tags];
       resultItem.genres = [...genres];
       resultItem.cast = [...cast];

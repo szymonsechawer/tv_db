@@ -27,6 +27,7 @@ function computeStats(){
     moviesCount: moviesWatched.length,
     seriesCount: seriesWatched.length,
     seriesWatchingCount: seriesWatching.length,
+    seriesTotalCount: seriesWatched.length + seriesWatching.length,
     seriesPausedCount: seriesPaused.length,
     episodesWatched, episodesRemaining, moviesMinutes, episodesMinutes,
   };
@@ -35,6 +36,7 @@ function computeStats(){
 function updateStats(){
   const s = computeStats();
   document.getElementById("stat-movies-count").textContent = s.moviesCount;
+  document.getElementById("stat-series-total").textContent = s.seriesTotalCount;
   document.getElementById("stat-series-count").textContent = s.seriesCount;
   document.getElementById("stat-series-watching").textContent = s.seriesWatchingCount;
   document.getElementById("stat-episodes-watched").textContent = s.episodesWatched;
@@ -502,9 +504,9 @@ function relevantWatchedItems(type){
   });
 }
 
-// Średnia z własnych ocen (pole rating, 1-10; 0 = brak oceny — pomijane).
+// Średnia z własnych ocen (pole rating, 0.1-10 co 0.1; 0 = brak oceny — pomijane).
 function computeAverageRating(type){
-  const rated = relevantWatchedItems(type).map(i=>parseInt(i.rating||0,10)).filter(r=>r>0);
+  const rated = relevantWatchedItems(type).map(i=>normalizeRating(i.rating)).filter(r=>r>0);
   if (!rated.length) return null;
   const sum = rated.reduce((a,b)=>a+b, 0);
   return {avg: sum/rated.length, count: rated.length};

@@ -430,8 +430,8 @@ function renderTable(type, status){
     }
     if (col === "progress") { const p = formatProgress(item); return p.next ? `${p.next}  ${p.counts}` : p.counts; }
     if (col === "rating") {
-      const r = parseInt(item.rating||0,10);
-      return r ? `${r}/10` : "—";
+      const r = normalizeRating(item.rating);
+      return r ? `${formatRating(r)}/10` : "—";
     }
     return "";
   }

@@ -507,6 +507,20 @@
   }
   .episode-row.ep-static{flex-wrap:nowrap;align-items:flex-start;}
   .episode-row.ep-static label{flex:1 1 auto;min-width:0;align-items:flex-start;}
+  .overview-box{
+    border:1px solid var(--border);border-radius:6px;
+    background:var(--bg-medium);color:var(--text-muted);
+    font-size:12px;line-height:1.45;padding:8px 10px;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .season-overview-box{margin:-2px 0 8px 20px;}
+  .episode-overview-box{margin:0 0 6px 20px;}
+  .episode-wrap{display:flex;flex-direction:column;gap:2px;}
+  .ep-overview-input{
+    width:100%;box-sizing:border-box;resize:vertical;
+    font-size:12px;min-height:44px;margin:2px 0 6px 0;
+    font-family:inherit;
+  }
   .episode-row .ep-delete-btn{
     flex-shrink:0;background:none;border:none;color:var(--danger);
     font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;font-family:inherit;
