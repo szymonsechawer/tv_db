@@ -84,11 +84,14 @@ async function translateChunkWithFallback(text, sourceLang){
     () => translateChunkGoogle(text, sourceLang),
     () => translateChunkMyMemory(text, sourceLang),
   ];
-  for (const provider of providers) {
-    try { return await provider(); }
-    catch(err) { console.warn("Tłumaczenie nie powiodło się, próbuję innej usługi:", err.message || err); }
+  for (let round = 0; round < 2; round++) {
+    for (const provider of providers) {
+      try { return await provider(); }
+      catch(err) { console.warn("Tłumaczenie nie powiodło się, próbuję innej usługi:", err.message || err); }
+    }
+    if (round === 0) await new Promise(r => setTimeout(r, 1500)); // obie usługi zawiodły - krótka przerwa i jedna dodatkowa runda
   }
-  return null; // obie usługi zawiodły - wywołujący zostawi oryginalny tekst
+  return null; // obie usługi zawiodły dwukrotnie - wywołujący zostawi oryginalny tekst
 }
 // Tnie długi tekst na fragmenty nie dłuższe niż maxLen znaków, starając się
 // ciąć po końcu zdania, żeby nie psuć sensu tłumaczonych kawałków (obie
@@ -513,6 +516,22 @@ async function tmdbFetchTrending(type, window_){
   return results;
 }
 
+// Prosta heurystyka: sprawdza, czy podany tekst prawdopodobnie NIE jest po
+// polsku. Polski tekst dłuższy niż kilka słów niemal zawsze zawiera choć
+// jedną polską literę ze znakiem diakrytycznym (ą, ć, ę, ł, ń, ó, ś, ź, ż) -
+// jeśli jej brak, a w tekście występują typowe angielskie słowa, prawie na
+// pewno jest to tekst po angielsku. Potrzebne, bo TMDb czasem zwraca opis
+// sezonu po angielsku nawet przy zapytaniu o wersję polską (bez sygnalizowania
+// tego pustym polem "overview"), więc samo sprawdzenie "czy pole jest puste"
+// nie wystarcza, by wykryć nieprzetłumaczony tekst.
+function looksLikeNonPolishText(text){
+  const t = String(text||"").trim();
+  if (t.length < 15) return false;
+  if (/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/.test(t)) return false;
+  const englishHints = /\b(the|and|with|his|her|their|season|episode|series|when|where|which|who|this|that|from|will|have|been|into|after|before|they|were|what|about)\b/i;
+  return englishHints.test(t);
+}
+
 async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   const cacheKey = seriesId + ":" + seasonNumber;
   if (!forceRefresh && tmdbSeasonCache.has(cacheKey)) return tmdbSeasonCache.get(cacheKey);
@@ -570,11 +589,16 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
     }
   }
 
-  // TMDb nie ma polskiego opisu tego sezonu - opis został pobrany w innym
-  // języku (angielski albo oryginalny język serialu). Tłumaczymy go na
-  // polski, żeby w zakładce "Sezony i odcinki" nie zostawał po angielsku.
-  if (seasonOverview && seasonOverviewLang && seasonOverviewLang !== "pl") {
-    seasonOverview = await translateTextToPolish(seasonOverview, seasonOverviewLang.split("-")[0]);
+  // Tłumaczymy opis, jeśli albo wiemy, że pochodzi z zapytania w innym
+  // języku (bo TMDb nie miał wersji polskiej), albo - nawet jeśli teoretycznie
+  // pochodzi z zapytania po polsku - tekst i tak wygląda na angielski (TMDb
+  // czasem tak robi, nie sygnalizując tego pustym polem "overview").
+  const needsTranslation = seasonOverview && (
+    (seasonOverviewLang && seasonOverviewLang !== "pl") || looksLikeNonPolishText(seasonOverview)
+  );
+  if (needsTranslation) {
+    const srcLang = (seasonOverviewLang && seasonOverviewLang !== "pl") ? seasonOverviewLang.split("-")[0] : "en";
+    seasonOverview = await translateTextToPolish(seasonOverview, srcLang);
   }
 
   eps.season_overview = seasonOverview;
