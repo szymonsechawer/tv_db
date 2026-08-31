@@ -74,11 +74,7 @@ window.addEventListener("beforeunload", (e)=>{
 
 // Wynik loadFromLocalStorage() nie wpływa na dalszy przebieg — w obu
 // przypadkach (baza wczytana lub pusta) trzeba wyrenderować interfejs.
-// Wczytanie bazy SQLite (silnik WASM + IndexedDB) jest asynchroniczne,
-// dlatego cały start appki czeka na jego zakończenie przed renderAll().
 initTabs();
 initSettingsTab();
-(async ()=>{
-  await loadFromLocalStorage();
-  renderAll();
-})();
+loadFromLocalStorage();
+renderAll();
