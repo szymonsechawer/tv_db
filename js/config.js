@@ -3,12 +3,9 @@
 // ============================================================
 
 const APP_VERSION = "1.8";
-const DEFAULT_DB_FILENAME = "tv_db.sqlite";
-const STORAGE_KEY = "tv_db_data"; // stary klucz JSON w localStorage — używany tylko do jednorazowej migracji
+const DEFAULT_DB_FILENAME = "tv_db.json";
+const STORAGE_KEY = "tv_db_data";
 const STORAGE_NAME_KEY = "tv_db_filename";
-const IDB_NAME = "tv_db_sqlite_store";
-const IDB_STORE = "files";
-const IDB_FILE_KEY = "main.sqlite";
 
 const STATUS_WATCHING = "watching";
 const STATUS_WATCHED  = "watched";
