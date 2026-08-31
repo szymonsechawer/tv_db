@@ -268,13 +268,16 @@
   </div>
 </div>
 
-<input type="file" id="file-input" accept="application/json,.json" style="display:none">
+<input type="file" id="file-input" accept=".sqlite,.db,*/*" style="display:none">
 <div id="modal-root"></div>
 
 <!-- Moduły aplikacji - kolejność ładowania ma znaczenie: config/utils muszą być
      wczytane jako pierwsze, main.js jako ostatni (zawiera wywołania startowe). -->
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/vendor/sql-wasm-base64.js"></script>
+<script src="js/vendor/sql-wasm.js"></script>
+<script src="js/db-engine.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/tmdb.js"></script>
 <script src="js/dialogs.js"></script>

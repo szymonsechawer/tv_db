@@ -60,7 +60,7 @@ function initSettingsTab(){
   const input = document.getElementById("set-tmdb-key");
   document.getElementById("set-tmdb-save").addEventListener("click", ()=>{
     setStoredTmdbKey(input.value.trim());
-    setSettingsStatus(input.value.trim() ? "Klucz API zapisany (baza JSON + przeglądarka)." : "Klucz API wyczyszczony.");
+    setSettingsStatus(input.value.trim() ? "Klucz API zapisany (baza SQLite na urządzeniu)." : "Klucz API wyczyszczony.");
     setDirty(true);
   });
   document.getElementById("set-tmdb-clear").addEventListener("click", ()=>{

@@ -1,5 +1,6 @@
 // ============================================================
-// storage.js — zapis/odczyt bazy danych (localStorage + plik JSON)
+// storage.js — zapis/odczyt bazy danych (silnik SQLite w IndexedDB;
+// obsługa importu/eksportu pliku .sqlite)
 // ============================================================
 
 function migrateItems(items){
@@ -115,24 +116,23 @@ function extractPlannedIntoNotes(items, notes){
 }
 
 function saveToLocalStorage(){
-  try{
-    const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    localStorage.setItem(STORAGE_NAME_KEY, currentDbName);
-  }catch(e){ }
+  // Nazwa funkcji została zachowana (wywołuje ją cała reszta aplikacji przez
+  // setDirty()), ale zapis odbywa się teraz do prawdziwej bazy SQLite,
+  // trzymanej trwale w IndexedDB telefonu/przeglądarki.
+  persistAppStateToSqlite().catch(()=>{});
 }
 
-function loadFromLocalStorage(){
+async function loadFromLocalStorage(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
+    const state = await loadOrInitSqliteDatabase();
+    if (!state) return false;
+    const data = state.data;
     if (typeof data !== "object" || data===null || !Array.isArray(data.items)) return false;
     db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
     if (!db.settings.tmdb_key) {
       try { db.settings.tmdb_key = localStorage.getItem(TMDB_KEY_STORAGE) || ""; } catch(e){}
     }
-    currentDbName = localStorage.getItem(STORAGE_NAME_KEY) || DEFAULT_DB_FILENAME;
+    currentDbName = state.name || DEFAULT_DB_FILENAME;
     return true;
   }catch(e){ return false; }
 }
@@ -151,7 +151,7 @@ document.getElementById("btn-open").addEventListener("click", async ()=>{
   if (supportsFSAccess) {
     try{
       const [handle] = await window.showOpenFilePicker({
-        types:[{description:"Baza JSON", accept:{"application/json":[".json"]}}],
+        types:[{description:"Baza SQLite", accept:{"application/x-sqlite3":[".sqlite",".db"]}}],
         multiple:false,
       });
       const file = await handle.getFile();
@@ -175,19 +175,22 @@ document.getElementById("file-input").addEventListener("change", async (e)=>{
 
 async function loadDbFromFile(file){
   try{
-    const text = await file.text();
-    const cleaned = text.replace(/^\uFEFF/, "");
-    const data = JSON.parse(cleaned);
-    if (typeof data !== "object" || data===null || Array.isArray(data)) {
-      throw new Error("Nieoczekiwany format pliku (oczekiwano obiektu JSON).");
-    }
-    const items = data.items;
-    if (!Array.isArray(items)) throw new Error("Pole 'items' w pliku bazy nie jest listą.");
+    const buf = await file.arrayBuffer();
+    await initSqlEngine();
+    const newDbase = new SQL.Database(new Uint8Array(buf));
+    ensureSchema(newDbase);
+    const state = readAppStateFromSqlite(newDbase);
+    if (!state) throw new Error("Plik nie zawiera rozpoznawalnej bazy tv_db (brak danych w tabeli kv).");
+    const items = state.data.items;
+    if (!Array.isArray(items)) throw new Error("Pole 'items' w bazie nie jest listą.");
     const prevKey = (db.settings && db.settings.tmdb_key) || "";
-    db = {version: data.version || APP_VERSION, items: migrateItems(items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
+    db = {version: state.data.version || APP_VERSION, items: migrateItems(items), settings: normalizeSettings(state.data.settings), notes: normalizeNotes(state.data.notes), upcoming: normalizeUpcoming(state.data.upcoming), upcoming_ignored: Array.isArray(state.data.upcoming_ignored) ? state.data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(state.data.year_stats), planned: normalizePlanned(state.data.planned)};
     if (!db.settings.tmdb_key) db.settings.tmdb_key = prevKey;
-    renderSettingsTab();
     currentDbName = file.name || DEFAULT_DB_FILENAME;
+    // Wczytany plik staje się od teraz aktywną bazą urządzenia (trwale w IndexedDB).
+    await replaceActiveSqliteDatabase(newDbase);
+    localStorage.setItem(STORAGE_NAME_KEY, currentDbName);
+    renderSettingsTab();
     setDirty(false);
     renderAll();
     await showAlert("Baza danych otwarta", `Wczytano bazę danych (${db.items.length} pozycji):\n${currentDbName}`, "info");
@@ -199,23 +202,22 @@ async function loadDbFromFile(file){
 document.getElementById("btn-save").addEventListener("click", ()=>{ saveDb(); });
 
 async function saveDb(){
-  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
-  const json = JSON.stringify(data, null, 2);
-
-  saveToLocalStorage();
+  await persistAppStateToSqlite(); // zapis do aktywnej bazy w IndexedDB (jak dotychczas przy każdej zmianie)
   dirty = false;
   updateDbBadge();
+
+  const bytes = sqliteDb ? sqliteDb.export() : new Uint8Array();
 
   if (currentFileHandle && typeof currentFileHandle.createWritable === "function") {
     try{
       const writable = await currentFileHandle.createWritable();
-      await writable.write(json);
+      await writable.write(bytes);
       await writable.close();
       return;
     }catch(err){
       if (err && err.name==="NotAllowedError") {
       } else {
-        await showAlert("Błąd zapisu pliku", `Dane zostały zachowane lokalnie w pamięci przeglądarki.\n\nBłąd zapisu do pliku: ${err.message||err}`, "error");
+        await showAlert("Błąd zapisu pliku", `Dane zostały zachowane lokalnie w bazie na urządzeniu.\n\nBłąd zapisu do pliku: ${err.message||err}`, "error");
         return;
       }
     }
@@ -225,10 +227,10 @@ async function saveDb(){
     try{
       const handle = await window.showSaveFilePicker({
         suggestedName: currentDbName || DEFAULT_DB_FILENAME,
-        types:[{description:"Baza JSON", accept:{"application/json":[".json"]}}],
+        types:[{description:"Baza SQLite", accept:{"application/x-sqlite3":[".sqlite"]}}],
       });
       const writable = await handle.createWritable();
-      await writable.write(json);
+      await writable.write(bytes);
       await writable.close();
       currentFileHandle = handle;
       currentDbName = handle.name || currentDbName;
@@ -241,7 +243,7 @@ async function saveDb(){
   }
 
   try{
-    const blob = new Blob([json], {type: "application/json"});
+    const blob = new Blob([bytes], {type: "application/x-sqlite3"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
