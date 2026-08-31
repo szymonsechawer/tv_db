@@ -401,7 +401,8 @@ function computeGenreStats(type){
   return Object.entries(counts)
     .filter(([,count])=>count>0)
     .map(([name,count])=>({name, count, pct: total ? (count/total*100) : 0}))
-    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name))
+    .slice(0,10); // pokazuj tylko top 10
 }
 
 // Formatuje procent tak, by małe udziały nie wyglądały jak "0%" po zaokrągleniu.
@@ -469,8 +470,9 @@ function renderCountryListInto(listId, emptyId, type, field){
     return;
   }
   if (empty) empty.style.display = "none";
+  // Procent liczony względem WSZYSTKICH krajów, ale wyświetlamy tylko top 10.
   const total = data.reduce((acc,x)=>acc+x.count,0);
-  list.innerHTML = data.map(c=>{
+  list.innerHTML = data.slice(0,10).map(c=>{
     const pct = total ? (c.count/total*100) : 0;
     return `
       <div class="genre-stat-row">
