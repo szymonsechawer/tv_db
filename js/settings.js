@@ -147,7 +147,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, updatedTranslations = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -264,31 +264,6 @@ async function refreshAllEpisodeTitles(){
           await new Promise(r => setTimeout(r, 400));
         }
         if (itemUpdated>0) { updatedEpisodes += itemUpdated; updatedSeries++; }
-
-        // Dodatkowy przebieg "siatki bezpieczeństwa": sprawdza opisy sezonów i
-        // odcinków TEGO serialu, które mimo powyższego kroku wciąż nie są po
-        // polsku (np. bo akurat wtedy usługi tłumaczeniowe miały chwilowy
-        // limit) i próbuje je przetłumaczyć jeszcze raz, bez ponownego
-        // odpytywania TMDb - tylko na tekście, który już mamy.
-        const srcLang = (item.original_language && item.original_language !== "pl") ? item.original_language : "en";
-        for (const season of item.seasons) {
-          if (season.overview && looksLikeNonPolishText(season.overview)) {
-            try {
-              const t = await translateTextToPolish(season.overview, srcLang);
-              if (t && t !== season.overview) { season.overview = t; updatedTranslations++; }
-            } catch(err) { /* nie udało się - zostawiamy oryginalny tekst, spróbujemy przy kolejnym uruchomieniu */ }
-            await new Promise(r => setTimeout(r, 400));
-          }
-          for (const ep of (season.episodes||[])) {
-            if (ep.overview && looksLikeNonPolishText(ep.overview)) {
-              try {
-                const t = await translateTextToPolish(ep.overview, srcLang);
-                if (t && t !== ep.overview) { ep.overview = t; updatedTranslations++; }
-              } catch(err) { /* nie udało się - zostawiamy oryginalny tekst, spróbujemy przy kolejnym uruchomieniu */ }
-              await new Promise(r => setTimeout(r, 400));
-            }
-          }
-        }
       }
 
       const overview = await tmdbOverview(item.type, tid);
@@ -306,7 +281,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0 || updatedTranslations>0;
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   if (anyChange) {
@@ -320,7 +295,6 @@ async function refreshAllEpisodeTitles(){
     if (updatedOrigin>0) parts.push(`${updatedOrigin} ${updatedOrigin===1?"kraj/język produkcji":"kraje/języki produkcji"}`);
     if (updatedExtras>0) parts.push(`${updatedExtras} ${updatedExtras===1?"komplet dodatkowych informacji":"kompletów dodatkowych informacji"} (wytwórnia, zwiastun)`);
     if (updatedCollections>0) parts.push(`${updatedCollections} ${updatedCollections===1?"kolekcję":"kolekcji"} (nowe części)`);
-    if (updatedTranslations>0) parts.push(`${updatedTranslations} ${polishPlural(updatedTranslations,"tłumaczenie opisu","tłumaczenia opisów","tłumaczeń opisów")}`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);
