@@ -380,6 +380,23 @@ async function tmdbFetchTrailerKey(type, id){
   return found ? found.key : null;
 }
 
+// Pobiera listę miejsc, gdzie można obejrzeć film/serial (subskrypcja,
+// wypożyczenie, zakup) dla ustawionego regionu (Polska) wraz z linkiem do
+// strony JustWatch z pełnymi szczegółami. Zwraca null, jeśli TMDb nie ma
+// danych dla tego regionu.
+async function tmdbFetchWatchProviders(type, id){
+  const path = type===TYPE_MOVIE ? "/movie/" + id + "/watch/providers" : "/tv/" + id + "/watch/providers";
+  const data = await tmdbFetch(path, {});
+  const entry = (data && data.results) ? data.results[TMDB_WATCH_REGION] : null;
+  if (!entry) return null;
+  const names = (arr)=>Array.isArray(arr) ? arr.map(p=>p && p.provider_name).filter(Boolean) : [];
+  const flatrate = names(entry.flatrate);
+  const rent = names(entry.rent);
+  const buy = names(entry.buy);
+  if (!flatrate.length && !rent.length && !buy.length) return null;
+  return {flatrate, rent, buy, link: entry.link || ""};
+}
+
 async function tmdbSeriesOriginalLanguage(seriesId){
   if (tmdbSeriesOrigLangCache.has(seriesId)) return tmdbSeriesOrigLangCache.get(seriesId);
   let lang = "";

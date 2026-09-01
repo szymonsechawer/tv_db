@@ -516,6 +516,12 @@
   }
   .episode-row.ep-static{flex-wrap:nowrap;align-items:flex-start;}
   .episode-row.ep-static label{flex:1 1 auto;min-width:0;align-items:flex-start;}
+  .episode-row.ep-unaired{opacity:.65;}
+  .episode-row.ep-unaired .ep-title-static{font-style:italic;}
+  .episode-row .ep-air-info{
+    flex-shrink:0;color:var(--text-muted);font-weight:600;font-size:12px;
+    white-space:nowrap;margin-left:8px;padding-top:4px;
+  }
   .overview-box{
     border:1px solid var(--border);border-radius:6px;
     background:var(--bg-medium);color:var(--text-muted);

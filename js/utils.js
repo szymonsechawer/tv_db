@@ -228,6 +228,16 @@ function daysUntil(dateStr){
   return Math.round((d.getTime() - today.getTime()) / 86400000);
 }
 
+// Odcinek uznajemy za "jeszcze niewyemitowany", jeśli ma znaną datę premiery
+// i data ta jeszcze nie nadeszła (dzień premiery liczy się już jako dostępny).
+// Używane, by zablokować odznaczanie takich odcinków jako obejrzane oraz
+// pokazać w oknie informacji, za ile dni odcinek się pojawi.
+function isEpisodeUnaired(ep){
+  if (!ep || !ep.air_date) return false;
+  const d = daysUntil(ep.air_date);
+  return d !== null && d > 0;
+}
+
 function formatDaysLabel(days){
   if (days === null) return "data nieznana";
   if (days < 0) return "Już jest!";

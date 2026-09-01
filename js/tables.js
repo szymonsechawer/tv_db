@@ -351,8 +351,17 @@ function renderTable(type, status){
               btn.addEventListener("click", async (e)=>{
                 e.stopPropagation();
                 btn.disabled = true;
-                try { await markNextEpisodeWatched(item.id); }
-                catch(err) { btn.disabled = false; }
+                try {
+                  const result = await markNextEpisodeWatched(item.id);
+                  if (result && result.notAiredYet) {
+                    const dateInfo = result.air_date
+                      ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).`
+                      : "";
+                    await showAlert("Odcinek jeszcze nie miał premiery", `Odcinek ${result.episode} (sezon ${result.season}) nie został jeszcze wyemitowany, więc nie można go oznaczyć jako obejrzany.${dateInfo}`);
+                  }
+                } finally {
+                  btn.disabled = false;
+                }
               });
             } else {
               btn.disabled = true;

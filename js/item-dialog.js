@@ -59,7 +59,7 @@ async function markNextEpisodeWatched(id){
     const eps = [...(season.episodes||[])].sort((a,b)=>(a.number||0)-(b.number||0));
     for (const ep of eps) {
       if (!ep.watched) {
-        if (!ep.duration) {
+        if (!ep.duration || !ep.air_date) {
           try {
             let tid = item.tmdb_id;
             if (!tid) {
@@ -69,10 +69,16 @@ async function markNextEpisodeWatched(id){
             if (tid) {
               const tmdbEps = await tmdbSeasonEpisodes(tid, season.number);
               const match = tmdbEps.find(e=>e.episode_number===ep.number);
-              if (match && match.runtime) ep.duration = match.runtime;
+              if (match && match.runtime && !ep.duration) ep.duration = match.runtime;
+              if (match && match.air_date && !ep.air_date) ep.air_date = match.air_date;
             }
           } catch(err) {
           }
+        }
+        // Odcinka, który jeszcze nie miał premiery, nie da się odznaczyć jako
+        // obejrzany - zwracamy informację o tym zamiast go oznaczać.
+        if (isEpisodeUnaired(ep)) {
+          return {season: season.number, episode: ep.number, notAiredYet: true, air_date: ep.air_date};
         }
         markEpisodeWatched(ep, true);
         db.items = db.items.filter(i=>i.id!==id);
@@ -225,6 +231,7 @@ function openViewDialog(idOrItem, opts){
             <div class="view-row"><div class="vlabel">Wytwórnia:</div><div class="vval desc-inline" id="view-companies-text"></div></div>
             <div class="view-row" id="view-budget-row"></div>
             <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
+            <div class="view-row"><div class="vlabel">Gdzie obejrzeć:</div><div class="vval desc-inline" id="view-watch-text"></div></div>
             </div>
             ${type===TYPE_MOVIE ? `
             <div class="view-section" id="view-collection-section" style="display:none;">
@@ -347,6 +354,7 @@ function openViewDialog(idOrItem, opts){
       const cur = findItem(id) || item;
       const companiesEl = overlay.querySelector("#view-companies-text");
       const linksEl = overlay.querySelector("#view-links-text");
+      const watchEl = overlay.querySelector("#view-watch-text");
       if (companiesEl) {
         if (cur.production_companies && cur.production_companies.length) { companiesEl.textContent = cur.production_companies.join(", "); companiesEl.classList.remove("muted"); }
         else { companiesEl.textContent = "Brak informacji."; companiesEl.classList.add("muted"); }
@@ -357,12 +365,27 @@ function openViewDialog(idOrItem, opts){
           linksEl.classList.remove("muted");
         } else { linksEl.textContent = "Brak informacji."; linksEl.classList.add("muted"); }
       }
+      if (watchEl) {
+        const wp = cur.watch_providers;
+        if (wp && (wp.flatrate.length || wp.rent.length || wp.buy.length)) {
+          const bits = [];
+          if (wp.flatrate.length) bits.push(`Streaming: ${escapeHtml(wp.flatrate.join(", "))}`);
+          if (wp.rent.length) bits.push(`Wypożyczenie: ${escapeHtml(wp.rent.join(", "))}`);
+          if (wp.buy.length) bits.push(`Zakup: ${escapeHtml(wp.buy.join(", "))}`);
+          const linkHtml = wp.link ? ` <a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="view-link">(szczegóły)</a>` : "";
+          watchEl.innerHTML = bits.join("<br>") + linkHtml;
+          watchEl.classList.remove("muted");
+        } else {
+          watchEl.textContent = "Brak informacji.";
+          watchEl.classList.add("muted");
+        }
+      }
     }
     refreshExtras();
 
     async function fetchExtrasIfNeeded(){
       const cur = findItem(id) || item;
-      if (cur.production_companies && cur.production_companies.length && cur.trailer_key) return;
+      if (cur.production_companies && cur.production_companies.length && cur.trailer_key && cur.watch_providers) return;
       try {
         let tid = cur.tmdb_id;
         if (!tid) {
@@ -379,6 +402,10 @@ function openViewDialog(idOrItem, opts){
           const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);
           if (trailerKey) { cur.trailer_key = trailerKey; changed = true; }
         } catch(err) { /* brak zwiastuna - kontynuuj */ }
+        try {
+          const wp = await tmdbFetchWatchProviders(cur.type, tid);
+          if (wp) { cur.watch_providers = wp; changed = true; }
+        } catch(err) { /* brak informacji, gdzie obejrzeć - kontynuuj */ }
         if (changed) {
           saveToLocalStorage();
           refreshExtras();
@@ -634,10 +661,14 @@ function openViewDialog(idOrItem, opts){
             const sortedEps = [...season.episodes].sort((a,b)=>(a.number||0)-(b.number||0));
             for (const ep of sortedEps) {
               const row = document.createElement("div");
-              row.className = "episode-row ep-static";
+              const unaired = isEpisodeUnaired(ep);
+              row.className = "episode-row ep-static" + (unaired ? " ep-unaired" : "");
+              const rightInfo = unaired
+                ? `<span class="ep-air-info">${escapeHtml(formatDateDMY(ep.air_date))} · ${escapeHtml(formatDaysLabel(daysUntil(ep.air_date)))}</span>`
+                : `<span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>`;
               row.innerHTML = `
                 <label>${ep.watched ? '<span class="ep-check">✓</span>' : ''}<span class="ep-num">${ep.number}.</span><span class="ep-title-static">${escapeHtml(ep.title || ("Odcinek " + ep.number))}</span></label>
-                <span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>
+                ${rightInfo}
               `;
               epsList.appendChild(row);
               if (ep.overview) {
@@ -685,7 +716,13 @@ function openViewDialog(idOrItem, opts){
         btn.disabled = true;
         btn.textContent = "Pobieranie…";
         try {
-          await markNextEpisodeWatched(id);
+          const result = await markNextEpisodeWatched(id);
+          if (result && result.notAiredYet) {
+            const dateInfo = result.air_date
+              ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).`
+              : "";
+            await showAlert("Odcinek jeszcze nie miał premiery", `Odcinek ${result.episode} (sezon ${result.season}) nie został jeszcze wyemitowany, więc nie można go oznaczyć jako obejrzany.${dateInfo}`);
+          }
         } finally {
           refreshStaticRows();
           refreshSeasonsPane();
@@ -734,6 +771,7 @@ function openViewDialog(idOrItem, opts){
                 for (const ep of (season.episodes||[])) {
                   const match = eps.find(e=>e.episode_number===ep.number);
                   if (match && match.overview) { ep.overview = match.overview; seasonInfoChanged = true; }
+                  if (match && match.air_date && match.air_date !== ep.air_date) { ep.air_date = match.air_date; seasonInfoChanged = true; }
                 }
               }
             }
@@ -788,6 +826,11 @@ function openViewDialog(idOrItem, opts){
           const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);
           if (trailerKey) { cur.trailer_key = trailerKey; parts.push("zwiastun"); }
         } catch(err) { /* brak zwiastuna nie blokuje reszty */ }
+        try {
+          const wp = await tmdbFetchWatchProviders(cur.type, tid);
+          cur.watch_providers = wp || null;
+          parts.push("gdzie obejrzeć");
+        } catch(err) { /* brak informacji, gdzie obejrzeć, nie blokuje reszty */ }
         if (type === TYPE_MOVIE) {
           try {
             const added = await syncItemCollectionFromTmdb(cur, tid);
@@ -1096,7 +1139,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               const sn = Number(s.season_number);
               if (!sn || sn < 1) continue;
               const eps = await tmdbSeasonEpisodes(r.id, sn);
-              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||""})).filter(e=>e.number>0);
+              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||"", air_date: e.air_date||""})).filter(e=>e.number>0);
               fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
             }
           }
@@ -1761,7 +1804,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             const sn = Number(s.season_number);
             if (!sn || sn < 1) continue;
             const eps = await tmdbSeasonEpisodes(id, sn);
-            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||""})).filter(e=>e.number>0);
+            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||"", air_date: e.air_date||""})).filter(e=>e.number>0);
             fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
