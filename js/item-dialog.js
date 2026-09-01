@@ -762,8 +762,9 @@ function openViewDialog(idOrItem, opts){
               // jeśli sezon był już raz pobrany wcześniej - np. przy otwarciu
               // zakładki "Sezony i odcinki" - dostawalibyśmy z powrotem ten sam,
               // stary opis, nawet jeśli był po angielsku i wymagał tłumaczenia).
-              // tmdbSeasonEpisodes tłumaczy opisy na polski automatycznie, jeśli
-              // TMDb nie miał wersji polskiej.
+              // tmdbSeasonEpisodes NIE tłumaczy opisów - jeśli TMDb nie miał
+              // wersji polskiej, opis zostaje po angielsku/oryginalnie
+              // (tłumaczenie robi wyłącznie przycisk "Sprawdź i przetłumacz").
               const eps = await tmdbSeasonEpisodes(tid, season.number, true);
               if (eps) {
                 if (eps.season_overview) { season.overview = eps.season_overview; seasonInfoChanged = true; }

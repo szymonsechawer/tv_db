@@ -619,28 +619,12 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
     }
   }
 
-  // Tłumaczymy opis, jeśli albo wiemy, że pochodzi z zapytania w innym
-  // języku (bo TMDb nie miał wersji polskiej), albo - nawet jeśli teoretycznie
-  // pochodzi z zapytania po polsku - tekst i tak wygląda na angielski (TMDb
-  // czasem tak robi, nie sygnalizując tego pustym polem "overview").
-  const needsTranslation = seasonOverview && (
-    (seasonOverviewLang && seasonOverviewLang !== "pl") || looksLikeNonPolishText(seasonOverview)
-  );
-  if (needsTranslation) {
-    const srcLang = (seasonOverviewLang && seasonOverviewLang !== "pl") ? seasonOverviewLang.split("-")[0] : "en";
-    seasonOverview = await translateTextToPolish(seasonOverview, srcLang);
-  }
-
-  // Tłumaczymy opisy poszczególnych odcinków - tak samo jak opis sezonu
-  // wyżej, ale każdy z osobna (mogą pochodzić z różnych języków zapasowych).
-  for (const ep of eps) {
-    if (!ep.overview) continue;
-    const epLang = episodeOverviewLangs.get(ep.episode_number) || "";
-    const epNeedsTranslation = (epLang && epLang !== "pl") || looksLikeNonPolishText(ep.overview);
-    if (!epNeedsTranslation) continue;
-    const srcLang = (epLang && epLang !== "pl") ? epLang.split("-")[0] : "en";
-    ep.overview = await translateTextToPolish(ep.overview, srcLang);
-  }
+  // UWAGA: ten przycisk ("Sprawdź ponownie i zaktualizuj") celowo NIE tłumaczy
+  // opisów sezonów/odcinków - tylko pobiera je z TMDb (po polsku, jeśli TMDb
+  // ma taką wersję, w przeciwnym razie fallback en/oryginalny język, patrz
+  // pętla wyżej). Tłumaczenie na polski robi wyłącznie przycisk
+  // "Sprawdź i przetłumacz" (zobacz updateTranslations() w settings.js),
+  // żeby oba przyciski miały jasno rozdzielone, jednoznaczne działanie.
 
   eps.season_overview = seasonOverview;
   eps.season_air_date = seasonAirDate;
