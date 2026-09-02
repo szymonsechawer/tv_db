@@ -183,7 +183,7 @@ function askInt({title, prompt, initial=null, min=null, max=null}){
 
 // Menu sortowania listy (Nazwa/Data/Ocena, rosnąco/malejąco) - używane we
 // wszystkich zakładkach z tabelami filmów/seriali (w tym "Nowości").
-function openSortMenu({title, current, includeRating=true, includeAdded=true}){
+function openSortMenu({title, current, includeRating=true, includeAdded=true, includePriority=false}){
   return new Promise(resolve=>{
     const options = [
       {col:"title", reverse:false, label:"Nazwa (A → Z)"},
@@ -194,6 +194,10 @@ function openSortMenu({title, current, includeRating=true, includeAdded=true}){
     if (includeRating) {
       options.push({col:"rating", reverse:false, label:"Ocena ↑"});
       options.push({col:"rating", reverse:true,  label:"Ocena ↓"});
+    }
+    if (includePriority) {
+      options.push({col:"priority", reverse:true,  label:"Priorytet (najwyższy → najniższy)"});
+      options.push({col:"priority", reverse:false, label:"Priorytet (najniższy → najwyższy)"});
     }
     if (includeAdded) {
       options.push({col:"added", reverse:false, label:"Dodano ↑"});

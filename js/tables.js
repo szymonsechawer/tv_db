@@ -4,7 +4,7 @@
 
 function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days","del"];
-  if (status === STATUS_PLANNED) return ["title"];
+  if (status === STATUS_PLANNED) return ["title","priority"];
   if (type === TYPE_SERIES) {
     if (status === STATUS_WATCHING) return ["title","progress"];
     if (status === STATUS_WATCHED) return ["title","rating"];
@@ -82,6 +82,7 @@ function sortKey(item, column, type){
     return c;
   }
   if (column === "rating") return item.rating || 0;
+  if (column === "priority") return Number(item.priority)||0;
   return item.title ? item.title.toLowerCase() : "";
 }
 
@@ -410,6 +411,15 @@ function renderTable(type, status){
             wrap.appendChild(textCol);
             td.appendChild(wrap);
           }
+        } else if (col === "priority") {
+          const pr = Math.min(3, Math.max(0, Number(item.priority)||0));
+          if (pr > 0) {
+            const mark = document.createElement("span");
+            mark.className = "priority-mark";
+            mark.textContent = "!".repeat(pr);
+            mark.title = `Priorytet ${pr}`;
+            td.appendChild(mark);
+          }
         } else {
           td.textContent = cellValue(item, col, type);
         }
@@ -478,12 +488,14 @@ document.getElementById("btn-sort").addEventListener("click", async ()=>{
   const status = activeStatus[type];
   const key = `${type}:${status}`;
   const isUpcoming = status === STATUS_UPCOMING;
+  const isPlanned = status === STATUS_PLANNED;
   const current = sortState[key] || ["lp", false];
   const choice = await openSortMenu({
     title: `Sortuj — ${TYPE_LABELS[type]} / ${STATUS_LABELS[status]}`,
     current,
     includeRating: !isUpcoming,
     includeAdded: !isUpcoming,
+    includePriority: isPlanned,
   });
   if (!choice) return;
   sortState[key] = choice;

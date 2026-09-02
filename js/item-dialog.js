@@ -254,7 +254,7 @@ function openViewDialog(idOrItem, opts){
       <div class="modal-footer">
         <button class="btn secondary" id="close-view-btn">Zamknij</button>
         ${(!readOnly && !preview) ? '<button class="btn" id="edit-from-view-btn">Edytuj</button>' : ''}
-        ${preview ? '<button class="btn" id="add-from-view-btn">Dodaj do bazy</button>' : '<button class="btn" id="delete-from-view-btn">Usuń</button>'}
+        ${preview ? '<button class="btn" id="add-from-view-btn">Dodaj do bazy</button>' : '<button class="btn danger" id="delete-from-view-btn">Usuń</button>'}
       </div>
     `, {wide:true});
 
@@ -634,14 +634,15 @@ function openViewDialog(idOrItem, opts){
           const watched = (season.episodes||[]).filter(e=>e.watched).length;
           const pct = total>0 ? Math.round((watched/total)*100) : 0;
           const isCollapsed = collapsedSeasons.has(season.number);
+          const seasonYear = season.air_date ? escapeHtml(String(season.air_date).slice(0,4)) : "";
           box.innerHTML = `
             <div class="season-title season-title-toggle">
               <span class="season-toggle-arrow">${isCollapsed ? "▶" : "▼"}</span>
               <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
               <span class="season-pct">${pct}%</span>
             </div>
+            ${seasonYear ? `<div class="title-date" style="margin:0 0 6px 20px;">${seasonYear}</div>` : ""}
             <div class="season-details" style="${isCollapsed ? "display:none;" : ""}">
-              ${season.air_date ? `<div class="title-date" style="margin:-4px 0 6px 20px;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
               ${season.overview ? `<div class="overview-box season-overview-box">${escapeHtml(season.overview)}</div>` : ""}
             </div>
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
@@ -936,6 +937,14 @@ function openItemDialog({item, itemType, prefillTmdb}){
                 ${statusOptions.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("")}
               </select>
             </div>
+            <div class="form-row" id="f-priority-row" style="display:none;"><label>Priorytet:</label>
+              <select class="entry" id="f-priority" style="flex:1;">
+                <option value="0">— (brak)</option>
+                <option value="1">1 (!)</option>
+                <option value="2">2 (!!)</option>
+                <option value="3">3 (!!!)</option>
+              </select>
+            </div>
             <div class="form-row"><label>Ocena (0-10):</label>
               <input class="entry" id="f-rating" type="number" min="0" max="10" step="0.1" style="width:80px;flex:none;">
             </div>
@@ -1032,11 +1041,20 @@ function openItemDialog({item, itemType, prefillTmdb}){
     const ageCertInput = overlay.querySelector("#f-age-cert");
     const statusSelect = overlay.querySelector("#f-status");
     const ratingSelect = overlay.querySelector("#f-rating");
+    const priorityRow = overlay.querySelector("#f-priority-row");
+    const prioritySelect = overlay.querySelector("#f-priority");
+
+    function refreshPriorityRowVisibility(){
+      const isPlanned = LABEL_TO_STATUS[statusSelect.value] === STATUS_PLANNED;
+      if (priorityRow) priorityRow.style.display = isPlanned ? "" : "none";
+    }
+    statusSelect.addEventListener("change", refreshPriorityRowVisibility);
     const descriptionInput = overlay.querySelector("#f-description");
     const dupError = overlay.querySelector("#dup-error");
 
     statusSelect.value = defaultStatus;
     ratingSelect.value = "0";
+    if (prioritySelect) prioritySelect.value = "0";
 
     if (!isNew) {
       titleInput.value = item.title || "";
@@ -1047,8 +1065,10 @@ function openItemDialog({item, itemType, prefillTmdb}){
       ageCertInput.value = item.age_certification || "";
       statusSelect.value = STATUS_LABELS[item.status] || defaultStatus;
       ratingSelect.value = String(normalizeRating(item.rating));
+      if (prioritySelect) prioritySelect.value = String(Math.min(3, Math.max(0, Number(item.priority)||0)));
       descriptionInput.value = item.description || "";
     }
+    refreshPriorityRowVisibility();
     titleInput.focus();
 
     let tmdbId = isNew ? null : (item.tmdb_id || null);
@@ -1666,14 +1686,15 @@ function openItemDialog({item, itemType, prefillTmdb}){
 
       const box = document.createElement("div");
       box.className = "season-box";
+      const seasonYear = season.air_date ? escapeHtml(String(season.air_date).slice(0,4)) : "";
       box.innerHTML = `
         <div class="season-title">Sezon ${season.number}  (${watchedCount}/${total} obejrzane, ${escapeHtml(formatDuration(seasonMinutes))} obejrzane)</div>
-        ${season.air_date ? `<div class="title-date" style="margin:-2px 0 6px 0;">${escapeHtml(String(season.air_date).slice(0,4))}</div>` : ""}
+        ${seasonYear ? `<div class="title-date" style="margin:-2px 0 6px 0;">${seasonYear}</div>` : ""}
         <textarea class="entry season-overview-input" rows="5" placeholder="Opis sezonu" style="display:block;width:100%;box-sizing:border-box;margin:0 0 8px 0;font-size:12px;resize:vertical;">${escapeHtml(season.overview||"")}</textarea>
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
           <button class="btn small" data-act="uncheck-all">Odznacz cały</button>
-          ${canEdit ? '<button class="btn small secondary" data-act="remove-season">Usuń sezon</button>' : ''}
+          ${canEdit ? '<button class="btn small danger" data-act="remove-season">Usuń sezon</button>' : ''}
         </div>
         <div class="episodes-list"></div>
       `;
@@ -1929,6 +1950,13 @@ function openItemDialog({item, itemType, prefillTmdb}){
       else delete resultItem.age_certification;
       resultItem.status = statusKey;
       resultItem.rating = normalizeRating(ratingSelect.value);
+      if (statusKey === STATUS_PLANNED && prioritySelect) {
+        const prVal = Math.min(3, Math.max(0, parseInt(prioritySelect.value, 10) || 0));
+        if (prVal > 0) resultItem.priority = prVal;
+        else delete resultItem.priority;
+      } else {
+        delete resultItem.priority;
+      }
       resultItem.tags = [...tags];
       resultItem.genres = [...genres];
       resultItem.cast = [...cast];

@@ -36,7 +36,7 @@ const MIN_PER_DAY = 60*24;
 const MIN_PER_MONTH = MIN_PER_DAY*30;
 const MIN_PER_YEAR = MIN_PER_DAY*365;
 
-const COL_LABELS = {lp:"Lp", title:"Tytuł", date:"Data", time:"Czas", progress:"Postęp", rating:"Ocena", days:"Do premiery", del:""};
+const COL_LABELS = {lp:"Lp", title:"Tytuł", date:"Data", time:"Czas", progress:"Postęp", rating:"Ocena", days:"Do premiery", del:"", priority:""};
 
 const DEFAULT_SETTINGS = {tmdb_key: "", tmdb_auto: true, ui_version: "v2"};
 let db = {version: APP_VERSION, items: [], settings: {...DEFAULT_SETTINGS}, notes: [], upcoming: [], upcoming_ignored: [], year_stats: {movies: {}, episodes: {}}, planned: []};
