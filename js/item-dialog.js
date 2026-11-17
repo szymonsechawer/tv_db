@@ -1904,8 +1904,10 @@ function openItemDialog({item, itemType, prefillTmdb}){
           const lpTxt = conflictLp!=null ? `Lp ${conflictLp}` : "nieznana pozycja";
           await showAlert(
             "Pozycja już istnieje",
-            `Pozycja „${title}”${extractYear(premiereDate) ? ` (${extractYear(premiereDate)})` : ""} już znajduje się na liście ${TYPE_LABELS[type]} w zakładce „${conflictStatusLabel}” (${lpTxt}).\n\n` +
-            `Nie można dodać jej do Planowanych, ponieważ powstałby duplikat.`,
+            `Pozycja „${title}” (${extractYear(premiereDate) || "brak roku"}) już znajduje się na liście ${TYPE_LABELS[type]} w zakładce „${conflictStatusLabel}” (${lpTxt}, rok: ${extractYear(conflict.premiere_date) || "brak"}).\n\n` +
+            ((!extractYear(premiereDate) || !extractYear(conflict.premiere_date))
+              ? `Jedna z pozycji nie ma daty premiery, więc nie da się porównać roku. Uzupełnij datę, aby dodać pozycję o tym samym tytule z innego roku.`
+              : `Nie można dodać jej do Planowanych, ponieważ powstałby duplikat.`),
             "error"
           );
           return;

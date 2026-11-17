@@ -1,6 +1,6 @@
 // tv_db - service worker: cache the app shell so it opens instantly offline.
 // Network calls to TMDb (api.themoviedb.org) always go to the network - never cached.
-const CACHE_NAME = "tv-db-shell-v2.9.11";
+const CACHE_NAME = "tv-db-shell-v2.9.12";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -26,7 +26,7 @@ const SHELL_FILES = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES.map((u) => new Request(u, {cache: "reload"})))).then(() => self.skipWaiting())
   );
 });
 
@@ -48,7 +48,7 @@ self.addEventListener("fetch", (event) => {
   // App shell: cache-first, fall back to network, and refresh cache in background.
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request)
+      const networkFetch = fetch(event.request, url.origin === self.location.origin ? {cache: "no-cache"} : undefined)
         .then((response) => {
           if (response && response.status === 200 && url.origin === self.location.origin) {
             const clone = response.clone();
