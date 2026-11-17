@@ -75,6 +75,10 @@ function migrateItems(items){
       delete item.collection;
       delete item.collection_title;
     }
+    // Data zakończenia (RRRR-MM-DD) - tylko dla pozycji w "Zakończonych".
+    if (item.status !== STATUS_WATCHED || typeof item.finished_date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.finished_date)) {
+      delete item.finished_date;
+    }
     if (item.type === TYPE_SERIES) {
       if (!Array.isArray(item.seasons)) item.seasons = [];
       for (const season of item.seasons) {
@@ -85,9 +89,8 @@ function migrateItems(items){
           // Opisy odcinków nie są już używane - usuwane ze starszych baz.
           delete ep.overview;
         }
-        // Opis i data premiery danego sezonu - zapisywane osobno dla
-        // każdego sezonu (odróżnia je od ogólnego opisu/daty serialu).
-        season.overview = (typeof season.overview === "string") ? season.overview.trim() : "";
+        // Opisy sezonów nie są już używane - usuwane ze starszych baz.
+        delete season.overview;
         season.air_date = (typeof season.air_date === "string") ? season.air_date.trim() : "";
       }
     }

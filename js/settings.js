@@ -15,35 +15,8 @@ function renderSettingsTab(){
   if (v1Btn) v1Btn.classList.toggle("active", curVer === "v1");
   if (v2Btn) v2Btn.classList.toggle("active", curVer === "v2");
   if (v3Btn) v3Btn.classList.toggle("active", curVer === "v3");
-  renderTranslationStats();
 }
 
-// Przechodzi po opisach WSZYSTKICH sezonów w całej bazie i liczy,
-// ile z nich jest już po polsku (wg tej samej heurystyki co przy pobieraniu
-// danych z TMDb - patrz looksLikeNonPolishText w tmdb.js), a ile nie.
-// Puste opisy (jeszcze niepobrane z TMDb) nie są liczone - to nie jest ich
-// "brak tłumaczenia", tylko brak danych.
-function collectTranslationStats(){
-  let total = 0, translated = 0;
-  for (const item of db.items) {
-    if (item.type !== TYPE_SERIES || !Array.isArray(item.seasons)) continue;
-    for (const season of item.seasons) {
-      const so = (season.overview || "").trim();
-      if (so) { total++; if (!looksLikeNonPolishText(so)) translated++; }
-    }
-  }
-  const pct = total ? Math.round((translated / total) * 100) : 100;
-  return {total, translated, pct};
-}
-
-function renderTranslationStats(){
-  const el = document.getElementById("set-translate-pct");
-  if (!el) return;
-  const {total, translated, pct} = collectTranslationStats();
-  el.textContent = total
-    ? `Przetłumaczone opisy sezonów: ${pct}% (${translated} z ${total}).`
-    : "Brak opisów sezonów w bazie.";
-}
 
 function setSettingsStatus(msg, isErr){
   const el = document.getElementById("set-tmdb-status");
@@ -81,7 +54,6 @@ function initSettingsTab(){
     setDirty(true);
   });
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
-  document.getElementById("set-translate-update").addEventListener("click", updateTranslations);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
   for (const btn of [document.getElementById("set-ui-v1"), document.getElementById("set-ui-v2"), document.getElementById("set-ui-v3")]) {
     if (!btn) continue;
@@ -255,7 +227,6 @@ async function refreshAllEpisodeTitles(){
             if (match && match.name && match.name !== ep.title) { ep.title = match.name; itemUpdated++; }
           }
           if (eps) {
-            if (eps.season_overview && eps.season_overview !== (season.overview||"")) season.overview = eps.season_overview;
             if (eps.season_air_date && eps.season_air_date !== (season.air_date||"")) season.air_date = eps.season_air_date;
           }
           // krótka przerwa między kolejnymi sezonami - dzięki dwóm niezależnym
@@ -300,7 +271,6 @@ async function refreshAllEpisodeTitles(){
   } else {
     setStatus("Sprawdzono ponownie — nic nie wymagało aktualizacji." + (errors>0 ? ` (${errors} pozycji pominięto — brak dopasowania w TMDb.)` : ""), errors>0);
   }
-  renderTranslationStats();
 
   if (noMatchTitles.length || noDescTitles.length || errorTitles.length) {
     const sections = [];
@@ -317,77 +287,6 @@ async function refreshAllEpisodeTitles(){
   }
 }
 
-// Przechodzi po opisach WSZYSTKICH sezonów w całej bazie i
-// tłumaczy na polski te, które jeszcze nie są po polsku (heurystyka
-// looksLikeNonPolishText z tmdb.js). Korzysta z tych samych darmowych,
-// limitowanych usług tłumaczeniowych co automatyczne dociąganie danych z
-// TMDb, dlatego przy dużej bazie danego dnia część opisów może zostać
-// nieprzetłumaczona (limit) - wystarczy wtedy uruchomić ponownie następnego
-// dnia, licznik % pokazuje ile pracy jeszcze zostało.
-async function updateTranslations(){
-  const btn = document.getElementById("set-translate-update");
-  const statusEl = document.getElementById("set-translate-status");
-  const setStatus = (msg, isErr)=>{
-    if (!statusEl) return;
-    statusEl.textContent = msg || "";
-    statusEl.classList.toggle("err", !!isErr);
-  };
-
-  const seriesItems = db.items.filter(i => i.type===TYPE_SERIES && Array.isArray(i.seasons) && i.seasons.length>0);
-  if (seriesItems.length===0) { setStatus("Brak seriali w bazie."); renderTranslationStats(); return; }
-
-  // policz z góry ile opisów wymaga tłumaczenia, żeby pokazać pasek postępu X/Y
-  let totalTasks = 0;
-  for (const item of seriesItems) {
-    for (const season of item.seasons) {
-      if (season.overview && looksLikeNonPolishText(season.overview)) totalTasks++;
-    }
-  }
-  if (totalTasks===0) {
-    setStatus("Wszystkie opisy sezonów są już po polsku.");
-    renderTranslationStats();
-    return;
-  }
-
-  btn.disabled = true;
-  const oldLabel = btn.textContent;
-  let translatedSeasons = 0, failed = 0, done = 0;
-  btn.textContent = `Tłumaczenie 0/${totalTasks}…`;
-
-  for (const item of seriesItems) {
-    // jeśli znany jest oryginalny język serialu, tłumaczymy od razu z niego
-    // zamiast domyślnie z angielskiego - trochę dokładniejsze tłumaczenie
-    const srcLang = (item.original_language && item.original_language !== "pl") ? item.original_language : "en";
-    for (const season of item.seasons) {
-      if (season.overview && looksLikeNonPolishText(season.overview)) {
-        done++;
-        btn.textContent = `Tłumaczenie ${done}/${totalTasks}…`;
-        setStatus(`Trwa: „${item.title}” — opis sezonu ${season.number} (${done}/${totalTasks})…`);
-        try {
-          const translated = await translateTextToPolish(season.overview, srcLang);
-          if (translated && translated !== season.overview) { season.overview = translated; translatedSeasons++; }
-          else failed++;
-        } catch(err) { failed++; }
-        await new Promise(r => setTimeout(r, 400));
-      }
-    }
-  }
-
-  btn.disabled = false;
-  btn.textContent = oldLabel;
-  const anyChange = translatedSeasons>0;
-  if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
-
-  const parts = [];
-  if (translatedSeasons>0) parts.push(`${translatedSeasons} ${polishPlural(translatedSeasons,"opis sezonu","opisy sezonów","opisów sezonów")}`);
-  if (parts.length) {
-    setStatus(`Gotowe: przetłumaczono ${parts.join(" oraz ")}.` + (failed>0 ? ` (${failed} nie udało się przetłumaczyć — prawdopodobnie limit usług, spróbuj ponownie później.)` : ""), failed>0);
-  } else {
-    setStatus("Nie udało się przetłumaczyć żadnego opisu — prawdopodobnie przekroczono dzienny limit usług tłumaczeniowych, spróbuj ponownie później.", true);
-  }
-
-  renderTranslationStats();
-}
 
 async function checkUpcomingSeasons(){
   const btn = document.getElementById("btn-check");
