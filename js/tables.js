@@ -511,10 +511,10 @@ function renderPosterGrid(grid, items){
 const filterState = {};
 
 function emptyFilter(){
-  return {genres:[], yearFrom:"", yearTo:"", countries:[], providers:[], tags:[]};
+  return {genres:[], yearFrom:"", yearTo:"", minRating:0, countries:[], providers:[], tags:[]};
 }
 function filterIsActive(f){
-  return !!(f && (f.genres.length || f.yearFrom || f.yearTo || f.countries.length || f.providers.length || f.tags.length));
+  return !!(f && (f.genres.length || f.yearFrom || f.yearTo || f.minRating || f.countries.length || f.providers.length || f.tags.length));
 }
 function itemYear(i){
   const m = String(i.premiere_date||"").match(/\d{4}/);
@@ -532,6 +532,7 @@ function itemMatchesFilter(i, f){
   const y = itemYear(i);
   if (f.yearFrom && (y==null || y < +f.yearFrom)) return false;
   if (f.yearTo && (y==null || y > +f.yearTo)) return false;
+  if (f.minRating && normalizeRating(i.rating) < f.minRating) return false;
   if (f.countries.length && !f.countries.some(c => itemCountries(i).includes(c))) return false;
   if (f.providers.length && !f.providers.some(p => itemProviders(i).includes(p))) return false;
   if (f.tags.length && !f.tags.some(t => (i.tags||[]).map(x=>x.toLowerCase()).includes(t.toLowerCase()))) return false;
@@ -541,6 +542,7 @@ function filterSummaryParts(f){
   const parts = [];
   if (f.genres.length) parts.push(f.genres.join(", "));
   if (f.yearFrom || f.yearTo) parts.push(`${f.yearFrom||"…"}–${f.yearTo||"…"}`);
+  if (f.minRating) parts.push(`ocena ≥ ${f.minRating}`);
   if (f.countries.length) parts.push(f.countries.join(", "));
   if (f.providers.length) parts.push(f.providers.join(", "));
   if (f.tags.length) parts.push(f.tags.map(t=>"#"+t).join(" "));
@@ -591,6 +593,7 @@ function openFilterDialog(title, items, current){
   ];
   const f = JSON.parse(JSON.stringify(current || emptyFilter()));
   return new Promise(resolve=>{
+    const ratingOpts = [0,5,6,7,8,9].map(r=>`<option value="${r}">${r ? "≥ " + r : "dowolna"}</option>`).join("");
     const overlay = openOverlay(`
       <div class="modal-header">${escapeHtml(title)}</div>
       <div class="modal-body filter-dialog">
@@ -600,6 +603,10 @@ function openFilterDialog(title, items, current){
           <span class="muted">–</span>
           <input class="entry" id="flt-year-to" type="number" inputmode="numeric" placeholder="do">
         </div>
+        <div class="filter-row">
+          <label>Ocena</label>
+          <select class="entry" id="flt-rating">${ratingOpts}</select>
+        </div>
         <div id="flt-groups"></div>
       </div>
       <div class="modal-footer">
@@ -608,12 +615,12 @@ function openFilterDialog(title, items, current){
         <button class="btn" id="flt-apply">Pokaż</button>
       </div>
     `);
-    const yf = overlay.querySelector("#flt-year-from"), yt = overlay.querySelector("#flt-year-to");
+    const yf = overlay.querySelector("#flt-year-from"), yt = overlay.querySelector("#flt-year-to"), rt = overlay.querySelector("#flt-rating");
     const applyBtn = overlay.querySelector("#flt-apply");
-    yf.value = f.yearFrom; yt.value = f.yearTo;
+    yf.value = f.yearFrom; yt.value = f.yearTo; rt.value = String(f.minRating||0);
     const groupsEl = overlay.querySelector("#flt-groups");
     function readInputs(){
-      f.yearFrom = yf.value.trim(); f.yearTo = yt.value.trim();
+      f.yearFrom = yf.value.trim(); f.yearTo = yt.value.trim(); f.minRating = parseInt(rt.value,10)||0;
     }
     function refreshCount(){
       readInputs();
@@ -646,7 +653,7 @@ function openFilterDialog(title, items, current){
       sec.append(h, chips);
       groupsEl.appendChild(sec);
     }
-    [yf, yt].forEach(el=>el.addEventListener("input", refreshCount));
+    [yf, yt, rt].forEach(el=>el.addEventListener("input", refreshCount));
     refreshCount();
     function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
