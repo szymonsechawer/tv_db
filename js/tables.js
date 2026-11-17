@@ -113,6 +113,25 @@ function renderUpcomingTable(){
     return compareKeys(upcomingSortKey(a, "days"), upcomingSortKey(b, "days"));
   });
 
+  const upTable = pane.querySelector("table.data");
+  const upGrid = pane.querySelector(".poster-grid");
+  if (isGridView() && upGrid) {
+    upTable.style.display = "none";
+    upGrid.style.display = "";
+    renderPosterGrid(upGrid, rows.map(row=>{
+      const linkedItem = row.item_id ? findItem(row.item_id) : null;
+      return {
+        title: row.title || "",
+        poster_path: linkedItem && linkedItem.poster_path,
+        badge: `S${row.season_number} · ${formatDaysLabel(row.days)}`,
+        onOpen: ()=>openUpcomingViewDialog(row),
+      };
+    }), "Brak nowości. Kliknij „Sprawdź”.");
+    return;
+  }
+  if (upGrid) { upGrid.style.display = "none"; upGrid.innerHTML = ""; }
+  upTable.style.display = "";
+
   thead.innerHTML = "";
   const trH = document.createElement("tr");
   for (const col of columns) {
@@ -289,7 +308,7 @@ function renderTable(type, status){
   if (isGridView() && grid) {
     table.style.display = "none";
     grid.style.display = "";
-    renderPosterGrid(grid, display);
+    renderPosterGrid(grid, display.map(item=>({title: item.title || "", poster_path: item.poster_path, onOpen: ()=>openViewDialog(item.id)})));
     return;
   }
   if (grid) { grid.style.display = "none"; grid.innerHTML = ""; }
@@ -474,12 +493,13 @@ function renderTable(type, status){
 }
 
 // Widok 4: siatka samych okładek; kliknięcie otwiera okno informacji.
-function renderPosterGrid(grid, items){
+// tiles: [{title, poster_path, badge?, onOpen}]
+function renderPosterGrid(grid, items, emptyText){
   grid.innerHTML = "";
   if (items.length === 0) {
     const empty = document.createElement("div");
     empty.className = "poster-grid-empty";
-    empty.textContent = "Brak pozycji.";
+    empty.textContent = emptyText || "Brak pozycji.";
     grid.appendChild(empty);
     return;
   }
@@ -494,13 +514,23 @@ function renderPosterGrid(grid, items){
       img.src = tmdbPosterUrl(item.poster_path, "w342");
       img.alt = item.title || "";
       img.loading = "lazy";
-      img.addEventListener("error", ()=>{ img.remove(); tile.classList.add("no-poster"); tile.textContent = item.title || ""; });
+      img.addEventListener("error", ()=>{
+        img.remove();
+        tile.classList.add("no-poster");
+        tile.insertBefore(document.createTextNode(item.title || ""), tile.firstChild);
+      });
       tile.appendChild(img);
     } else {
       tile.classList.add("no-poster");
-      tile.textContent = item.title || "";
+      tile.appendChild(document.createTextNode(item.title || ""));
     }
-    tile.addEventListener("click", ()=>openViewDialog(item.id));
+    if (item.badge) {
+      const badge = document.createElement("span");
+      badge.className = "poster-badge";
+      badge.textContent = item.badge;
+      tile.appendChild(badge);
+    }
+    tile.addEventListener("click", item.onOpen);
     grid.appendChild(tile);
   }
 }
