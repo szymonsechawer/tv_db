@@ -672,12 +672,6 @@ function openViewDialog(idOrItem, opts){
                 ${rightInfo}
               `;
               epsList.appendChild(row);
-              if (ep.overview) {
-                const descBox = document.createElement("div");
-                descBox.className = "overview-box episode-overview-box";
-                descBox.textContent = ep.overview;
-                epsList.appendChild(descBox);
-              }
             }
           }
           pane.appendChild(box);
@@ -1783,20 +1777,9 @@ function openItemDialog({item, itemType, prefillTmdb}){
         });
       }
 
-      // Opis odcinka - edytowalne pole w ramce (analogicznie do opisu sezonu),
-      // umieszczone pod wierszem odcinka.
       const wrap = document.createElement("div");
       wrap.className = "episode-wrap";
       wrap.appendChild(row);
-      const overviewInput = document.createElement("textarea");
-      overviewInput.className = "entry ep-overview-input";
-      overviewInput.rows = 3;
-      overviewInput.placeholder = "Opis odcinka";
-      overviewInput.value = ep.overview || "";
-      overviewInput.addEventListener("input", ()=>{
-        ep.overview = overviewInput.value;
-      });
-      wrap.appendChild(overviewInput);
       return wrap;
     }
 
