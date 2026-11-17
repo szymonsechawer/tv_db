@@ -34,9 +34,17 @@ async function openEditDialog(id){
   const item = findItem(id);
   if (!item) return;
   const beforeSeasons = item.type === TYPE_SERIES ? JSON.parse(JSON.stringify(item.seasons||[])) : null;
+  const beforeStatus = item.status;
   const result = await openItemDialog({item, itemType:item.type});
   if (result) {
-    if (item.type === TYPE_SERIES && beforeSeasons && hasNewlyWatchedEpisode(beforeSeasons, result.seasons||[])) {
+    if (result.status !== beforeStatus) {
+      // Pozycja przeniesiona do innej zakładki trafia na górę jej listy.
+      // Zakończone są domyślnie wyświetlane od końca (najnowsze na górze),
+      // więc tam dopisujemy na koniec; pozostałe listy - na początek.
+      db.items = db.items.filter(i=>i.id!==id);
+      if (result.status === STATUS_WATCHED) db.items.push(result);
+      else db.items.unshift(result);
+    } else if (item.type === TYPE_SERIES && beforeSeasons && hasNewlyWatchedEpisode(beforeSeasons, result.seasons||[])) {
       db.items = db.items.filter(i=>i.id!==id);
       db.items.unshift(result);
     }
