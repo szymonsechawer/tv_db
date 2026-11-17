@@ -55,11 +55,20 @@ function collectWatchedEntries(kind){
   const entries = [];
   if (kind === "movies") {
     for (const it of db.items) {
-      if (it.type===TYPE_MOVIE && it.status===STATUS_WATCHED && it.watchedAt) entries.push({ts: it.watchedAt, duration: it.duration||0});
+      if (it.type!==TYPE_MOVIE || it.status!==STATUS_WATCHED) continue;
+      // Data zakończenia (jeśli ustawiona ręcznie na inny dzień) ma
+      // pierwszeństwo przed momentem przeniesienia do Zakończonych.
+      let ts = it.watchedAt || null;
+      if (it.finished_date && (!ts || dayKeyLocal(ts) !== it.finished_date)) ts = finishedDateTimestamp(it.finished_date);
+      if (ts) entries.push({ts, duration: it.duration||0});
     }
   } else {
+    // Liczą się tylko seriale w Oglądanych/Zakończonych/Wstrzymanych - po
+    // przeniesieniu do Planowanych (albo usunięciu) ich odcinki znikają ze
+    // statystyk, tak samo jak w statystykach ogólnych.
+    const counted = [STATUS_WATCHED, STATUS_WATCHING, STATUS_PAUSED];
     for (const it of db.items) {
-      if (it.type !== TYPE_SERIES) continue;
+      if (it.type !== TYPE_SERIES || !counted.includes(it.status)) continue;
       for (const season of it.seasons||[]) {
         for (const ep of season.episodes||[]) {
           if (ep.watched && ep.watchedAt) entries.push({ts: ep.watchedAt, duration: ep.duration||0});
