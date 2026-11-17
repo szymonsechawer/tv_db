@@ -231,10 +231,10 @@ function openSortMenu({title, current, includeRating=true, includeAdded=true, in
 
 // Wybór sposobu wyświetlania list (widoki 1-4).
 const VIEW_MODES = [
-  {ver:"v1", label:"Widok 1 — lista z paskiem postępu"},
-  {ver:"v2", label:"Widok 2 — lista z okładkami i odhaczaniem odcinków"},
-  {ver:"v3", label:"Widok 3 — lista bez okładek, z odhaczaniem odcinków"},
-  {ver:"v4", label:"Widok 4 — same okładki w kolumnach"},
+  {ver:"v1", label:"Lista z paskiem postępu"},
+  {ver:"v2", label:"Lista z okładkami i odhaczaniem odcinków"},
+  {ver:"v3", label:"Lista bez okładek, z odhaczaniem odcinków"},
+  {ver:"v4", label:"Same okładki w kolumnach"},
 ];
 function openViewModeMenu(current){
   return new Promise(resolve=>{
