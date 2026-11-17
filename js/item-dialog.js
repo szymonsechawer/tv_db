@@ -18,11 +18,17 @@ function findDuplicate(type, title, premiereDate, excludeId){
 // Sprawdza, czy pozycja dodawana/edytowana jako "Planowane" nie powiela już
 // istniejącej pozycji o tym samym tytule w innej, "wyższej" zakładce
 // (dla filmów: Zakończone; dla seriali: Zakończone lub Oglądane), a także
-// czy taki tytuł nie jest już w samych Planowanych. Porównanie tylko po
-// tytule (bez daty premiery), bo w planach data bywa nieznana/inna.
-function findPlannedConflict(type, title, excludeId){
+// czy taki tytuł nie jest już w samych Planowanych. Porównanie po tytule
+// i roku premiery: ten sam tytuł z innym rokiem (np. remake) to inna pozycja.
+// Gdy któraś z pozycji nie ma roku, traktujemy ją jako możliwy duplikat.
+function extractYear(dateStr){
+  const m = String(dateStr||"").match(/\d{4}/);
+  return m ? m[0] : "";
+}
+function findPlannedConflict(type, title, premiereDate, excludeId){
   const normTitle = title.trim().toLowerCase();
   if (!normTitle) return null;
+  const year = extractYear(premiereDate);
   const relevantStatuses = type===TYPE_MOVIE
     ? [STATUS_WATCHED, STATUS_PLANNED]
     : [STATUS_WATCHED, STATUS_WATCHING, STATUS_PLANNED];
@@ -31,6 +37,8 @@ function findPlannedConflict(type, title, excludeId){
     if (excludeId!=null && other.id===excludeId) continue;
     if (!relevantStatuses.includes(other.status)) continue;
     if ((other.title||"").trim().toLowerCase() !== normTitle) continue;
+    const otherYear = extractYear(other.premiere_date);
+    if (year && otherYear && year !== otherYear) continue;
     return other;
   }
   return null;
@@ -1889,14 +1897,14 @@ function openItemDialog({item, itemType, prefillTmdb}){
         return;
       }
       if (statusKey === STATUS_PLANNED) {
-        const conflict = findPlannedConflict(type, title, excludeId);
+        const conflict = findPlannedConflict(type, title, premiereDate, excludeId);
         if (conflict) {
           const conflictStatusLabel = STATUS_LABELS[conflict.status] || conflict.status || "";
           const conflictLp = computeLp(conflict.type, conflict.status, conflict.id);
           const lpTxt = conflictLp!=null ? `Lp ${conflictLp}` : "nieznana pozycja";
           await showAlert(
             "Pozycja już istnieje",
-            `Pozycja „${title}” już znajduje się na liście ${TYPE_LABELS[type]} w zakładce „${conflictStatusLabel}” (${lpTxt}).\n\n` +
+            `Pozycja „${title}”${extractYear(premiereDate) ? ` (${extractYear(premiereDate)})` : ""} już znajduje się na liście ${TYPE_LABELS[type]} w zakładce „${conflictStatusLabel}” (${lpTxt}).\n\n` +
             `Nie można dodać jej do Planowanych, ponieważ powstałby duplikat.`,
             "error"
           );
