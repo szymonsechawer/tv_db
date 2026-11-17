@@ -115,6 +115,12 @@ async function forceAppUpdate(){
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r => r.unregister()));
     }
+    // Wymuś pobranie świeżych plików z serwera (z pominięciem cache HTTP
+    // przeglądarki), żeby po przeładowaniu nie wczytały się stare skrypty.
+    const appFiles = ["./", "./index.html", "./service-worker.js", "./manifest.webmanifest",
+      ...Array.from(document.querySelectorAll('script[src], link[rel="stylesheet"][href]'))
+        .map(el => el.getAttribute("src") || el.getAttribute("href"))];
+    await Promise.all(appFiles.map(u => fetch(u, {cache: "reload"}).catch(()=>{})));
     setStatus("Pamięć wyczyszczona — przeładowuję aplikację…");
     setTimeout(()=>{
       const url = new URL(window.location.href);
