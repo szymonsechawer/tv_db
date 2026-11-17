@@ -192,6 +192,7 @@ function renderUpcomingTable(){
       item.seasons.push({number:nextNum, episodes});
       item.seasons.sort((a,b)=>(a.number||0)-(b.number||0));
       item.status = STATUS_WATCHING;
+      delete item.finished_date;
       db.items = db.items.filter(i=>i.id!==item.id);
       db.items.unshift(item);
       const uk = upcomingKeyOf(row);

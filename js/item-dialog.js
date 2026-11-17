@@ -92,6 +92,7 @@ async function markNextEpisodeWatched(id){
         db.items = db.items.filter(i=>i.id!==id);
         const allWatched = seasons.every(s=>(s.episodes||[]).every(e=>e.watched));
         if (allWatched) {
+          if (item.status !== STATUS_WATCHED && !item.finished_date) item.finished_date = todayISODate();
           item.status = STATUS_WATCHED;
           db.items.push(item);
         } else {
@@ -240,6 +241,7 @@ function openViewDialog(idOrItem, opts){
             <div class="view-row" id="view-budget-row"></div>
             <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
             <div class="view-row"><div class="vlabel">Gdzie obejrzeć:</div><div class="vval desc-inline" id="view-watch-text"></div></div>
+            <div class="view-row" id="view-finished-row" style="display:none;"><div class="vlabel">Data zakończenia:</div><div class="vval desc-inline" id="view-finished-text"></div></div>
             </div>
             ${type===TYPE_MOVIE ? `
             <div class="view-section" id="view-collection-section" style="display:none;">
@@ -386,6 +388,19 @@ function openViewDialog(idOrItem, opts){
         } else {
           watchEl.textContent = "Brak informacji.";
           watchEl.classList.add("muted");
+        }
+      }
+      const finishedRow = overlay.querySelector("#view-finished-row");
+      const finishedEl = overlay.querySelector("#view-finished-text");
+      if (finishedRow && finishedEl) {
+        const isFinished = cur.status === STATUS_WATCHED;
+        finishedRow.style.display = isFinished ? "" : "none";
+        if (cur.finished_date) {
+          finishedEl.textContent = formatDateDMY(cur.finished_date);
+          finishedEl.classList.remove("muted");
+        } else {
+          finishedEl.textContent = "Brak informacji.";
+          finishedEl.classList.add("muted");
         }
       }
     }
@@ -767,7 +782,6 @@ function openViewDialog(idOrItem, opts){
               // (tłumaczenie robi wyłącznie przycisk "Sprawdź i przetłumacz").
               const eps = await tmdbSeasonEpisodes(tid, season.number, true);
               if (eps) {
-                if (eps.season_overview) { season.overview = eps.season_overview; seasonInfoChanged = true; }
                 if (eps.season_air_date) { season.air_date = eps.season_air_date; seasonInfoChanged = true; }
                 for (const ep of (season.episodes||[])) {
                   const match = eps.find(e=>e.episode_number===ep.number);
@@ -775,25 +789,9 @@ function openViewDialog(idOrItem, opts){
                 }
               }
             }
-            if (seasonInfoChanged) parts.push("opisy sezonów i daty sezonów/odcinków");
+            if (seasonInfoChanged) parts.push("daty sezonów/odcinków");
           } catch(err) { /* brak opisów/dat sezonów nie blokuje reszty */ }
 
-          // Dodatkowy przebieg "siatki bezpieczeństwa": tłumaczy opisy sezonów,
-          // które mimo powyższego kroku wciąż nie są po polsku (np.
-          // bo akurat wtedy usługi tłumaczeniowe miały chwilowy limit) - bez
-          // ponownego odpytywania TMDb, tylko na tekście, który już mamy.
-          try {
-            let translatedCount = 0;
-            const srcLang = (cur.original_language && cur.original_language !== "pl") ? cur.original_language : "en";
-            for (const season of (cur.seasons||[])) {
-              if (season.overview && looksLikeNonPolishText(season.overview)) {
-                const t = await translateTextToPolish(season.overview, srcLang);
-                if (t && t !== season.overview) { season.overview = t; translatedCount++; }
-                await new Promise(r => setTimeout(r, 400));
-              }
-            }
-            if (translatedCount>0) parts.push(`${translatedCount} ${polishPlural(translatedCount,"tłumaczenie opisu","tłumaczenia opisów","tłumaczeń opisów")}`);
-          } catch(err) { /* błąd tłumaczenia nie blokuje reszty */ }
         }
         try {
           const creators = await tmdbFetchCreators(cur.type, tid);
@@ -847,7 +845,6 @@ function openViewDialog(idOrItem, opts){
         refreshExtras();
         renderCollectionSection();
         refreshSeasonsPane();
-        if (typeof renderTranslationStats === "function") renderTranslationStats();
       }
     });
 
@@ -928,6 +925,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
                 ${statusOptions.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("")}
               </select>
             </div>
+            <div class="form-row" id="f-finished-row" style="display:none;"><label>Data zakończenia:</label><input class="entry" id="f-finished" type="text" inputmode="numeric" style="flex:1;" placeholder="DD.MM.RRRR"></div>
             <div class="form-row" id="f-priority-row" style="display:none;"><label>Priorytet:</label>
               <select class="entry" id="f-priority" style="flex:1;">
                 <option value="0">— (brak)</option>
@@ -1035,9 +1033,17 @@ function openItemDialog({item, itemType, prefillTmdb}){
     const priorityRow = overlay.querySelector("#f-priority-row");
     const prioritySelect = overlay.querySelector("#f-priority");
 
+    const finishedRow = overlay.querySelector("#f-finished-row");
+    const finishedInput = overlay.querySelector("#f-finished");
+    const wasWatched = !isNew && item.status === STATUS_WATCHED;
     function refreshPriorityRowVisibility(){
       const isPlanned = LABEL_TO_STATUS[statusSelect.value] === STATUS_PLANNED;
       if (priorityRow) priorityRow.style.display = isPlanned ? "" : "none";
+      const isWatched = LABEL_TO_STATUS[statusSelect.value] === STATUS_WATCHED;
+      if (finishedRow) finishedRow.style.display = isWatched ? "" : "none";
+      if (isWatched && finishedInput && !finishedInput.value.trim() && !wasWatched) {
+        finishedInput.value = formatDateDMY(todayISODate());
+      }
     }
     statusSelect.addEventListener("change", refreshPriorityRowVisibility);
     const descriptionInput = overlay.querySelector("#f-description");
@@ -1058,6 +1064,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       ratingSelect.value = String(normalizeRating(item.rating));
       if (prioritySelect) prioritySelect.value = String(Math.min(3, Math.max(0, Number(item.priority)||0)));
       descriptionInput.value = item.description || "";
+      if (finishedInput && item.finished_date) finishedInput.value = formatDateDMY(item.finished_date);
     }
     refreshPriorityRowVisibility();
     titleInput.focus();
@@ -1152,7 +1159,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               if (!sn || sn < 1) continue;
               const eps = await tmdbSeasonEpisodes(r.id, sn);
               const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", air_date: e.air_date||""})).filter(e=>e.number>0);
-              fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
+              fetched.push({number: sn, episodes, air_date: eps.season_air_date||""});
             }
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
@@ -1795,7 +1802,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             if (!sn || sn < 1) continue;
             const eps = await tmdbSeasonEpisodes(id, sn);
             const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", air_date: e.air_date||""})).filter(e=>e.number>0);
-            fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
+            fetched.push({number: sn, episodes, air_date: eps.season_air_date||""});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
           seasons = fetched;
@@ -1909,6 +1916,18 @@ function openItemDialog({item, itemType, prefillTmdb}){
         }
       }
 
+      let finishedDate = null;
+      if (statusKey === STATUS_WATCHED && finishedInput) {
+        const fv = finishedInput.value.trim();
+        if (fv) {
+          finishedDate = parseDMYToISO(fv);
+          if (!finishedDate) {
+            await showAlert("Błędna data zakończenia", "Podaj datę zakończenia w formacie DD.MM.RRRR (np. 17.11.2026) albo zostaw pole puste.", "error");
+            return;
+          }
+        }
+      }
+
       const resultItem = isNew ? {id: uuidv4(), type, addedAt: Date.now()} : item;
       resultItem.title = title;
       const origTitleVal = originalTitleInput.value.trim();
@@ -1919,6 +1938,8 @@ function openItemDialog({item, itemType, prefillTmdb}){
       if (ageCertVal) resultItem.age_certification = ageCertVal;
       else delete resultItem.age_certification;
       resultItem.status = statusKey;
+      if (finishedDate) resultItem.finished_date = finishedDate;
+      else delete resultItem.finished_date;
       resultItem.rating = normalizeRating(ratingSelect.value);
       if (statusKey === STATUS_PLANNED && prioritySelect) {
         const prVal = Math.min(3, Math.max(0, parseInt(prioritySelect.value, 10) || 0));

@@ -210,6 +210,25 @@ function compareKeys(a, b){
   return (a<b) ? -1 : (a>b ? 1 : 0);
 }
 
+// Data dzisiejsza (czas lokalny) w formacie RRRR-MM-DD.
+function todayISODate(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// Zamienia "DD.MM.RRRR" (lub "RRRR-MM-DD") na "RRRR-MM-DD"; null gdy błędna.
+function parseDMYToISO(str){
+  const v = String(str||"").trim();
+  let m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  let y, mo, d;
+  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+  else if ((m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+  else return null;
+  const dt = new Date(y, mo-1, d);
+  if (dt.getFullYear()!==y || dt.getMonth()!==mo-1 || dt.getDate()!==d) return null;
+  return `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+}
+
 function formatDateDMY(dateStr){
   if (!dateStr) return "—";
   const parts = String(dateStr).split("-");
