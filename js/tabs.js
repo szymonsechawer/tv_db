@@ -26,7 +26,7 @@ function initTabs(){
       const pane = document.createElement("div");
       pane.className = "status-pane";
       pane.id = `pane-${type}-${status}`;
-      pane.innerHTML = `<div class="table-wrap"><table class="data"><thead></thead><tbody></tbody></table><div class="poster-grid" style="display:none;"></div></div>`;
+      pane.innerHTML = `<div class="filter-bar" style="display:none;"></div><div class="table-wrap"><table class="data"><thead></thead><tbody></tbody></table><div class="poster-grid" style="display:none;"></div></div>`;
       content.appendChild(pane);
     }
   }
@@ -61,6 +61,7 @@ function updateCheckButtonVisibility(){
     const showSort = activeMain===TYPE_MOVIE || activeMain===TYPE_SERIES;
     sortRow.style.display = showSort ? "" : "none";
   }
+  if (typeof updateFilterButton === "function") updateFilterButton();
 }
 
 function switchMainTab(tab){
