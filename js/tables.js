@@ -268,6 +268,11 @@ function renderTable(type, status){
   const lpMap = new Map();
   items.forEach((it, idx)=> lpMap.set(it.id, idx+1));
 
+  const totalBeforeFilter = items.length;
+  const activeFilter = filterState[key];
+  if (activeFilter && filterIsActive(activeFilter)) items = items.filter(i => itemMatchesFilter(i, activeFilter));
+  renderFilterBar(pane, key, type, status, items.length, totalBeforeFilter);
+
   const [sortCol, reverse] = sortState[key];
   let display = items.slice();
   if (sortCol === "lp") {
@@ -500,6 +505,171 @@ function renderPosterGrid(grid, items){
   }
 }
 
+// ============================================================
+// Filtrowanie list (gatunek, rok, ocena, kraj, platforma, tagi)
+// ============================================================
+const filterState = {};
+
+function emptyFilter(){
+  return {genres:[], yearFrom:"", yearTo:"", countries:[], providers:[], tags:[]};
+}
+function filterIsActive(f){
+  return !!(f && (f.genres.length || f.yearFrom || f.yearTo || f.countries.length || f.providers.length || f.tags.length));
+}
+function itemYear(i){
+  const m = String(i.premiere_date||"").match(/\d{4}/);
+  return m ? parseInt(m[0],10) : null;
+}
+function itemCountries(i){
+  return [...new Set([...(i.production_countries||[]), ...(i.origin_country||[])])];
+}
+function itemProviders(i){
+  const wp = i.watch_providers;
+  return wp ? (wp.flatrate||[]) : [];
+}
+function itemMatchesFilter(i, f){
+  if (f.genres.length && !f.genres.some(g => (i.genres||[]).includes(g))) return false;
+  const y = itemYear(i);
+  if (f.yearFrom && (y==null || y < +f.yearFrom)) return false;
+  if (f.yearTo && (y==null || y > +f.yearTo)) return false;
+  if (f.countries.length && !f.countries.some(c => itemCountries(i).includes(c))) return false;
+  if (f.providers.length && !f.providers.some(p => itemProviders(i).includes(p))) return false;
+  if (f.tags.length && !f.tags.some(t => (i.tags||[]).map(x=>x.toLowerCase()).includes(t.toLowerCase()))) return false;
+  return true;
+}
+function filterSummaryParts(f){
+  const parts = [];
+  if (f.genres.length) parts.push(f.genres.join(", "));
+  if (f.yearFrom || f.yearTo) parts.push(`${f.yearFrom||"…"}–${f.yearTo||"…"}`);
+  if (f.countries.length) parts.push(f.countries.join(", "));
+  if (f.providers.length) parts.push(f.providers.join(", "));
+  if (f.tags.length) parts.push(f.tags.map(t=>"#"+t).join(" "));
+  return parts;
+}
+function renderFilterBar(pane, key, type, status, shown, total){
+  const bar = pane.querySelector(".filter-bar");
+  if (!bar) return;
+  const f = filterState[key];
+  if (!filterIsActive(f)) { bar.style.display = "none"; bar.innerHTML = ""; updateFilterButton(); return; }
+  bar.style.display = "";
+  bar.innerHTML = "";
+  const text = document.createElement("button");
+  text.type = "button";
+  text.className = "filter-bar-text";
+  text.textContent = filterSummaryParts(f).join(" · ");
+  text.addEventListener("click", ()=>openFilterForCurrentTab());
+  const count = document.createElement("span");
+  count.className = "filter-bar-count";
+  count.textContent = `${shown} z ${total}`;
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.className = "filter-bar-clear";
+  clear.setAttribute("aria-label", "Wyczyść filtry");
+  clear.textContent = "×";
+  clear.addEventListener("click", ()=>{ delete filterState[key]; renderTable(type, status); });
+  bar.append(text, count, clear);
+  updateFilterButton();
+}
+function updateFilterButton(){
+  const btn = document.getElementById("btn-filter");
+  if (!btn) return;
+  const key = getCurrentKey();
+  btn.classList.toggle("filter-on", !!(key && filterIsActive(filterState[key])));
+}
+
+function openFilterDialog(title, items, current){
+  const count = (getter)=>{
+    const m = new Map();
+    for (const i of items) for (const v of getter(i)) if (v) m.set(v, (m.get(v)||0)+1);
+    return [...m.entries()].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0], "pl"));
+  };
+  const groups = [
+    {key:"genres", label:"Gatunek", values: count(i=>i.genres||[])},
+    {key:"providers", label:"Gdzie obejrzeć (streaming)", values: count(itemProviders)},
+    {key:"countries", label:"Kraj", values: count(itemCountries)},
+    {key:"tags", label:"Tagi", values: count(i=>i.tags||[])},
+  ];
+  const f = JSON.parse(JSON.stringify(current || emptyFilter()));
+  return new Promise(resolve=>{
+    const overlay = openOverlay(`
+      <div class="modal-header">${escapeHtml(title)}</div>
+      <div class="modal-body filter-dialog">
+        <div class="filter-row">
+          <label>Rok</label>
+          <input class="entry" id="flt-year-from" type="number" inputmode="numeric" placeholder="od">
+          <span class="muted">–</span>
+          <input class="entry" id="flt-year-to" type="number" inputmode="numeric" placeholder="do">
+        </div>
+        <div id="flt-groups"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" id="flt-reset">Wyczyść</button>
+        <button class="btn secondary" id="flt-cancel">Anuluj</button>
+        <button class="btn" id="flt-apply">Pokaż</button>
+      </div>
+    `);
+    const yf = overlay.querySelector("#flt-year-from"), yt = overlay.querySelector("#flt-year-to");
+    const applyBtn = overlay.querySelector("#flt-apply");
+    yf.value = f.yearFrom; yt.value = f.yearTo;
+    const groupsEl = overlay.querySelector("#flt-groups");
+    function readInputs(){
+      f.yearFrom = yf.value.trim(); f.yearTo = yt.value.trim();
+    }
+    function refreshCount(){
+      readInputs();
+      const n = items.filter(i=>itemMatchesFilter(i, f)).length;
+      applyBtn.textContent = `Pokaż (${n})`;
+    }
+    for (const g of groups) {
+      if (!g.values.length) continue;
+      const sec = document.createElement("div");
+      sec.className = "filter-group";
+      const h = document.createElement("div");
+      h.className = "filter-group-label";
+      h.textContent = g.label;
+      const chips = document.createElement("div");
+      chips.className = "filter-chips";
+      for (const [val, n] of g.values) {
+        const c = document.createElement("button");
+        c.type = "button";
+        c.className = "filter-chip" + (f[g.key].includes(val) ? " on" : "");
+        c.textContent = `${g.key==="tags" ? "#" : ""}${val} (${n})`;
+        c.addEventListener("click", ()=>{
+          const arr = f[g.key];
+          const idx = arr.indexOf(val);
+          if (idx>=0) arr.splice(idx,1); else arr.push(val);
+          c.classList.toggle("on", idx<0);
+          refreshCount();
+        });
+        chips.appendChild(c);
+      }
+      sec.append(h, chips);
+      groupsEl.appendChild(sec);
+    }
+    [yf, yt].forEach(el=>el.addEventListener("input", refreshCount));
+    refreshCount();
+    function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
+    function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
+    document.addEventListener("keydown", onKey);
+    overlay.querySelector("#flt-cancel").addEventListener("click", ()=>finish(null));
+    overlay.querySelector("#flt-reset").addEventListener("click", ()=>finish(emptyFilter()));
+    applyBtn.addEventListener("click", ()=>{ readInputs(); finish(f); });
+  });
+}
+
+async function openFilterForCurrentTab(){
+  if (activeMain !== TYPE_MOVIE && activeMain !== TYPE_SERIES) return;
+  const type = activeMain;
+  const status = activeStatus[type];
+  if (status === STATUS_UPCOMING) return;
+  const key = `${type}:${status}`;
+  const items = db.items.filter(i => i.type===type && (i.status||STATUS_WATCHING)===status);
+  const result = await openFilterDialog(`Filtruj — ${TYPE_LABELS[type]} / ${STATUS_LABELS[status]}`, items, filterState[key]);
+  if (!result) return;
+  if (filterIsActive(result)) filterState[key] = result; else delete filterState[key];
+  renderTable(type, status);
+}
+
 function renderAll(){
   for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
     for (const status of TYPE_STATUS_ORDER[type]) {
@@ -525,6 +695,8 @@ function getSelectedItemId(){
 function findItem(id){
   return db.items.find(i=>i.id===id) || null;
 }
+
+document.getElementById("btn-filter").addEventListener("click", openFilterForCurrentTab);
 
 document.getElementById("btn-view").addEventListener("click", async ()=>{
   const choice = await openViewModeMenu(getUiVersion());
