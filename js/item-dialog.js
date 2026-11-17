@@ -642,9 +642,6 @@ function openViewDialog(idOrItem, opts){
               <span class="season-pct">${pct}%</span>
             </div>
             ${seasonYear ? `<div class="title-date" style="margin:0 0 6px 20px;">${seasonYear}</div>` : ""}
-            <div class="season-details" style="${isCollapsed ? "display:none;" : ""}">
-              ${season.overview ? `<div class="overview-box season-overview-box">${escapeHtml(season.overview)}</div>` : ""}
-            </div>
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;
           box.querySelector(".season-title-toggle").addEventListener("click", ()=>{
