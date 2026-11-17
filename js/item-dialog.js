@@ -672,12 +672,6 @@ function openViewDialog(idOrItem, opts){
                 ${rightInfo}
               `;
               epsList.appendChild(row);
-              if (ep.overview) {
-                const descBox = document.createElement("div");
-                descBox.className = "overview-box episode-overview-box";
-                descBox.textContent = ep.overview;
-                epsList.appendChild(descBox);
-              }
             }
           }
           pane.appendChild(box);
@@ -772,16 +766,15 @@ function openViewDialog(idOrItem, opts){
                 if (eps.season_air_date) { season.air_date = eps.season_air_date; seasonInfoChanged = true; }
                 for (const ep of (season.episodes||[])) {
                   const match = eps.find(e=>e.episode_number===ep.number);
-                  if (match && match.overview) { ep.overview = match.overview; seasonInfoChanged = true; }
                   if (match && match.air_date && match.air_date !== ep.air_date) { ep.air_date = match.air_date; seasonInfoChanged = true; }
                 }
               }
             }
-            if (seasonInfoChanged) parts.push("opisy i daty sezonów/odcinków");
+            if (seasonInfoChanged) parts.push("opisy sezonów i daty sezonów/odcinków");
           } catch(err) { /* brak opisów/dat sezonów nie blokuje reszty */ }
 
-          // Dodatkowy przebieg "siatki bezpieczeństwa": tłumaczy opisy sezonów/
-          // odcinków, które mimo powyższego kroku wciąż nie są po polsku (np.
+          // Dodatkowy przebieg "siatki bezpieczeństwa": tłumaczy opisy sezonów,
+          // które mimo powyższego kroku wciąż nie są po polsku (np.
           // bo akurat wtedy usługi tłumaczeniowe miały chwilowy limit) - bez
           // ponownego odpytywania TMDb, tylko na tekście, który już mamy.
           try {
@@ -792,13 +785,6 @@ function openViewDialog(idOrItem, opts){
                 const t = await translateTextToPolish(season.overview, srcLang);
                 if (t && t !== season.overview) { season.overview = t; translatedCount++; }
                 await new Promise(r => setTimeout(r, 400));
-              }
-              for (const ep of (season.episodes||[])) {
-                if (ep.overview && looksLikeNonPolishText(ep.overview)) {
-                  const t = await translateTextToPolish(ep.overview, srcLang);
-                  if (t && t !== ep.overview) { ep.overview = t; translatedCount++; }
-                  await new Promise(r => setTimeout(r, 400));
-                }
               }
             }
             if (translatedCount>0) parts.push(`${translatedCount} ${polishPlural(translatedCount,"tłumaczenie opisu","tłumaczenia opisów","tłumaczeń opisów")}`);
@@ -1160,7 +1146,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               const sn = Number(s.season_number);
               if (!sn || sn < 1) continue;
               const eps = await tmdbSeasonEpisodes(r.id, sn);
-              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||"", air_date: e.air_date||""})).filter(e=>e.number>0);
+              const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", air_date: e.air_date||""})).filter(e=>e.number>0);
               fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
             }
           }
@@ -1256,35 +1242,28 @@ function openItemDialog({item, itemType, prefillTmdb}){
     }
 
     let titlesBackfillDone = false;
-    // Uzupełnia brakujące nazwy ORAZ opisy odcinków z TMDb (opisy od razu
-    // przetłumaczone na polski, jeśli TMDb nie miał wersji polskiej - patrz
-    // tmdbSeasonEpisodes). Uruchamiane automatycznie przy pierwszym otwarciu
+    // Uzupełnia brakujące nazwy odcinków z TMDb. Uruchamiane automatycznie przy pierwszym otwarciu
     // zakładki "Sezony i odcinki".
     async function autoFillEpisodeTitles(){
       if (titlesBackfillDone) return;
-      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>isGenericEpisodeName(e.title, e.number) || !e.overview));
+      const missingSeasons = seasons.filter(s=>(s.episodes||[]).some(e=>isGenericEpisodeName(e.title, e.number)));
       if (missingSeasons.length===0) { titlesBackfillDone = true; return; }
       if (!tmdbId && !getStoredTmdbKey()) return;
       titlesBackfillDone = true;
       try {
         const id = await ensureTmdbId();
         let filledTitles = 0;
-        let filledOverviews = 0;
         for (const season of missingSeasons) {
           const eps = await tmdbSeasonEpisodes(id, season.number);
           for (const ep of season.episodes) {
             const match = eps.find(e=>e.episode_number===ep.number);
             if (!match) continue;
             if (!ep.title && match.name) { ep.title = match.name; filledTitles++; }
-            if (!ep.overview && match.overview) { ep.overview = match.overview; filledOverviews++; }
           }
         }
-        if (filledTitles>0 || filledOverviews>0) {
+        if (filledTitles>0) {
           renderSeasonsList();
-          const parts = [];
-          if (filledTitles>0) parts.push(`nazwy ${filledTitles} odcinków`);
-          if (filledOverviews>0) parts.push(`opisy ${filledOverviews} odcinków`);
-          setTmdbStatus(`Uzupełniono ${parts.join(" i ")} z TMDb.`);
+          setTmdbStatus(`Uzupełniono nazwy ${filledTitles} odcinków z TMDb.`);
         }
       } catch(err) {
         // cichy błąd - brak danych nie blokuje pracy z sezonami
@@ -1783,20 +1762,9 @@ function openItemDialog({item, itemType, prefillTmdb}){
         });
       }
 
-      // Opis odcinka - edytowalne pole w ramce (analogicznie do opisu sezonu),
-      // umieszczone pod wierszem odcinka.
       const wrap = document.createElement("div");
       wrap.className = "episode-wrap";
       wrap.appendChild(row);
-      const overviewInput = document.createElement("textarea");
-      overviewInput.className = "entry ep-overview-input";
-      overviewInput.rows = 3;
-      overviewInput.placeholder = "Opis odcinka";
-      overviewInput.value = ep.overview || "";
-      overviewInput.addEventListener("input", ()=>{
-        ep.overview = overviewInput.value;
-      });
-      wrap.appendChild(overviewInput);
       return wrap;
     }
 
@@ -1811,7 +1779,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
           return;
         }
         const episodes = [];
-        for (let i=1; i<=result.count; i++) episodes.push({number:i, watched:false, duration:0, title:"", overview:""});
+        for (let i=1; i<=result.count; i++) episodes.push({number:i, watched:false, duration:0, title:""});
         seasons.push({number: result.number, episodes});
         renderSeasonsList();
       });
@@ -1826,7 +1794,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
             const sn = Number(s.season_number);
             if (!sn || sn < 1) continue;
             const eps = await tmdbSeasonEpisodes(id, sn);
-            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", overview: e.overview||"", air_date: e.air_date||""})).filter(e=>e.number>0);
+            const episodes = (eps||[]).map(e=>({number: e.episode_number, watched:false, duration: e.runtime||0, title: e.name||"", air_date: e.air_date||""})).filter(e=>e.number>0);
             fetched.push({number: sn, episodes, overview: eps.season_overview||"", air_date: eps.season_air_date||""});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
