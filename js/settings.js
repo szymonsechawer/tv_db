@@ -18,7 +18,7 @@ function renderSettingsTab(){
   renderTranslationStats();
 }
 
-// Przechodzi po opisach WSZYSTKICH sezonów i odcinków w całej bazie i liczy,
+// Przechodzi po opisach WSZYSTKICH sezonów w całej bazie i liczy,
 // ile z nich jest już po polsku (wg tej samej heurystyki co przy pobieraniu
 // danych z TMDb - patrz looksLikeNonPolishText w tmdb.js), a ile nie.
 // Puste opisy (jeszcze niepobrane z TMDb) nie są liczone - to nie jest ich
@@ -30,10 +30,6 @@ function collectTranslationStats(){
     for (const season of item.seasons) {
       const so = (season.overview || "").trim();
       if (so) { total++; if (!looksLikeNonPolishText(so)) translated++; }
-      for (const ep of (season.episodes || [])) {
-        const eo = (ep.overview || "").trim();
-        if (eo) { total++; if (!looksLikeNonPolishText(eo)) translated++; }
-      }
     }
   }
   const pct = total ? Math.round((translated / total) * 100) : 100;
@@ -45,8 +41,8 @@ function renderTranslationStats(){
   if (!el) return;
   const {total, translated, pct} = collectTranslationStats();
   el.textContent = total
-    ? `Przetłumaczone opisy sezonów i odcinków: ${pct}% (${translated} z ${total}).`
-    : "Brak opisów sezonów/odcinków w bazie.";
+    ? `Przetłumaczone opisy sezonów: ${pct}% (${translated} z ${total}).`
+    : "Brak opisów sezonów w bazie.";
 }
 
 function setSettingsStatus(msg, isErr){
@@ -251,7 +247,6 @@ async function refreshAllEpisodeTitles(){
           for (const ep of (season.episodes||[])) {
             const match = (eps||[]).find(e=>e.episode_number===ep.number);
             if (match && match.name && match.name !== ep.title) { ep.title = match.name; itemUpdated++; }
-            if (match && match.overview && match.overview !== (ep.overview||"")) { ep.overview = match.overview; itemUpdated++; }
           }
           if (eps) {
             if (eps.season_overview && eps.season_overview !== (season.overview||"")) season.overview = eps.season_overview;
@@ -286,7 +281,7 @@ async function refreshAllEpisodeTitles(){
 
   if (anyChange) {
     const parts = [];
-    if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"pole (nazwa/opis) odcinka":"pól (nazwy/opisy) odcinków"} w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
+    if (updatedEpisodes>0) parts.push(`${updatedEpisodes} ${updatedEpisodes===1?"nazwę odcinka":"nazw odcinków"} w ${updatedSeries} ${updatedSeries===1?"serialu":"serialach"}`);
     if (updatedDesc>0) parts.push(`${updatedDesc} ${updatedDesc===1?"opis":"opisów"}`);
     if (updatedPosters>0) parts.push(`${updatedPosters} ${updatedPosters===1?"okładkę":"okładek"}`);
     if (updatedGenres>0) parts.push(`${updatedGenres} ${updatedGenres===1?"gatunek":"gatunków"}`);
@@ -316,7 +311,7 @@ async function refreshAllEpisodeTitles(){
   }
 }
 
-// Przechodzi po opisach WSZYSTKICH sezonów i odcinków w całej bazie i
+// Przechodzi po opisach WSZYSTKICH sezonów w całej bazie i
 // tłumaczy na polski te, które jeszcze nie są po polsku (heurystyka
 // looksLikeNonPolishText z tmdb.js). Korzysta z tych samych darmowych,
 // limitowanych usług tłumaczeniowych co automatyczne dociąganie danych z
@@ -340,20 +335,17 @@ async function updateTranslations(){
   for (const item of seriesItems) {
     for (const season of item.seasons) {
       if (season.overview && looksLikeNonPolishText(season.overview)) totalTasks++;
-      for (const ep of (season.episodes||[])) {
-        if (ep.overview && looksLikeNonPolishText(ep.overview)) totalTasks++;
-      }
     }
   }
   if (totalTasks===0) {
-    setStatus("Wszystkie opisy sezonów i odcinków są już po polsku.");
+    setStatus("Wszystkie opisy sezonów są już po polsku.");
     renderTranslationStats();
     return;
   }
 
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  let translatedSeasons = 0, translatedEpisodes = 0, failed = 0, done = 0;
+  let translatedSeasons = 0, failed = 0, done = 0;
   btn.textContent = `Tłumaczenie 0/${totalTasks}…`;
 
   for (const item of seriesItems) {
@@ -372,30 +364,16 @@ async function updateTranslations(){
         } catch(err) { failed++; }
         await new Promise(r => setTimeout(r, 400));
       }
-      for (const ep of (season.episodes||[])) {
-        if (ep.overview && looksLikeNonPolishText(ep.overview)) {
-          done++;
-          btn.textContent = `Tłumaczenie ${done}/${totalTasks}…`;
-          setStatus(`Trwa: „${item.title}” — sezon ${season.number}, odcinek ${ep.number} (${done}/${totalTasks})…`);
-          try {
-            const translated = await translateTextToPolish(ep.overview, srcLang);
-            if (translated && translated !== ep.overview) { ep.overview = translated; translatedEpisodes++; }
-            else failed++;
-          } catch(err) { failed++; }
-          await new Promise(r => setTimeout(r, 400));
-        }
-      }
     }
   }
 
   btn.disabled = false;
   btn.textContent = oldLabel;
-  const anyChange = translatedSeasons>0 || translatedEpisodes>0;
+  const anyChange = translatedSeasons>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   const parts = [];
   if (translatedSeasons>0) parts.push(`${translatedSeasons} ${polishPlural(translatedSeasons,"opis sezonu","opisy sezonów","opisów sezonów")}`);
-  if (translatedEpisodes>0) parts.push(`${translatedEpisodes} ${polishPlural(translatedEpisodes,"opis odcinka","opisy odcinków","opisów odcinków")}`);
   if (parts.length) {
     setStatus(`Gotowe: przetłumaczono ${parts.join(" oraz ")}.` + (failed>0 ? ` (${failed} nie udało się przetłumaczyć — prawdopodobnie limit usług, spróbuj ponownie później.)` : ""), failed>0);
   } else {

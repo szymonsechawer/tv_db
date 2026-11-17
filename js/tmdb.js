@@ -565,48 +565,37 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   let seasonOverviewLang = seasonOverview ? "pl" : "";
   const seasonAirDate = (data && data.air_date) ? String(data.air_date) : "";
 
-  // wyczyść generyczne nazwy, aby fallback mógł je zastąpić; przytnij opisy odcinków
+  // wyczyść generyczne nazwy, aby fallback mógł je zastąpić; opisy odcinków
+  // nie są używane przez aplikację, więc są od razu usuwane z odpowiedzi
   for (const ep of eps) {
     if (isGenericEpisodeName(ep.name, ep.episode_number)) ep.name = "";
-    ep.overview = (typeof ep.overview === "string") ? ep.overview.trim() : "";
+    delete ep.overview;
   }
-  // Język, w jakim faktycznie udało się uzyskać opis KAŻDEGO odcinka -
-  // analogicznie do seasonOverviewLang wyżej, ale osobno dla każdego numeru
-  // odcinka, bo poszczególne opisy mogą pochodzić z różnych zapytań
-  // zapasowych (np. część po angielsku, część w oryginalnym języku serialu).
-  const episodeOverviewLangs = new Map();
-  for (const ep of eps) if (ep.overview) episodeOverviewLangs.set(ep.episode_number, "pl");
 
   const stillMissing = () => eps.length===0 || eps.some(e=>!e.name || !e.name.trim());
   const needsOverviewFallback = () => !seasonOverview;
-  const needsEpisodeOverviewFallback = () => eps.some(e=>!e.overview);
 
-  if (stillMissing() || needsOverviewFallback() || needsEpisodeOverviewFallback()) {
+  if (stillMissing() || needsOverviewFallback()) {
     // kolejność prób: angielski, język oryginalny serialu, bez języka (wersja domyślna TMDb)
     const langs = ["en-US"];
     const orig = await tmdbSeriesOriginalLanguage(seriesId);
     if (orig && orig !== "en" && orig !== "pl") langs.push(orig);
 
     for (const lang of langs) {
-      if (!stillMissing() && !needsOverviewFallback() && !needsEpisodeOverviewFallback()) break;
+      if (!stillMissing() && !needsOverviewFallback()) break;
       try {
         const alt = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {language: lang});
         let epsAlt = (alt && Array.isArray(alt.episodes)) ? alt.episodes : [];
         for (const ep of epsAlt) {
           if (isGenericEpisodeName(ep.name, ep.episode_number)) ep.name = "";
-          ep.overview = (typeof ep.overview === "string") ? ep.overview.trim() : "";
+          delete ep.overview;
         }
         if (eps.length===0 && epsAlt.length>0) {
           eps = epsAlt;
-          for (const ep of eps) if (ep.overview) episodeOverviewLangs.set(ep.episode_number, lang);
         } else {
           for (const ep of eps) {
             const match = epsAlt.find(e=>e.episode_number===ep.episode_number);
             if ((!ep.name || !ep.name.trim()) && match && match.name && match.name.trim()) ep.name = match.name;
-            if (!ep.overview && match && match.overview) {
-              ep.overview = match.overview;
-              episodeOverviewLangs.set(ep.episode_number, lang);
-            }
           }
         }
         if (needsOverviewFallback() && alt && typeof alt.overview === "string" && alt.overview.trim()) {
@@ -620,7 +609,7 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   }
 
   // UWAGA: ten przycisk ("Sprawdź ponownie i zaktualizuj") celowo NIE tłumaczy
-  // opisów sezonów/odcinków - tylko pobiera je z TMDb (po polsku, jeśli TMDb
+  // opisów sezonów - tylko pobiera je z TMDb (po polsku, jeśli TMDb
   // ma taką wersję, w przeciwnym razie fallback en/oryginalny język, patrz
   // pętla wyżej). Tłumaczenie na polski robi wyłącznie przycisk
   // "Sprawdź i przetłumacz" (zobacz updateTranslations() w settings.js),
