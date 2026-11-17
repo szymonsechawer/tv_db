@@ -221,6 +221,14 @@ function todayISODate(){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
+// Timestamp dla daty zakończenia "RRRR-MM-DD": dziś = teraz, inny dzień =
+// południe tego dnia (czas lokalny); brak daty = teraz.
+function finishedDateTimestamp(iso){
+  if (!iso || iso === todayISODate()) return Date.now();
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m-1, d, 12, 0, 0).getTime();
+}
+
 // Zamienia "DD.MM.RRRR" (lub "RRRR-MM-DD") na "RRRR-MM-DD"; null gdy błędna.
 function parseDMYToISO(str){
   const v = String(str||"").trim();

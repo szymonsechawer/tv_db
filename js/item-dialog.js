@@ -1973,6 +1973,15 @@ function openItemDialog({item, itemType, prefillTmdb}){
         }
       } else {
         resultItem.seasons = seasons;
+        // Serial przeniesiony do Zakończonych = obejrzany w całości: oznacz
+        // wszystkie wyemitowane, jeszcze nieodhaczone odcinki jako obejrzane
+        // (z datą zakończenia), żeby od razu trafiły do statystyk.
+        if (statusKey === STATUS_WATCHED && !wasWatched) {
+          const ts = finishedDateTimestamp(finishedDate);
+          for (const s of seasons) for (const ep of (s.episodes||[])) {
+            if (!ep.watched && !isEpisodeUnaired(ep)) { ep.watched = true; ep.watchedAt = ts; }
+          }
+        }
       }
       finish(resultItem);
     });
