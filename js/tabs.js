@@ -26,7 +26,7 @@ function initTabs(){
       const pane = document.createElement("div");
       pane.className = "status-pane";
       pane.id = `pane-${type}-${status}`;
-      pane.innerHTML = `<div class="table-wrap"><table class="data"><thead></thead><tbody></tbody></table></div>`;
+      pane.innerHTML = `<div class="table-wrap"><table class="data"><thead></thead><tbody></tbody></table><div class="poster-grid" style="display:none;"></div></div>`;
       content.appendChild(pane);
     }
   }

@@ -229,6 +229,41 @@ function openSortMenu({title, current, includeRating=true, includeAdded=true, in
   });
 }
 
+// Wybór sposobu wyświetlania list (widoki 1-4).
+const VIEW_MODES = [
+  {ver:"v1", label:"Widok 1 — lista z paskiem postępu"},
+  {ver:"v2", label:"Widok 2 — lista z okładkami i odhaczaniem odcinków"},
+  {ver:"v3", label:"Widok 3 — lista bez okładek, z odhaczaniem odcinków"},
+  {ver:"v4", label:"Widok 4 — same okładki w kolumnach"},
+];
+function openViewModeMenu(current){
+  return new Promise(resolve=>{
+    const overlay = openOverlay(`
+      <div class="modal-header">Widok</div>
+      <div class="modal-body">
+        <div class="sort-menu" id="view-menu-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" id="view-menu-cancel">Anuluj</button>
+      </div>
+    `);
+    const list = overlay.querySelector("#view-menu-list");
+    VIEW_MODES.forEach(opt=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn secondary sort-menu-item";
+      if (current === opt.ver) btn.classList.add("active");
+      btn.textContent = opt.label;
+      btn.addEventListener("click", ()=>finish(opt.ver));
+      list.appendChild(btn);
+    });
+    function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
+    function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
+    overlay.querySelector("#view-menu-cancel").addEventListener("click", ()=>finish(null));
+    document.addEventListener("keydown", onKey);
+  });
+}
+
 // Generyczne okno wyboru jednej pozycji z listy (np. wyniki wyszukiwania
 // TMDb przy ręcznym dodawaniu pozycji do kolekcji).
 function openPickListDialog({title, items, renderLabel}){

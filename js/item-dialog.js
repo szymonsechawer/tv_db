@@ -718,7 +718,7 @@ function openViewDialog(idOrItem, opts){
         t.tab.classList.toggle("active", active);
         t.pane.style.display = active ? "" : "none";
       }
-      if (markNextEpWrap) markNextEpWrap.style.display = (target.showMarkNextEp && !readOnly && isUiV1()) ? "flex" : "none";
+      if (markNextEpWrap) markNextEpWrap.style.display = (target.showMarkNextEp && !readOnly && markNextInDialog()) ? "flex" : "none";
       if (target.onShow) target.onShow();
     }
     for (const t of viewTabs) {
@@ -772,14 +772,8 @@ function openViewDialog(idOrItem, opts){
           try {
             let seasonInfoChanged = false;
             for (const season of (cur.seasons||[])) {
-              // forceRefresh=true: ten przycisk ma naprawiać/aktualizować dane,
-              // więc musi ominąć pamięć podręczną sezonu z tej sesji (inaczej,
-              // jeśli sezon był już raz pobrany wcześniej - np. przy otwarciu
-              // zakładki "Sezony i odcinki" - dostawalibyśmy z powrotem ten sam,
-              // stary opis, nawet jeśli był po angielsku i wymagał tłumaczenia).
-              // tmdbSeasonEpisodes NIE tłumaczy opisów - jeśli TMDb nie miał
-              // wersji polskiej, opis zostaje po angielsku/oryginalnie
-              // (tłumaczenie robi wyłącznie przycisk "Sprawdź i przetłumacz").
+              // forceRefresh=true: ten przycisk ma aktualizować dane, więc
+              // omija pamięć podręczną sezonu z tej sesji.
               const eps = await tmdbSeasonEpisodes(tid, season.number, true);
               if (eps) {
                 if (eps.season_air_date) { season.air_date = eps.season_air_date; seasonInfoChanged = true; }

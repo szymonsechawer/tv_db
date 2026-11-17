@@ -279,6 +279,17 @@ function renderTable(type, status){
     });
   }
 
+  const table = pane.querySelector("table.data");
+  const grid = pane.querySelector(".poster-grid");
+  if (isGridView() && grid) {
+    table.style.display = "none";
+    grid.style.display = "";
+    renderPosterGrid(grid, display);
+    return;
+  }
+  if (grid) { grid.style.display = "none"; grid.innerHTML = ""; }
+  table.style.display = "";
+
   thead.innerHTML = "";
   const trH = document.createElement("tr");
   for (const col of columns) {
@@ -457,6 +468,38 @@ function renderTable(type, status){
   }
 }
 
+// Widok 4: siatka samych okładek; kliknięcie otwiera okno informacji.
+function renderPosterGrid(grid, items){
+  grid.innerHTML = "";
+  if (items.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "poster-grid-empty";
+    empty.textContent = "Brak pozycji.";
+    grid.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "poster-tile";
+    tile.title = item.title || "";
+    tile.setAttribute("aria-label", item.title || "Pozycja");
+    if (item.poster_path) {
+      const img = document.createElement("img");
+      img.src = tmdbPosterUrl(item.poster_path, "w342");
+      img.alt = item.title || "";
+      img.loading = "lazy";
+      img.addEventListener("error", ()=>{ img.remove(); tile.classList.add("no-poster"); tile.textContent = item.title || ""; });
+      tile.appendChild(img);
+    } else {
+      tile.classList.add("no-poster");
+      tile.textContent = item.title || "";
+    }
+    tile.addEventListener("click", ()=>openViewDialog(item.id));
+    grid.appendChild(tile);
+  }
+}
+
 function renderAll(){
   for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
     for (const status of TYPE_STATUS_ORDER[type]) {
@@ -482,6 +525,16 @@ function getSelectedItemId(){
 function findItem(id){
   return db.items.find(i=>i.id===id) || null;
 }
+
+document.getElementById("btn-view").addEventListener("click", async ()=>{
+  const choice = await openViewModeMenu(getUiVersion());
+  if (!choice || choice === getUiVersion()) return;
+  if (!db.settings) db.settings = {...DEFAULT_SETTINGS};
+  db.settings.ui_version = choice;
+  saveToLocalStorage();
+  setDirty(true);
+  renderAll();
+});
 
 document.getElementById("btn-sort").addEventListener("click", async ()=>{
   if (activeMain !== TYPE_MOVIE && activeMain !== TYPE_SERIES) return;

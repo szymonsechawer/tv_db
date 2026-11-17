@@ -27,7 +27,7 @@ function normalizeSettings(s){
   if (s && typeof s === "object") {
     if (typeof s.tmdb_key === "string") out.tmdb_key = s.tmdb_key;
     if (typeof s.tmdb_auto === "boolean") out.tmdb_auto = s.tmdb_auto;
-    if (s.ui_version === "v1" || s.ui_version === "v2" || s.ui_version === "v3") out.ui_version = s.ui_version;
+    if (["v1","v2","v3","v4"].includes(s.ui_version)) out.ui_version = s.ui_version;
   }
   return out;
 }
@@ -36,11 +36,16 @@ function getUiVersion(){
   return (db.settings && db.settings.ui_version) || "v2";
 }
 
-// Zwraca true, jeśli w Ustawieniach wybrano wygląd v1: bez okładek na
-// liście (za to z okładką w oknie informacji) i z klasycznym paskiem
-// postępu (bez przycisku do odhaczania odcinków).
-function isUiV1(){
-  return getUiVersion() === "v1";
+// Widok 4: same okładki w kolumnach (siatka) zamiast tabeli.
+function isGridView(){
+  return getUiVersion() === "v4";
+}
+
+// Czy przycisk "odhacz kolejny odcinek" ma być w oknie informacji - gdy
+// lista go nie ma (widok 1 z paskiem postępu i widok 4 z samymi okładkami).
+function markNextInDialog(){
+  const v = getUiVersion();
+  return v === "v1" || v === "v4";
 }
 
 // Czy okładka ma być pokazywana na liście, po lewej stronie tytułu -

@@ -46,81 +46,6 @@ async function tmdbFetch(path, params){
   return res.json();
 }
 
-// Tłumaczy podany tekst na język polski. Próbuje kolejno dwóch niezależnych,
-// darmowych usług tłumaczeniowych (Google Translate i MyMemory - żadna nie
-// wymaga klucza API). Jeśli jedna zawiedzie (np. przez chwilowy limit
-// zapytań), od razu próbuje drugiej - dzięki temu nie trzeba długo czekać
-// i ponawiać prób w kółko na tej samej, przeciążonej usłudze.
-async function translateChunkGoogle(text, sourceLang){
-  const url = new URL("https://translate.googleapis.com/translate_a/single");
-  url.searchParams.set("client", "gtx");
-  url.searchParams.set("sl", sourceLang || "auto");
-  url.searchParams.set("tl", "pl");
-  url.searchParams.set("dt", "t");
-  url.searchParams.set("q", text);
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error("Google Translate: HTTP " + res.status);
-  const data = await res.json();
-  if (!Array.isArray(data) || !Array.isArray(data[0])) throw new Error("Google Translate: nieoczekiwana odpowiedź");
-  const translated = data[0].map(chunk => (Array.isArray(chunk) ? (chunk[0]||"") : "")).join("");
-  if (!translated.trim()) throw new Error("Google Translate: pusta odpowiedź");
-  return translated.trim();
-}
-async function translateChunkMyMemory(text, sourceLang){
-  const url = new URL("https://api.mymemory.translated.net/get");
-  url.searchParams.set("q", text);
-  url.searchParams.set("langpair", (sourceLang || "en") + "|pl");
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error("MyMemory: HTTP " + res.status);
-  const data = await res.json();
-  const translated = (data && data.responseData && typeof data.responseData.translatedText === "string")
-    ? data.responseData.translatedText.trim() : "";
-  if (!translated) throw new Error("MyMemory: pusta odpowiedź");
-  if (/MYMEMORY WARNING/i.test(translated)) throw new Error("MyMemory: przekroczono dzienny darmowy limit");
-  return translated;
-}
-async function translateChunkWithFallback(text, sourceLang){
-  const providers = [
-    () => translateChunkGoogle(text, sourceLang),
-    () => translateChunkMyMemory(text, sourceLang),
-  ];
-  for (let round = 0; round < 2; round++) {
-    for (const provider of providers) {
-      try { return await provider(); }
-      catch(err) { console.warn("Tłumaczenie nie powiodło się, próbuję innej usługi:", err.message || err); }
-    }
-    if (round === 0) await new Promise(r => setTimeout(r, 1500)); // obie usługi zawiodły - krótka przerwa i jedna dodatkowa runda
-  }
-  return null; // obie usługi zawiodły dwukrotnie - wywołujący zostawi oryginalny tekst
-}
-// Tnie długi tekst na fragmenty nie dłuższe niż maxLen znaków, starając się
-// ciąć po końcu zdania, żeby nie psuć sensu tłumaczonych kawałków (obie
-// usługi mają ograniczenie długości pojedynczego zapytania).
-function splitTextForTranslation(text, maxLen){
-  const sentences = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
-  const chunks = [];
-  let cur = "";
-  for (const s of sentences) {
-    if (cur && (cur.length + s.length) > maxLen) { chunks.push(cur); cur = ""; }
-    cur += s;
-  }
-  if (cur) chunks.push(cur);
-  return chunks.length ? chunks : [text];
-}
-async function translateTextToPolish(text, sourceLang){
-  const t = String(text||"").trim();
-  if (!t) return t;
-  const chunks = splitTextForTranslation(t, 450);
-  const out = [];
-  for (let i=0; i<chunks.length; i++) {
-    const translatedChunk = await translateChunkWithFallback(chunks[i], sourceLang);
-    out.push(translatedChunk != null ? translatedChunk : chunks[i]);
-    // krótki odstęp między kolejnymi fragmentami tego samego opisu
-    if (i < chunks.length-1) await new Promise(r => setTimeout(r, 500));
-  }
-  return out.join(" ").replace(/\s+/g, " ").trim();
-}
-
 // Buduje pełny URL obrazka okładki (poster) na podstawie poster_path z TMDb.
 function tmdbPosterUrl(posterPath, size){
   if (!posterPath) return null;
@@ -533,36 +458,12 @@ async function tmdbFetchTrending(type, window_){
   return results;
 }
 
-// Prosta heurystyka: sprawdza, czy podany tekst prawdopodobnie NIE jest po
-// polsku. Polski tekst dłuższy niż kilka słów niemal zawsze zawiera choć
-// jedną polską literę ze znakiem diakrytycznym (ą, ć, ę, ł, ń, ó, ś, ź, ż) -
-// jeśli jej brak, a w tekście występują typowe angielskie słowa, prawie na
-// pewno jest to tekst po angielsku. Potrzebne, bo TMDb czasem zwraca opis
-// sezonu po angielsku nawet przy zapytaniu o wersję polską (bez sygnalizowania
-// tego pustym polem "overview"), więc samo sprawdzenie "czy pole jest puste"
-// nie wystarcza, by wykryć nieprzetłumaczony tekst.
-function looksLikeNonPolishText(text){
-  const t = String(text||"").trim();
-  if (t.length < 15) return false;
-  if (/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/.test(t)) return false;
-  const englishHints = /\b(the|and|with|his|her|their|season|episode|series|when|where|which|who|this|that|from|will|have|been|into|after|before|they|were|what|about)\b/i;
-  return englishHints.test(t);
-}
-
 async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   const cacheKey = seriesId + ":" + seasonNumber;
   if (!forceRefresh && tmdbSeasonCache.has(cacheKey)) return tmdbSeasonCache.get(cacheKey);
   const data = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {});
   let eps = (data && Array.isArray(data.episodes)) ? data.episodes : [];
-  // Opis i data premiery samego sezonu (nie mylić z opisem/datą serialu) -
-  // dostępne w tej samej odpowiedzi TMDb co lista odcinków.
-  let seasonOverview = (data && typeof data.overview === "string") ? data.overview.trim() : "";
-  // Język, w jakim faktycznie udało się uzyskać opis sezonu - "pl", dopóki
-  // opis pochodzi z pierwszego (polskiego) zapytania; zmieniany na kod
-  // języka zapasowego, gdy opis trzeba było pobrać w innym języku (patrz
-  // pętla fallbacku niżej) - potrzebne, żeby wiedzieć, czy opis wymaga
-  // jeszcze przetłumaczenia na polski.
-  let seasonOverviewLang = seasonOverview ? "pl" : "";
+  // Data premiery samego sezonu (nie mylić z datą serialu).
   const seasonAirDate = (data && data.air_date) ? String(data.air_date) : "";
 
   // wyczyść generyczne nazwy, aby fallback mógł je zastąpić; opisy odcinków
@@ -573,16 +474,15 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   }
 
   const stillMissing = () => eps.length===0 || eps.some(e=>!e.name || !e.name.trim());
-  const needsOverviewFallback = () => !seasonOverview;
 
-  if (stillMissing() || needsOverviewFallback()) {
+  if (stillMissing()) {
     // kolejność prób: angielski, język oryginalny serialu, bez języka (wersja domyślna TMDb)
     const langs = ["en-US"];
     const orig = await tmdbSeriesOriginalLanguage(seriesId);
     if (orig && orig !== "en" && orig !== "pl") langs.push(orig);
 
     for (const lang of langs) {
-      if (!stillMissing() && !needsOverviewFallback()) break;
+      if (!stillMissing()) break;
       try {
         const alt = await tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, {language: lang});
         let epsAlt = (alt && Array.isArray(alt.episodes)) ? alt.episodes : [];
@@ -598,24 +498,12 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
             if ((!ep.name || !ep.name.trim()) && match && match.name && match.name.trim()) ep.name = match.name;
           }
         }
-        if (needsOverviewFallback() && alt && typeof alt.overview === "string" && alt.overview.trim()) {
-          seasonOverview = alt.overview.trim();
-          seasonOverviewLang = lang;
-        }
       } catch(err) {
         // brak danych w tym języku - próbuj dalej
       }
     }
   }
 
-  // UWAGA: ten przycisk ("Sprawdź ponownie i zaktualizuj") celowo NIE tłumaczy
-  // opisów sezonów - tylko pobiera je z TMDb (po polsku, jeśli TMDb
-  // ma taką wersję, w przeciwnym razie fallback en/oryginalny język, patrz
-  // pętla wyżej). Tłumaczenie na polski robi wyłącznie przycisk
-  // "Sprawdź i przetłumacz" (zobacz updateTranslations() w settings.js),
-  // żeby oba przyciski miały jasno rozdzielone, jednoznaczne działanie.
-
-  eps.season_overview = seasonOverview;
   eps.season_air_date = seasonAirDate;
 
   tmdbSeasonCache.set(cacheKey, eps);
