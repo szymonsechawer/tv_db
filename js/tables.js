@@ -119,7 +119,7 @@ function renderUpcomingTable(){
     const th = document.createElement("th");
     th.className = `col-${col}`;
     th.style.cursor = "default";
-    th.textContent = COL_LABELS[col];
+    th.textContent = col === "title" ? `${COL_LABELS[col]} (${rows.length})` : COL_LABELS[col];
     trH.appendChild(th);
   }
   thead.appendChild(trH);
@@ -300,7 +300,7 @@ function renderTable(type, status){
   for (const col of columns) {
     const th = document.createElement("th");
     th.className = `col-${col}`;
-    th.textContent = COL_LABELS[col];
+    th.textContent = col === "title" ? `${COL_LABELS[col]} (${display.length})` : COL_LABELS[col];
     trH.appendChild(th);
   }
   thead.appendChild(trH);
