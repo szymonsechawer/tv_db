@@ -333,6 +333,10 @@
   .filter-chips{display:flex;flex-wrap:wrap;gap:6px;}
   .filter-chip{border:1px solid var(--border);background:transparent;color:var(--text-light);border-radius:16px;padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer;}
   .filter-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .rating-exact{display:flex;gap:8px;}
+  .rating-exact .entry{flex:1;font-size:18px;font-weight:700;text-align:center;}
+  .rating-error{color:#ff8a8a;font-size:12.5px;min-height:16px;margin:6px 0 2px;}
+  .rating-or{font-size:12.5px;margin-bottom:8px;}
   .rating-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
   .rating-grid .btn{padding:12px 0;font-size:16px;font-weight:700;}
   .poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:2px;}
