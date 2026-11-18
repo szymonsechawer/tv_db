@@ -80,6 +80,31 @@ function showConfirm(title, message){
   });
 }
 
+// Pyta o ocenę przy przenoszeniu do Zakończonych. Zwraca liczbę 1-10,
+// 0 gdy wybrano "Bez oceny" albo null gdy anulowano.
+function showRatingPrompt(title, allowCancel){
+  return new Promise(resolve=>{
+    const buttons = Array.from({length:10}, (_,i)=>`<button class="btn secondary rating-pick" data-r="${i+1}">${i+1}</button>`).join("");
+    const overlay = openOverlay(`
+      <div class="modal-header">Oceń przed dodaniem</div>
+      <div class="modal-body">
+        <div class="msg-text" style="margin-bottom:12px;">Jak oceniasz „${escapeHtml(title||"")}”?</div>
+        <div class="rating-grid">${buttons}</div>
+      </div>
+      <div class="modal-footer">
+        ${allowCancel ? '<button class="btn secondary" id="rate-cancel">Anuluj</button>' : ''}
+        <button class="btn secondary" id="rate-skip">Bez oceny</button>
+      </div>
+    `);
+    function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
+    function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(allowCancel ? null : 0); }
+    overlay.querySelectorAll(".rating-pick").forEach(b=>b.addEventListener("click", ()=>finish(parseInt(b.dataset.r,10))));
+    overlay.querySelector("#rate-skip").addEventListener("click", ()=>finish(0));
+    if (allowCancel) overlay.querySelector("#rate-cancel").addEventListener("click", ()=>finish(null));
+    document.addEventListener("keydown", onKey);
+  });
+}
+
 function showAddSeasonPrompt(suggestedNumber){
   return new Promise(resolve=>{
     const overlay = openOverlay(`

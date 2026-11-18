@@ -92,6 +92,10 @@ async function markNextEpisodeWatched(id){
         db.items = db.items.filter(i=>i.id!==id);
         const allWatched = seasons.every(s=>(s.episodes||[]).every(e=>e.watched));
         if (allWatched) {
+          if (item.status !== STATUS_WATCHED && normalizeRating(item.rating) === 0) {
+            const r = await showRatingPrompt(item.title, false);
+            if (r > 0) item.rating = r;
+          }
           if (item.status !== STATUS_WATCHED && !item.finished_date) item.finished_date = todayISODate();
           item.status = STATUS_WATCHED;
           db.items.push(item);
@@ -1920,6 +1924,13 @@ function openItemDialog({item, itemType, prefillTmdb}){
             return;
           }
         }
+      }
+
+      // Przenoszenie do Zakończonych bez oceny - zapytaj o ocenę.
+      if (statusKey === STATUS_WATCHED && !wasWatched && normalizeRating(ratingSelect.value) === 0) {
+        const r = await showRatingPrompt(title, true);
+        if (r === null) return;
+        if (r > 0) ratingSelect.value = String(r);
       }
 
       const resultItem = isNew ? {id: uuidv4(), type, addedAt: Date.now()} : item;
