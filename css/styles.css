@@ -333,6 +333,8 @@
   .filter-chips{display:flex;flex-wrap:wrap;gap:6px;}
   .filter-chip{border:1px solid var(--border);background:transparent;color:var(--text-light);border-radius:16px;padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer;}
   .filter-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .rating-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .rating-grid .btn{padding:12px 0;font-size:16px;font-weight:700;}
   .poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:2px;}
   .poster-tile{
     position:relative;aspect-ratio:2/3;padding:0;border:none;border-radius:8px;overflow:hidden;cursor:pointer;
