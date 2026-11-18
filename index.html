@@ -36,7 +36,6 @@
     <button class="tab-btn" data-main="movie">Filmy</button>
     <button class="tab-btn" data-main="series">Seriale</button>
     <button class="tab-btn" data-main="notes">Notatki</button>
-    <button class="tab-btn" data-main="suggest">Propozycje</button>
   </div>
 
   <div id="main-content">
@@ -65,30 +64,6 @@
               <textarea class="notes-textarea" id="note-content" placeholder="Pisz tu, co chcesz…"></textarea>
             </div>
             <div class="notes-empty" id="notes-empty">Brak notatek. Kliknij „+ Nowa notatka”.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="type-tab" id="tab-suggest">
-      <div class="tabbar">
-        <button class="tab-btn" data-suggest-type="movie">Filmy</button>
-        <button class="tab-btn" data-suggest-type="series">Seriale</button>
-      </div>
-      <div class="sub-content">
-        <div class="status-pane active" id="pane-suggest">
-          <div class="table-wrap suggest-wrap">
-            <div class="suggest-controls">
-              <div class="suggest-sort">
-                <button class="btn small secondary" data-suggest-sort="top">Najlepiej oceniane</button>
-                <button class="btn small secondary" data-suggest-sort="popular">Popularne teraz</button>
-              </div>
-              <div class="filter-chips suggest-providers" id="suggest-providers"></div>
-              <label class="suggest-hide"><input type="checkbox" id="suggest-hide-owned" checked> Ukryj te, które mam w bazie</label>
-            </div>
-            <div class="poster-grid" id="suggest-grid"></div>
-            <div class="muted suggest-status" id="suggest-status"></div>
-            <button class="btn secondary suggest-more" id="suggest-more" type="button" style="display:none;">Pokaż więcej</button>
-            <div class="muted suggest-credit">Dane: TMDb (oceny użytkowników TMDb, dostępność w Polsce)</div>
           </div>
         </div>
       </div>
@@ -287,7 +262,6 @@
 <script src="js/tmdb.js"></script>
 <script src="js/dialogs.js"></script>
 <script src="js/tables.js"></script>
-<script src="js/suggestions.js"></script>
 <script src="js/item-dialog.js"></script>
 <script src="js/notes.js"></script>
 <script src="js/search.js"></script>
