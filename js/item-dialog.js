@@ -117,8 +117,8 @@ function findItemByTmdbId(type, tmdbId){
 // Otwiera okno dodawania nowej pozycji, wstępnie wypełnione danymi z
 // wyniku wyszukiwania/rekomendacji TMDb (poster, opis, obsada itd. zostaną
 // pobrane automatycznie tak samo jak przy wybraniu podpowiedzi w polu tytułu).
-async function addItemFromTmdb(type, hit, initialStatus){
-  const result = await openItemDialog({item:null, itemType:type, prefillTmdb:hit, initialStatus});
+async function addItemFromTmdb(type, hit){
+  const result = await openItemDialog({item:null, itemType:type, prefillTmdb:hit});
   if (result) {
     db.items.push(result);
     setDirty(true);
@@ -866,7 +866,7 @@ function openViewDialog(idOrItem, opts){
     if (preview) {
       overlay.querySelector("#add-from-view-btn").addEventListener("click", async ()=>{
         finish(null);
-        await addItemFromTmdb(opts.tmdbType || type, opts.tmdbHit, opts.addStatus);
+        await addItemFromTmdb(opts.tmdbType || type, opts.tmdbHit);
       });
     } else {
       overlay.querySelector("#delete-from-view-btn").addEventListener("click", async ()=>{
@@ -886,7 +886,7 @@ function openViewDialog(idOrItem, opts){
   });
 }
 
-function openItemDialog({item, itemType, prefillTmdb, initialStatus}){
+function openItemDialog({item, itemType, prefillTmdb}){
   return new Promise(resolve=>{
     const isNew = item==null;
     const type = isNew ? itemType : item.type;
@@ -895,7 +895,7 @@ function openItemDialog({item, itemType, prefillTmdb, initialStatus}){
 
     const statusChoices = [...TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_PLANNED && s!==STATUS_UPCOMING), STATUS_PLANNED];
     const statusOptions = statusChoices.map(s=>STATUS_LABELS[s]);
-    const defaultStatus = STATUS_LABELS[(initialStatus && statusChoices.includes(initialStatus)) ? initialStatus : statusChoices[0]];
+    const defaultStatus = STATUS_LABELS[statusChoices[0]];
 
     const overlay = openOverlay(`
       <div class="modal-header">${isNew ? "Dodaj pozycję" : "Edytuj pozycję"}</div>
