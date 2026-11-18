@@ -82,6 +82,8 @@ function switchMainTab(tab){
     renderNotesTab();
   } else if (tab==="stats") {
     switchStatsTab(activeStatsTab);
+  } else if (tab==="suggest") {
+    initSuggestionsTab();
   }
   updateCheckButtonVisibility();
 }
