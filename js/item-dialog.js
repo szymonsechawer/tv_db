@@ -939,8 +939,8 @@ function openItemDialog({item, itemType, prefillTmdb}){
               <label class="tags-label">Tagi:</label>
               <div style="flex:1;">
                 <div id="tags-chip-list"></div>
-                <input class="entry" id="f-tag-input" type="text" list="tag-suggestions">
-                <datalist id="tag-suggestions"></datalist>
+                <input class="entry" id="f-tag-input" type="text" autocomplete="off" placeholder="Wpisz tag lub wybierz poniżej">
+                <div id="tag-suggest-list" class="tag-suggest-list"></div>
               </div>
             </div>
             <div class="form-row" style="align-items:flex-start;">
@@ -1310,8 +1310,46 @@ function openItemDialog({item, itemType, prefillTmdb}){
     let tags = isNew ? [] : [...(item.tags||[])];
     const tagsChipList = overlay.querySelector("#tags-chip-list");
     const tagInput = overlay.querySelector("#f-tag-input");
-    const tagSuggestions = overlay.querySelector("#tag-suggestions");
-    tagSuggestions.innerHTML = getAllTags().map(t=>`<option value="${escapeHtml(t)}"></option>`).join("");
+    const tagSuggestList = overlay.querySelector("#tag-suggest-list");
+    // Istniejące tagi z całej bazy, od najczęściej używanych.
+    const tagUsage = new Map();
+    for (const it of db.items) for (const t of (it.tags||[])) {
+      if (!t) continue;
+      const k = t.toLowerCase();
+      const cur = tagUsage.get(k);
+      if (cur) cur.n++; else tagUsage.set(k, {tag:t, n:1});
+    }
+    const allTagsByUsage = [...tagUsage.values()].sort((a,b)=>b.n-a.n || a.tag.localeCompare(b.tag,"pl"));
+    function renderTagSuggestions(){
+      const q = tagInput.value.trim().toLowerCase();
+      const taken = new Set(tags.map(t=>t.toLowerCase()));
+      let list = allTagsByUsage.filter(x=>!taken.has(x.tag.toLowerCase()));
+      if (q) {
+        list = list.filter(x=>x.tag.toLowerCase().includes(q))
+          .sort((a,b)=>(b.tag.toLowerCase().startsWith(q)) - (a.tag.toLowerCase().startsWith(q)) || b.n-a.n);
+      }
+      list = list.slice(0, 12);
+      tagSuggestList.innerHTML = "";
+      for (const x of list) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "tag-suggest";
+        b.textContent = x.tag;
+        // pointerdown + preventDefault: kliknięcie nie zabiera fokusu z pola
+        // (inaczej "blur" dodałby niedokończony wpis jako tag).
+        b.addEventListener("pointerdown", (e)=>e.preventDefault());
+        b.addEventListener("mousedown", (e)=>e.preventDefault());
+        b.addEventListener("click", ()=>{
+          if (!tags.some(t=>t.toLowerCase()===x.tag.toLowerCase())) tags.push(x.tag);
+          tagInput.value = "";
+          renderTagChips();
+          renderTagSuggestions();
+        });
+        tagSuggestList.appendChild(b);
+      }
+      tagSuggestList.style.display = list.length ? "" : "none";
+    }
+    tagInput.addEventListener("input", renderTagSuggestions);
 
     function renderTagChips(){
       tagsChipList.innerHTML = "";
@@ -1328,6 +1366,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
         removeBtn.addEventListener("click", ()=>{
           tags = tags.filter(t=>t!==tag);
           renderTagChips();
+          renderTagSuggestions();
         });
         chip.appendChild(label);
         chip.appendChild(removeBtn);
@@ -1344,6 +1383,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
       }
       if (added) renderTagChips();
       tagInput.value = "";
+      renderTagSuggestions();
     }
     tagInput.addEventListener("keydown", (e)=>{
       if (e.key==="Enter" || e.key===",") {
@@ -1353,6 +1393,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
     });
     tagInput.addEventListener("blur", ()=>{ if (tagInput.value.trim()) addTagFromInput(); });
     renderTagChips();
+    renderTagSuggestions();
 
     const genresChipList = overlay.querySelector("#genres-chip-list");
     const genreInput = overlay.querySelector("#f-genre-input");
