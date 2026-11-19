@@ -1328,7 +1328,6 @@ function openItemDialog({item, itemType, prefillTmdb}){
         list = list.filter(x=>x.tag.toLowerCase().includes(q))
           .sort((a,b)=>(b.tag.toLowerCase().startsWith(q)) - (a.tag.toLowerCase().startsWith(q)) || b.n-a.n);
       }
-      list = list.slice(0, 12);
       tagSuggestList.innerHTML = "";
       for (const x of list) {
         const b = document.createElement("button");
