@@ -236,6 +236,7 @@ function openSortMenu({title, current, includeRating=true, includeAdded=true, in
         <div class="sort-menu" id="sort-menu-list"></div>
       </div>
       <div class="modal-footer">
+        <button class="btn secondary" id="sort-menu-reset">Wyczyść</button>
         <button class="btn secondary" id="sort-menu-cancel">Anuluj</button>
       </div>
     `);
@@ -252,6 +253,8 @@ function openSortMenu({title, current, includeRating=true, includeAdded=true, in
     function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
     overlay.querySelector("#sort-menu-cancel").addEventListener("click", ()=>finish(null));
+    // "Wyczyść" = domyślna kolejność listy (jak po otwarciu aplikacji)
+    overlay.querySelector("#sort-menu-reset").addEventListener("click", ()=>finish("reset"));
     document.addEventListener("keydown", onKey);
   });
 }

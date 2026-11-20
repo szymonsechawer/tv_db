@@ -950,7 +950,7 @@ document.getElementById("btn-sort").addEventListener("click", async ()=>{
     includePriority: isPlanned,
   });
   if (!choice) return;
-  sortState[key] = choice;
+  sortState[key] = choice === "reset" ? ["lp", status === STATUS_WATCHED] : choice;
   renderTable(type, status);
 });
 
