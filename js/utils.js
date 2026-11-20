@@ -229,6 +229,20 @@ function finishedDateTimestamp(iso){
   return new Date(y, m-1, d, 12, 0, 0).getTime();
 }
 
+// "Na liście od": data dodania (addedAt w ms) i od ilu dni pozycja czeka.
+// Starsze pozycje mają w addedAt tylko numer kolejności - wtedy brak daty.
+function formatPlannedSince(addedAt){
+  if (!(addedAt > 1e12)) return "Brak informacji (dodane przed zapisywaniem dat).";
+  const d = new Date(addedAt);
+  const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today - start) / 86400000);
+  const since = days <= 0 ? "dodane dzisiaj" : (days === 1 ? "planujesz od 1 dnia" : `planujesz od ${days} dni`);
+  return `${formatDateDMY(iso)} · ${since}`;
+}
+
 // Zamienia "DD.MM.RRRR" (lub "RRRR-MM-DD") na "RRRR-MM-DD"; null gdy błędna.
 function parseDMYToISO(str){
   const v = String(str||"").trim();

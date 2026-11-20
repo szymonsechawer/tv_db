@@ -248,6 +248,7 @@ function openViewDialog(idOrItem, opts){
             <div class="view-row" id="view-budget-row"></div>
             <div class="view-row"><div class="vlabel">Zwiastun:</div><div class="vval desc-inline" id="view-links-text"></div></div>
             <div class="view-row"><div class="vlabel">Gdzie obejrzeć:</div><div class="vval desc-inline" id="view-watch-text"></div></div>
+            <div class="view-row" id="view-planned-row" style="display:none;"><div class="vlabel">Na liście od:</div><div class="vval desc-inline" id="view-planned-text"></div></div>
             <div class="view-row" id="view-finished-row" style="display:none;"><div class="vlabel">Data zakończenia:</div><div class="vval desc-inline" id="view-finished-text"></div></div>
             </div>
             ${type===TYPE_MOVIE ? `
@@ -396,6 +397,14 @@ function openViewDialog(idOrItem, opts){
           watchEl.textContent = "Brak informacji.";
           watchEl.classList.add("muted");
         }
+      }
+      const plannedRow = overlay.querySelector("#view-planned-row");
+      const plannedEl = overlay.querySelector("#view-planned-text");
+      if (plannedRow && plannedEl) {
+        const isPlanned = cur.status === STATUS_PLANNED;
+        plannedRow.style.display = isPlanned ? "" : "none";
+        plannedEl.textContent = isPlanned ? formatPlannedSince(cur.addedAt) : "";
+        plannedEl.classList.toggle("muted", isPlanned && !(cur.addedAt > 1e12));
       }
       const finishedRow = overlay.querySelector("#view-finished-row");
       const finishedEl = overlay.querySelector("#view-finished-text");
