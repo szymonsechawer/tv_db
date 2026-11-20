@@ -772,3 +772,17 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-chips button{cursor:pointer;color:var(--text-muted);}
 .btn.success{background:#2e8b47;border-color:#2e8b47;color:#fff;}
 .btn.success:active{background:#257a3d;}
+/* Okno informacji: mniejsze przyciski akcji i zakładek, większy nagłówek */
+.vd-act{padding:7px 6px;font-size:12.5px;border-radius:9px;}
+.vd-new .inner-tabs .tab-btn{padding:6px 8px;font-size:12.5px;min-height:0;}
+.vd-new .inner-tabs{padding:4px 0 6px;}
+.vd-top-in{padding:16px;gap:16px;}
+.vd-poster{width:132px;border-radius:12px;}
+.vd-title{font-size:22px;}
+.vd-orig{font-size:13px;}
+.vd-meta{font-size:14px;}
+.vd-genres span{font-size:12px;padding:4px 9px;}
+.vd-rate{font-size:14px;}
+.vd-rate b{font-size:17px;}
+.vd-status{font-size:12px;padding:4px 10px;}
+.vd-meta span{white-space:nowrap;}
