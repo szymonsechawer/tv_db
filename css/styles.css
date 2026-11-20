@@ -785,3 +785,6 @@ body.menu-mode .upcoming-switch{display:none;}
    niezależnie od długości tytułu - rośnie pole, nie okładka. */
 .vd-top-in{align-items:flex-start;}
 .vd-poster{align-self:flex-start;width:104px;height:156px;flex:0 0 104px;}
+/* Okładka wyśrodkowana w pionie względem tekstu obok (rozmiar bez zmian) */
+.vd-top-in{align-items:center;}
+.vd-poster{align-self:center;}
