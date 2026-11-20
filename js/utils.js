@@ -153,14 +153,14 @@ function polishPlural(n, singular, few, many){
   return many;
 }
 
-// Sprowadza dowolną wartość oceny do liczby z zakresu 0-10, z dokładnością do
-// jednego miejsca po przecinku (np. 7.8, 9.5). Nieprawidłowe/puste wartości
-// dają 0 (brak oceny).
+// Sprowadza dowolną wartość oceny do liczby z zakresu 0-10, zaokrągloną do
+// pełnej lub połówki (np. 8.8 -> 9, 8.7 -> 8.5). Nieprawidłowe/puste
+// wartości dają 0 (brak oceny). Starsze oceny są zaokrąglane przy wczytaniu.
 function normalizeRating(value){
   const n = parseFloat(String(value).replace(",", "."));
   if (!Number.isFinite(n) || n < 0) return 0;
   const clamped = Math.min(n, 10);
-  return Math.round(clamped * 10) / 10;
+  return Math.round(clamped * 2) / 2;
 }
 
 // Formatuje ocenę do wyświetlenia: zawsze z jedną cyfrą po przecinku
