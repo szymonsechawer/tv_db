@@ -724,3 +724,4 @@ body.search-open #menu-search{background:var(--accent);border-color:var(--accent
 .menu-item.active .menu-dot::before{background:#fff;}
 .menu-item.active .menu-count{color:#fff;background:#ffffff26;}
 .menu-item:active{background:#ffffff14;}
+body.menu-mode .upcoming-switch{display:none;}

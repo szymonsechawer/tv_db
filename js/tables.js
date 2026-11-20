@@ -576,6 +576,12 @@ async function markNextFromList(id, cell){
 let upcomingMode = (()=>{ try { return localStorage.getItem("tv_db_upcoming_mode") === "episodes" ? "episodes" : "seasons"; } catch(e){ return "seasons"; } })();
 const FEED_FUTURE_DAYS = 60;
 
+function setUpcomingMode(mode){
+  upcomingMode = mode === "episodes" ? "episodes" : "seasons";
+  try { localStorage.setItem("tv_db_upcoming_mode", upcomingMode); } catch(e){}
+  renderUpcomingTable();
+}
+
 function ensureUpcomingSwitch(pane){
   if (pane.querySelector(".upcoming-switch")) {
     pane.querySelectorAll(".upcoming-switch .btn").forEach(b=>b.classList.toggle("active", b.dataset.mode===upcomingMode));
@@ -642,7 +648,7 @@ function renderEpisodesFeed(feed){
   if (!rows.length) {
     const empty = document.createElement("div");
     empty.className = "feed-empty muted";
-    empty.textContent = "Brak nowych odcinków w najbliższym czasie. Kliknij „Sprawdź”, żeby pobrać aktualne daty z TMDb.";
+    empty.textContent = "Brak nadchodzących odcinków w najbliższym czasie. Wybierz w menu „Sprawdź nadchodzące”, żeby pobrać aktualne daty z TMDb.";
     feed.appendChild(empty);
     return;
   }

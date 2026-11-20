@@ -30,6 +30,7 @@
     return db.items.filter(i=>i.type===type && (i.status||STATUS_WATCHING)===status).length;
   }
   function locationTitle(){
+    if (activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING && upcomingMode==="episodes") return "Seriale · Nadchodzące";
     if (activeMain===TYPE_MOVIE || activeMain===TYPE_SERIES) return `${TYPE_LABELS[activeMain]} · ${STATUS_LABELS[activeStatus[activeMain]]}`;
     return ({notes:"Notatki", stats:"Statystyki", settings:"Ustawienia"})[activeMain] || "";
   }
@@ -59,10 +60,19 @@
       if (!isUpcoming) item({label:"Filtruj", icon:ICONS.filter, onClick:()=>clickBtn("btn-filter")});
       item({label:"Widok", icon:ICONS.view, onClick:()=>clickBtn("btn-view")});
     }
-    if (isUpcoming) item({label:"Sprawdź nowości", icon:ICONS.check, onClick:()=>clickBtn("btn-check")});
+    if (isUpcoming) item({label: upcomingMode==="episodes" ? "Sprawdź nadchodzące" : "Sprawdź nowości", icon:ICONS.check, onClick:()=>clickBtn("btn-check")});
     for (const type of [TYPE_SERIES, TYPE_MOVIE]) {
       section(TYPE_LABELS[type]);
       for (const st of TYPE_STATUS_ORDER[type]) {
+        if (st === STATUS_UPCOMING) {
+          // Nowości = nowe sezony, Nadchodzące = nadchodzące odcinki
+          const onUp = activeMain===type && activeStatus[type]===st;
+          item({label: "Nowości", count: countFor(type, st), active: onUp && upcomingMode!=="episodes",
+            onClick: ()=>{ setUpcomingMode("seasons"); switchMainTab(type); switchStatusTab(type, st); }});
+          item({label: "Nadchodzące", count: collectEpisodesFeed().length, active: onUp && upcomingMode==="episodes",
+            onClick: ()=>{ setUpcomingMode("episodes"); switchMainTab(type); switchStatusTab(type, st); }});
+          continue;
+        }
         item({label: STATUS_LABELS[st], count: countFor(type, st), active: activeMain===type && activeStatus[type]===st,
           onClick: ()=>{ switchMainTab(type); switchStatusTab(type, st); }});
       }
@@ -95,6 +105,8 @@
   const _sm = switchMainTab, _ss = switchStatusTab;
   switchMainTab = function(t){ _sm(t); refreshTitle(); };
   switchStatusTab = function(t, s){ _ss(t, s); refreshTitle(); };
+  const _sum = setUpcomingMode;
+  setUpcomingMode = function(m){ _sum(m); refreshTitle(); };
   document.body.classList.add("menu-mode");
   refreshTitle();
 })();
