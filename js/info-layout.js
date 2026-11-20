@@ -135,7 +135,7 @@ function applyNewInfoLayout(overlay, ctx){
           <div class="vd-info">
             <div class="vd-title">${escapeHtml(c.title||"")}</div>
             ${c.original_title ? `<div class="vd-orig">${escapeHtml(c.original_title)}</div>` : ""}
-            ${meta.length ? `<div class="vd-meta">${escapeHtml(meta.join(" · "))}</div>` : ""}
+            ${meta.length ? `<div class="vd-meta">${meta.map(m=>`<span>${escapeHtml(m)}</span>`).join(" · ")}</div>` : ""}
             ${(c.genres||[]).length ? `<div class="vd-genres">${c.genres.map(g=>`<span>${escapeHtml(g)}</span>`).join("")}</div>` : ""}
             ${r ? `<div class="vd-rate">Ocena: <b>${formatRating(r).replace(".", ",")}</b></div>` : ""}
             ${statusTxt ? `<span class="vd-status">${escapeHtml(statusTxt)}</span>` : ""}
