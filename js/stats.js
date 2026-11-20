@@ -724,7 +724,11 @@ function renderTodoTime(){
   el("stat-todo-movies").textContent = `${t.movies.count} ${polishPlural(t.movies.count,"film","filmy","filmów")} · ${formatHoursShort(t.movies.minutes)}`;
   el("stat-todo-watching").textContent = `${t.watching.count} odc. · ${formatHoursShort(t.watching.minutes)}`;
   el("stat-todo-planned-series").textContent = `${t.plannedSeries.count} odc. · ${formatHoursShort(t.plannedSeries.minutes)}`;
-  const days = t.total / MIN_PER_DAY;
-  el("stat-todo-total").textContent = `${formatHoursShort(t.total)}${days >= 1 ? ` (≈ ${days.toFixed(days < 10 ? 1 : 0).replace(".", ",")} ${polishPlural(Math.round(days),"doba","doby","dób")} bez przerwy)` : ""}`;
+  const totalHours = Math.round(t.total / 60);
+  const d = Math.floor(totalHours / 24), h = totalHours % 24;
+  const parts = [];
+  if (d) parts.push(`${d} ${polishPlural(d,"dzień","dni","dni")}`);
+  if (h || !d) parts.push(`${h} ${polishPlural(h,"godzina","godziny","godzin")}`);
+  el("stat-todo-total").textContent = parts.join(" i ");
   el("stat-todo-note").textContent = t.estimated ? `Dla ${t.estimated} pozycji bez czasu trwania przyjęto średni czas.` : "";
 }
