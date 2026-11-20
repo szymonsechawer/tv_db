@@ -35,7 +35,9 @@ function initTabs(){
   });
 
   initNotesAutosave();
-  switchMainTab(TYPE_MOVIE);
+  // Po uruchomieniu aplikacja otwiera się na Seriale → Oglądane.
+  activeStatus[TYPE_SERIES] = STATUS_WATCHING;
+  switchMainTab(TYPE_SERIES);
 }
 
 let activeStatsTab = "general";
