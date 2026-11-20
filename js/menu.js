@@ -55,11 +55,7 @@
     const isUpcoming = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
     section("Lista");
     item({label:"Dodaj", icon:ICONS.add, onClick:()=>clickBtn("btn-add")});
-    if (onList) {
-      if (!isUpcoming) item({label:"Sortuj", icon:ICONS.sort, onClick:()=>clickBtn("btn-sort")});
-      if (!isUpcoming) item({label:"Filtruj", icon:ICONS.filter, onClick:()=>clickBtn("btn-filter")});
-      item({label:"Widok", icon:ICONS.view, onClick:()=>clickBtn("btn-view")});
-    }
+    if (onList) item({label:"Widok", icon:ICONS.view, onClick:()=>clickBtn("btn-view")});
     if (isUpcoming) item({label: upcomingMode==="episodes" ? "Sprawdź nadchodzące" : "Sprawdź nowości", icon:ICONS.check, onClick:()=>clickBtn("btn-check")});
     for (const type of [TYPE_SERIES, TYPE_MOVIE]) {
       section(TYPE_LABELS[type]);
@@ -88,7 +84,10 @@
 
   function openMenu(){ buildMenu(); drawer.classList.add("open"); }
   function closeMenu(){ drawer.classList.remove("open"); }
-  function refreshTitle(){ const t = document.getElementById("menu-title"); if (t) t.textContent = locationTitle(); }
+  function refreshTitle(){
+    const t = document.getElementById("menu-title"); if (t) t.textContent = locationTitle();
+    document.body.classList.toggle("on-upcoming", activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING);
+  }
 
   top.querySelector("#menu-open").addEventListener("click", openMenu);
   drawer.querySelector(".menu-backdrop").addEventListener("click", closeMenu);
