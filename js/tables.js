@@ -371,6 +371,7 @@ function renderTable(type, status){
             // zmiany wyglądu/rozmiaru - tylko krótkie przyciemnienie).
             if (p.next && p.next !== "✓" && status !== STATUS_WATCHED) {
               wrap.classList.add("prog-tappable");
+              if (flashProgressId === item.id) wrap.classList.add("prog-flash");
               wrap.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
               wrap.addEventListener("click", async (e)=>{
                 e.stopPropagation();
@@ -504,8 +505,11 @@ function renderTable(type, status){
 }
 
 // Odhacza kolejny odcinek z poziomu listy (przycisk albo komórka postępu).
+let flashProgressId = null;
 async function markNextFromList(id){
+  flashProgressId = id;
   const result = await markNextEpisodeWatched(id);
+  setTimeout(()=>{ if (flashProgressId === id) flashProgressId = null; }, 300);
   if (result && result.notAiredYet) {
     const dateInfo = result.air_date
       ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).`
