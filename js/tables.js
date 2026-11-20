@@ -242,22 +242,61 @@ async function addUpcomingSeason(row){
 
 function openUpcomingViewDialog(row){
   return new Promise(resolve=>{
-    const linkedItem = row.item_id ? findItem(row.item_id) : null;
-    const origTitle = row.original_title || (linkedItem && linkedItem.original_title) || null;
+    const it = row.item_id ? findItem(row.item_id) : null;
+    const title = row.title || (it && it.title) || "—";
+    const origTitle = row.original_title || (it && it.original_title) || "";
+    const poster = it && it.poster_path ? tmdbPosterUrl(it.poster_path, "w342") : "";
+    const year = it ? String(it.premiere_date||"").slice(0,4) : "";
+    const seasonsNow = it ? (it.seasons||[]).filter(s=>(s.number||0)>0).length : 0;
+    const meta = [];
+    if (year) meta.push(year);
+    if (seasonsNow) meta.push(`${seasonsNow} ${polishPlural(seasonsNow,"sezon","sezony","sezonów")} w bazie`);
+    if (it && it.age_certification) meta.push(it.age_certification);
+    const genres = (it && it.genres) || [];
+    const days = daysUntil(row.air_date);
+    const dateIso = String(row.air_date||"").slice(0,10);
+    let dateTxt = "—";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
+      const d = new Date(dateIso + "T12:00:00");
+      dateTxt = `${formatDateDMY(dateIso)} (${PL_WEEKDAYS[d.getDay()]})`;
+    } else if (row.air_date) dateTxt = String(row.air_date);
+    const whenTxt = days === null ? "—" : (days === 0 ? "dziś" : (days < 0 ? "już miał premierę" : formatDaysLabel(days)));
+    const epCount = Number(row.episode_count)||0;
+    const row2 = (label, value)=>`<div class="view-row vd-stack"><div class="vlabel">${label}</div><div class="vval">${value}</div></div>`;
     const overlay = openOverlay(`
       <div class="modal-body">
-        <div class="view-row"><div class="vlabel">Typ:</div><div class="vval">Serial</div></div>
-        <div class="view-row"><div class="vlabel">Tytuł:</div><div class="vval">${escapeHtml(row.title||"—")}</div></div>
-        ${origTitle ? `<div class="view-row"><div class="vlabel">Tytuł org.:</div><div class="vval">${escapeHtml(origTitle)}</div></div>` : ""}
-        <div class="view-row"><div class="vlabel">Data:</div><div class="vval">${escapeHtml(row.air_date||"—")}</div></div>
-        <div class="view-row"><div class="vlabel">Nowy sezon:</div><div class="vval">${escapeHtml(String(row.season_number||"—"))}</div></div>
-        <div class="view-row"><div class="vlabel">Liczba odcinków:</div><div class="vval">${escapeHtml(String(row.episode_count||"—"))}</div></div>
+        <div class="tab-scroll">
+          <div class="vd-hero">
+            <div class="vd-top"><div class="vd-top-in">
+              <div class="vd-poster">${poster ? `<img src="${escapeHtml(poster)}" alt="Okładka">` : `<span>${escapeHtml(title)}</span>`}</div>
+              <div class="vd-info">
+                <div class="vd-title">${escapeHtml(title)}</div>
+                ${origTitle && origTitle !== title ? `<div class="vd-orig">${escapeHtml(origTitle)}</div>` : ""}
+                ${meta.length ? `<div class="vd-meta">${meta.map(m=>`<span>${escapeHtml(m)}</span>`).join(" · ")}</div>` : ""}
+                ${genres.length ? `<div class="vd-genres">${genres.map(g=>`<span>${escapeHtml(g)}</span>`).join("")}</div>` : ""}
+                <span class="vd-status vd-status-new">Nowy sezon</span>
+              </div>
+            </div></div>
+          </div>
+          <div class="info-box">
+            ${row2("Nowy sezon:", `Sezon ${escapeHtml(String(row.season_number||"—"))}`)}
+            ${row2("Liczba odcinków:", epCount ? escapeHtml(String(epCount)) : "brak informacji")}
+            ${row2("Data premiery:", escapeHtml(dateTxt))}
+            ${row2("Do premiery:", `<b>${escapeHtml(whenTxt)}</b>`)}
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn success" id="add-upcoming-view-btn">Dodaj</button>
         <button class="btn" id="close-upcoming-view-btn">Zamknij</button>
       </div>
     `, {wide:true});
+    overlay.classList.add("vd-new");
+    const img = overlay.querySelector(".vd-poster img");
+    if (img) {
+      img.addEventListener("error", ()=>{ img.parentNode.innerHTML = `<span>${escapeHtml(title)}</span>`; });
+      img.addEventListener("click", ()=>{ if (typeof openPosterLightbox === "function") openPosterLightbox(tmdbPosterUrl(it.poster_path, "w780")); });
+    }
 
     function finish(){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(null); }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(); }

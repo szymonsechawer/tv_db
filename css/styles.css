@@ -788,3 +788,4 @@ body.menu-mode .upcoming-switch{display:none;}
 /* Okładka wyśrodkowana w pionie względem tekstu obok (rozmiar bez zmian) */
 .vd-top-in{align-items:center;}
 .vd-poster{align-self:center;}
+.vd-status-new{background:#2e8b4733;color:#8fe0a8;}
