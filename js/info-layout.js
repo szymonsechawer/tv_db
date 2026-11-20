@@ -1,8 +1,9 @@
 // ============================================================
 // info-layout.js — nowy układ okna informacji: nagłówek z okładką,
-// szybkie akcje, najważniejsze informacje na wierzchu, reszta zwinięta,
-// "Usuń" schowane w menu "⋯". Nakłada się na istniejące okno (te same
+// szybkie akcje, najważniejsze informacje na wierzchu, reszta zwinięta.
+// Nakłada się na istniejące okno (te same
 // pola i funkcje), więc łatwo wrócić do starego układu.
+// Stopka okna zostaje jak dawniej: Zamknij, Edytuj, Usuń.
 // ============================================================
 
 function vdFmtMinutes(min){
@@ -106,24 +107,7 @@ function applyNewInfoLayout(overlay, ctx){
   if (tagsRow) tagsRow.classList.add("vd-stack");
   if (finRow) finRow.classList.add("vd-stack");
 
-  // --- stopka: "Usuń" do menu "⋯" ---
-  const delBtn = overlay.querySelector("#delete-from-view-btn");
-  if (delBtn && !preview) {
-    delBtn.style.display = "none";
-    const dots = document.createElement("button");
-    dots.type = "button"; dots.className = "btn secondary vd-dots"; dots.textContent = "⋯"; dots.setAttribute("aria-label", "Więcej");
-    const menu = document.createElement("div");
-    menu.className = "vd-menu"; menu.style.display = "none";
-    const addMenu = (label, fn, cls)=>{ const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (cls) b.className = cls; b.addEventListener("click", ()=>{ menu.style.display = "none"; fn(); }); menu.appendChild(b); };
-    if (navigator.share) addMenu("Udostępnij", ()=>{ const c = cur(); navigator.share({title: c.title, text: `${c.title}${c.premiere_date ? " (" + String(c.premiere_date).slice(0,4) + ")" : ""}`}).catch(()=>{}); });
-    addMenu("Usuń", ()=>delBtn.click(), "vd-del");
-    dots.addEventListener("click", (e)=>{ e.stopPropagation(); menu.style.display = menu.style.display === "none" ? "" : "none"; });
-    overlay.addEventListener("click", (e)=>{ if (!menu.contains(e.target) && e.target !== dots) menu.style.display = "none"; });
-    delBtn.after(dots);
-    const footer = overlay.querySelector(".modal-footer");
-    footer.style.position = "relative";
-    footer.appendChild(menu);
-  }
+  // --- stopka: bez zmian (Zamknij, Edytuj, Usuń) ---
 
   // --- render nagłówka ---
   function plural(n, a, b, c){ return typeof polishPlural === "function" ? polishPlural(n, a, b, c) : c; }
