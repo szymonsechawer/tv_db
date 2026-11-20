@@ -711,7 +711,7 @@ function renderEpisodesFeed(feed){
     row.querySelector(".feed-eptitle").textContent = r.epTitle;
     const img = row.querySelector(".feed-poster");
     if (img) img.addEventListener("error", ()=>img.remove());
-    if (r.item) row.addEventListener("click", ()=>openViewDialog(r.item.id));
+    if (r.item) addDoubleActivation(row, ()=>openViewDialog(r.item.id));   // jak w innych listach: dwukrotne dotknięcie
     feed.appendChild(row);
   }
 }
