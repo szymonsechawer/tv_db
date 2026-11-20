@@ -570,11 +570,11 @@ async function markNextFromList(id, cell){
 }
 
 // ============================================================
-// Nowości → "Odcinki": lista nowych odcinków (ostatnio wyemitowane,
-// jeszcze nieobejrzane + nadchodzące) z obserwowanych seriali.
+// Nowości → "Nowe odcinki": nadchodzące odcinki (od dziś) z obserwowanych
+// seriali.
 // ============================================================
 let upcomingMode = (()=>{ try { return localStorage.getItem("tv_db_upcoming_mode") === "episodes" ? "episodes" : "seasons"; } catch(e){ return "seasons"; } })();
-const FEED_PAST_DAYS = 14, FEED_FUTURE_DAYS = 60;
+const FEED_FUTURE_DAYS = 60;
 
 function ensureUpcomingSwitch(pane){
   if (pane.querySelector(".upcoming-switch")) {
@@ -606,8 +606,7 @@ function collectEpisodesFeed(){
     for (const s of it.seasons||[]) for (const ep of s.episodes||[]) {
       const days = daysUntil(ep.air_date);
       if (days === null || !/^\d{4}-\d{2}-\d{2}/.test(String(ep.air_date))) continue;
-      if (days < -FEED_PAST_DAYS || days > FEED_FUTURE_DAYS) continue;
-      if (days < 0 && ep.watched) continue;
+      if (days < 0 || days > FEED_FUTURE_DAYS) continue;   // tylko dziś i nadchodzące
       const k = `${it.id}:${s.number}:${ep.number}`;
       seen.add(k);
       out.push({item: it, season: s.number, episode: ep.number, epTitle: ep.title || "", air_date: String(ep.air_date).slice(0,10), days, watched: !!ep.watched});
@@ -630,7 +629,6 @@ function collectEpisodesFeed(){
 
 const PL_WEEKDAYS = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
 function feedGroupLabel(r){
-  if (r.days < 0) return "Ostatnio wyszły – do obejrzenia";
   if (r.days === 0) return "Dziś";
   if (r.days === 1) return "Jutro";
   const d = new Date(r.air_date + "T12:00:00");
@@ -648,14 +646,12 @@ function renderEpisodesFeed(feed){
     feed.appendChild(empty);
     return;
   }
-  const past = rows.filter(r=>r.days<0).reverse();   // najnowsze na górze
-  const future = rows.filter(r=>r.days>=0);
   let lastLabel = null;
-  for (const r of [...past, ...future]) {
+  for (const r of rows) {
     const label = feedGroupLabel(r);
     if (label !== lastLabel) {
       const h = document.createElement("div");
-      h.className = "feed-day" + (r.days < 0 ? " past" : (r.days === 0 ? " today" : ""));
+      h.className = "feed-day" + (r.days === 0 ? " today" : "");
       h.textContent = label;
       feed.appendChild(h);
       lastLabel = label;
@@ -665,11 +661,11 @@ function renderEpisodesFeed(feed){
     row.className = "feed-row";
     const title = (r.item && r.item.title) || r.title || "";
     const code = `S${String(r.season).padStart(2,"0")}E${String(r.episode).padStart(2,"0")}`;
-    const when = r.days < 0 ? `${-r.days} ${-r.days===1 ? "dzień" : "dni"} temu` : (r.days === 0 ? "dziś" : formatDaysLabel(r.days));
+    const when = r.days === 0 ? "dziś" : formatDaysLabel(r.days);
     row.innerHTML = `
       ${showPosterInList() && r.item && r.item.poster_path ? `<img class="feed-poster" loading="lazy" alt="" src="${escapeHtml(tmdbPosterUrl(r.item.poster_path, "w92"))}">` : ""}
       <span class="feed-main"><span class="feed-title"></span><span class="feed-sub"><b>${code}</b>${r.epTitle ? " · " : ""}<span class="feed-eptitle"></span></span></span>
-      <span class="feed-when${r.days<0 ? " past" : ""}">${escapeHtml(when)}</span>`;
+      <span class="feed-when">${escapeHtml(when)}</span>`;
     row.querySelector(".feed-title").textContent = title;
     row.querySelector(".feed-eptitle").textContent = r.epTitle;
     const img = row.querySelector(".feed-poster");

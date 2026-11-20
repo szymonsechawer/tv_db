@@ -369,7 +369,6 @@
   .feed-day{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:14px 2px 6px;}
   .feed-day:first-child{margin-top:2px;}
   .feed-day.today{color:#ff8a80;}
-  .feed-day.past{color:#ffcc80;}
   .feed-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--bg-medium);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;color:var(--text-light);font:inherit;cursor:pointer;}
   .feed-poster{width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;}
   .feed-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
@@ -377,7 +376,6 @@
   .feed-sub{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .feed-sub b{color:var(--text-light);font-weight:600;}
   .feed-when{font-size:12px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;}
-  .feed-when.past{color:#ffcc80;}
   .feed-empty{text-align:center;padding:24px 12px;font-weight:600;}
   .poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:2px;}
   .poster-tile{
