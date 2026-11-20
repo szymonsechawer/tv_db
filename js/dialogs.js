@@ -84,17 +84,13 @@ function showConfirm(title, message){
 // 0 gdy wybrano "Bez oceny" albo null gdy anulowano.
 function showRatingPrompt(title, allowCancel){
   return new Promise(resolve=>{
-    const buttons = Array.from({length:10}, (_,i)=>`<button class="btn secondary rating-pick" data-r="${i+1}">${i+1}</button>`).join("");
+    const values = [];
+    for (let v = 1; v <= 10; v += 0.5) values.push(v);
+    const buttons = values.map(v=>`<button class="btn secondary rating-pick${Number.isInteger(v) ? "" : " half"}" data-r="${v}">${Number.isInteger(v) ? v : String(v).replace(".", ",")}</button>`).join("");
     const overlay = openOverlay(`
       <div class="modal-header">Oceń przed dodaniem</div>
       <div class="modal-body">
         <div class="msg-text" style="margin-bottom:12px;">Jak oceniasz „${escapeHtml(title||"")}”?</div>
-        <div class="rating-exact">
-          <input class="entry" id="rate-input" type="text" inputmode="decimal" placeholder="np. 8,8" autocomplete="off">
-          <button class="btn" id="rate-ok">Zapisz</button>
-        </div>
-        <div class="rating-error" id="rate-error"></div>
-        <div class="rating-or muted">albo wybierz:</div>
         <div class="rating-grid">${buttons}</div>
       </div>
       <div class="modal-footer">
@@ -102,24 +98,9 @@ function showRatingPrompt(title, allowCancel){
         <button class="btn secondary" id="rate-skip">Bez oceny</button>
       </div>
     `);
-    const input = overlay.querySelector("#rate-input");
-    const err = overlay.querySelector("#rate-error");
-    function submitExact(){
-      const raw = input.value.trim().replace(",", ".");
-      const v = Number(raw);
-      if (!raw || !isFinite(v) || v < 1 || v > 10) {
-        err.textContent = "Podaj ocenę od 1 do 10, np. 8,8 albo 6,7.";
-        input.focus();
-        return;
-      }
-      finish(Math.round(v * 10) / 10);
-    }
-    overlay.querySelector("#rate-ok").addEventListener("click", submitExact);
-    input.addEventListener("keydown", (e)=>{ if (e.key==="Enter") { e.preventDefault(); submitExact(); } });
-    input.addEventListener("input", ()=>{ err.textContent = ""; });
     function finish(v){ closeOverlay(overlay); document.removeEventListener("keydown", onKey); resolve(v); }
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(allowCancel ? null : 0); }
-    overlay.querySelectorAll(".rating-pick").forEach(b=>b.addEventListener("click", ()=>finish(parseInt(b.dataset.r,10))));
+    overlay.querySelectorAll(".rating-pick").forEach(b=>b.addEventListener("click", ()=>finish(parseFloat(b.dataset.r))));
     overlay.querySelector("#rate-skip").addEventListener("click", ()=>finish(0));
     if (allowCancel) overlay.querySelector("#rate-cancel").addEventListener("click", ()=>finish(null));
     document.addEventListener("keydown", onKey);

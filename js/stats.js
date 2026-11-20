@@ -46,6 +46,7 @@ function updateStats(){
   renderGenreStats();
   updateAverageStats();
   renderCatchUpInfo();
+  renderTodoTime();
 }
 
 // Zbiera wpisy {ts, duration} obejrzenia filmów albo odcinków (ts = timestamp
@@ -665,4 +666,65 @@ function renderCatchUpInfo(){
   valueEl.textContent = `${c.days} ${plDays(c.days)}`;
   if (dateRow) dateRow.style.display = "";
   if (dateEl) dateEl.textContent = c.dateText;
+}
+
+
+// ============================================================
+// Czas do nadrobienia: filmy w Planowanych, wyemitowane nieobejrzane
+// odcinki w Oglądanych i w serialach z Planowanych.
+// Brakujący czas trwania szacujemy średnią (serialu / wszystkich filmów).
+// ============================================================
+function computeTodoTime(){
+  const movieDurations = db.items.filter(i=>i.type===TYPE_MOVIE && i.duration>0).map(i=>i.duration);
+  const avgMovie = movieDurations.length ? movieDurations.reduce((a,b)=>a+b,0)/movieDurations.length : 110;
+  const allEpDurations = [];
+  for (const it of db.items) if (it.type===TYPE_SERIES) for (const s of it.seasons||[]) for (const e of s.episodes||[]) if (e.duration>0) allEpDurations.push(e.duration);
+  const avgEpGlobal = allEpDurations.length ? allEpDurations.reduce((a,b)=>a+b,0)/allEpDurations.length : 45;
+
+  let estimated = 0;
+  const movies = {count:0, minutes:0};
+  for (const it of db.items) {
+    if (it.type!==TYPE_MOVIE || it.status!==STATUS_PLANNED) continue;
+    movies.count++;
+    if (it.duration>0) movies.minutes += it.duration; else { movies.minutes += avgMovie; estimated++; }
+  }
+  function seriesTodo(status){
+    const r = {count:0, minutes:0, series:0};
+    for (const it of db.items) {
+      if (it.type!==TYPE_SERIES || it.status!==status) continue;
+      const eps = (it.seasons||[]).flatMap(s=>s.episodes||[]);
+      const known = eps.filter(e=>e.duration>0).map(e=>e.duration);
+      const avg = known.length ? known.reduce((a,b)=>a+b,0)/known.length : avgEpGlobal;
+      let n = 0;
+      for (const e of eps) {
+        if (e.watched || isEpisodeUnaired(e)) continue;
+        n++;
+        if (e.duration>0) r.minutes += e.duration; else { r.minutes += avg; estimated++; }
+      }
+      r.count += n;
+      if (n) r.series++;
+    }
+    return r;
+  }
+  const watching = seriesTodo(STATUS_WATCHING);
+  const plannedSeries = seriesTodo(STATUS_PLANNED);
+  return {movies, watching, plannedSeries, estimated, total: movies.minutes + watching.minutes + plannedSeries.minutes};
+}
+
+function formatHoursShort(minutes){
+  const h = Math.round(minutes/60);
+  if (h < 1) return `${Math.round(minutes)} min`;
+  return `${h.toLocaleString("pl-PL")} h`;
+}
+
+function renderTodoTime(){
+  const el = (id)=>document.getElementById(id);
+  if (!el("stat-todo-total")) return;
+  const t = computeTodoTime();
+  el("stat-todo-movies").textContent = `${t.movies.count} ${polishPlural(t.movies.count,"film","filmy","filmów")} · ${formatHoursShort(t.movies.minutes)}`;
+  el("stat-todo-watching").textContent = `${t.watching.count} odc. · ${formatHoursShort(t.watching.minutes)}`;
+  el("stat-todo-planned-series").textContent = `${t.plannedSeries.count} odc. · ${formatHoursShort(t.plannedSeries.minutes)}`;
+  const days = t.total / MIN_PER_DAY;
+  el("stat-todo-total").textContent = `${formatHoursShort(t.total)}${days >= 1 ? ` (≈ ${days.toFixed(days < 10 ? 1 : 0).replace(".", ",")} ${polishPlural(Math.round(days),"doba","doby","dób")} bez przerwy)` : ""}`;
+  el("stat-todo-note").textContent = t.estimated ? `Dla ${t.estimated} pozycji bez czasu trwania przyjęto średni czas.` : "";
 }

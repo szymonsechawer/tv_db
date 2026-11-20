@@ -636,7 +636,19 @@ function openViewDialog(idOrItem, opts){
       }
     }
 
+    // Rozwinięty jest tylko bieżący sezon - pierwszy z wyemitowanym,
+    // nieobejrzanym odcinkiem; pozostałe zwinięte.
     let collapsedSeasons = new Set((item.seasons||[]).map(s=>s.number));
+    let nextEpKey = null;
+    {
+      const sortedS = [...(item.seasons||[])].sort((a,b)=>(a.number||0)-(b.number||0));
+      outer: for (const s of sortedS) {
+        for (const e of [...(s.episodes||[])].sort((a,b)=>(a.number||0)-(b.number||0))) {
+          if (!e.watched && !isEpisodeUnaired(e)) { collapsedSeasons.delete(s.number); nextEpKey = `${s.number}:${e.number}`; break outer; }
+        }
+      }
+    }
+    let seasonsScrolled = false;
 
     function refreshSeasonsPane(){
       if (type!==TYPE_SERIES) return;
@@ -688,6 +700,7 @@ function openViewDialog(idOrItem, opts){
               const row = document.createElement("div");
               const unaired = isEpisodeUnaired(ep);
               row.className = "episode-row ep-static" + (unaired ? " ep-unaired" : "");
+              if (nextEpKey === `${season.number}:${ep.number}`) row.classList.add("ep-next");
               const rightInfo = unaired
                 ? `<span class="ep-air-info">${escapeHtml(formatDateDMY(ep.air_date))} · ${escapeHtml(formatDaysLabel(daysUntil(ep.air_date)))}</span>`
                 : `<span class="ep-duration-static">${escapeHtml(String(ep.duration||0))} min</span>`;
@@ -703,6 +716,13 @@ function openViewDialog(idOrItem, opts){
       }
 
       refreshMarkNextEp();
+      if (!seasonsScrolled) {
+        const nextRow = pane.querySelector(".ep-next");
+        if (nextRow && pane.offsetParent !== null) {
+          seasonsScrolled = true;
+          requestAnimationFrame(()=>nextRow.scrollIntoView({block:"center", behavior:"smooth"}));
+        }
+      }
     }
 
     const vtabInfo = overlay.querySelector("#vtab-info");
@@ -933,7 +953,7 @@ function openItemDialog({item, itemType, prefillTmdb}){
               </select>
             </div>
             <div class="form-row"><label>Ocena (0-10):</label>
-              <input class="entry" id="f-rating" type="number" min="0" max="10" step="0.1" style="width:80px;flex:none;">
+              <input class="entry" id="f-rating" type="number" min="0" max="10" step="0.5" style="width:80px;flex:none;">
             </div>
             <div class="form-row" style="align-items:flex-start;">
               <label class="tags-label">Tagi:</label>
