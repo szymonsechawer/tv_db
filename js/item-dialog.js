@@ -59,7 +59,7 @@ async function ensureItemTmdbId(cur){
   return null;
 }
 
-async function markNextEpisodeWatched(id){
+async function markNextEpisodeWatched(id, opts){
   const item = findItem(id);
   if (!item) return null;
   const seasons = [...(item.seasons||[])].sort((a,b)=>(a.number||0)-(b.number||0));
@@ -103,6 +103,9 @@ async function markNextEpisodeWatched(id){
           db.items.unshift(item);
         }
         setDirty(true);
+        // Pozwala np. najpierw podświetlić zmianę w miejscu, a dopiero potem
+        // przerysować listę (serial przeskakuje wtedy na górę).
+        if (opts && opts.beforeRender) { try { await opts.beforeRender(item, allWatched); } catch(e) {} }
         renderAll();
         return {season: season.number, episode: ep.number, completed: allWatched};
       }
