@@ -1213,15 +1213,38 @@ function openItemDialog({item, itemType, prefillTmdb}){
       applyingSuggestion = false;
     }
 
+    // Komunikat w miejscu podpowiedzi (zamiast cichego ukrycia), żeby było
+    // widać, dlaczego podpowiedzi się nie pojawiają.
+    function showSuggestNote(text, onClick){
+      suggestItems = []; suggestActive = -1;
+      suggestBox.innerHTML = "";
+      const el = document.createElement("div");
+      el.className = "sug sug-note";
+      el.textContent = text;
+      if (onClick) el.addEventListener("mousedown", (e)=>{ e.preventDefault(); onClick(); });
+      suggestBox.appendChild(el);
+      suggestBox.style.display = "";
+    }
+
     async function runSuggest(){
       const q = titleInput.value.trim();
-      if (q.length < 2 || !getStoredTmdbKey()) { hideSuggest(); return; }
+      if (q.length < 2) { hideSuggest(); return; }
+      if (!getStoredTmdbKey()) {
+        showSuggestNote("Podpowiedzi wymagają klucza TMDb — dotknij, żeby go wpisać.", async ()=>{
+          hideSuggest();
+          if (await ensureTmdbKey(true)) runSuggest();
+        });
+        return;
+      }
       try {
         const results = await tmdbSearchList(type, q);
         if (titleInput.value.trim() !== q) return;
+        if (!results.length) { showSuggestNote("Brak wyników w TMDb dla tego tytułu."); return; }
         renderSuggest(results);
       } catch(err) {
-        hideSuggest();
+        if (titleInput.value.trim() !== q) return;
+        const offline = (typeof navigator !== "undefined" && navigator.onLine === false);
+        showSuggestNote(offline ? "Brak internetu — podpowiedzi z TMDb niedostępne." : ("Nie udało się pobrać podpowiedzi: " + ((err && err.message) || err)));
       }
     }
 

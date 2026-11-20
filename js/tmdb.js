@@ -39,8 +39,9 @@ async function tmdbFetch(path, params){
   else url.searchParams.set("api_key", key);
   const res = await fetch(url.toString(), {headers});
   if (res.status===401) {
-    setStoredTmdbKey("");
-    throw new Error("Nieprawidłowy klucz API TMDb.");
+    // Klucza nie kasujemy (chwilowy błąd nie może go wymazać) - komunikat
+    // podpowiada, żeby sprawdzić/zmienić klucz w Ustawieniach.
+    throw new Error("TMDb odrzucił klucz API (błąd 401). Sprawdź klucz w Ustawieniach.");
   }
   if (!res.ok) throw new Error("TMDb: błąd " + res.status);
   return res.json();
