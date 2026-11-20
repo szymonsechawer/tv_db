@@ -280,9 +280,10 @@
   .title-text-col{display:flex;flex-direction:column;min-width:0;flex:1;gap:5px;}
   .title-main{font-weight:600;}
   .title-date{color:var(--text-muted);font-size:11px;font-weight:400;}
-  .title-main.has-since{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
-  .title-main.has-since .title-text{min-width:0;}
-  .title-since{color:var(--text-muted);font-size:11px;font-weight:400;white-space:nowrap;flex-shrink:0;}
+  .title-since{color:var(--text-muted);font-size:11px;font-weight:400;white-space:nowrap;}
+  td.col-priority.has-since{text-align:right;}
+  td.col-priority .title-since{display:inline;}
+  td.col-priority .title-since + .priority-mark{margin-left:6px;}
   table.data tbody td.col-progress{padding:8px 8px;}
   table.data thead th.col-priority,
   table.data tbody td.col-priority{width:1%;white-space:nowrap;}

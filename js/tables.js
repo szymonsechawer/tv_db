@@ -455,6 +455,8 @@ function renderTable(type, status){
             td.appendChild(wrap);
           }
         } else if (col === "priority") {
+          const sinceEl = status === STATUS_PLANNED ? buildPlannedSinceEl(item) : null;
+          if (sinceEl) { td.appendChild(sinceEl); td.classList.add("has-since"); }
           const pr = Math.min(3, Math.max(0, Number(item.priority)||0));
           if (pr > 0) {
             const mark = document.createElement("span");
@@ -499,8 +501,8 @@ function renderTable(type, status){
   }
 }
 
-// Tytuł w wierszu listy; w Planowanych z prawej strony małym drukiem
-// "od X dni" (od dodania). Pozycje bez prawdziwej daty dodania - bez dopisku.
+// W Planowanych przy prawej krawędzi wiersza (kolumna priorytetu) małym
+// drukiem "od X dni" od dodania. Pozycje bez prawdziwej daty - bez dopisku.
 function plannedSinceShort(addedAt){
   if (!(addedAt > 1e12)) return "";
   const d = new Date(addedAt);
@@ -513,19 +515,18 @@ function plannedSinceShort(addedAt){
 function buildTitleLine(item, status){
   const titleLine = document.createElement("div");
   titleLine.className = "title-main";
-  const since = status === STATUS_PLANNED ? plannedSinceShort(item.addedAt) : "";
-  if (!since) { titleLine.textContent = item.title || ""; return titleLine; }
-  titleLine.classList.add("has-since");
-  const t = document.createElement("span");
-  t.className = "title-text";
-  t.textContent = item.title || "";
-  const s = document.createElement("span");
+  titleLine.textContent = item.title || "";
+  return titleLine;
+}
+function buildPlannedSinceEl(item){
+  const since = plannedSinceShort(item.addedAt);
+  if (!since) return null;
+  const s = document.createElement("div");
   s.className = "title-since";
   s.textContent = since;
   const ad = new Date(item.addedAt);
   s.title = "Na liście od " + formatDateDMY(`${ad.getFullYear()}-${String(ad.getMonth()+1).padStart(2,"0")}-${String(ad.getDate()).padStart(2,"0")}`);
-  titleLine.append(t, s);
-  return titleLine;
+  return s;
 }
 
 // Odhacza kolejny odcinek z poziomu listy (przycisk albo komórka postępu).
