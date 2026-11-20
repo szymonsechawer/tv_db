@@ -347,11 +347,11 @@
   .rating-grid .btn.half{font-size:14px;font-weight:600;color:var(--text-muted);}
   .progress-cell.prog-tappable{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;}
   .progress-cell.prog-tappable{border-radius:8px;}
-  .progress-cell.prog-tappable:active,.progress-cell.prog-busy{opacity:.45;}
+  .progress-cell.prog-tappable:active{opacity:.45;}
   /* Po odhaczeniu: biała ramka i delikatna poświata, znikające po chwili
      (outline nie zmienia rozmiaru komórki). */
-  .progress-cell.prog-flash{animation:progFlash 1.4s ease-out;}
-  .progress-cell.prog-flash .progress-bar-fill{animation:progFillFlash 1.4s ease-out;}
+  .progress-cell.prog-flash{animation:progFlash 1.1s ease-out forwards;}
+  .progress-cell.prog-flash .progress-bar-fill{animation:progFillFlash 1.1s ease-out;transition:width .3s;}
   @keyframes progFlash{
     0%{outline:2px solid #fff;outline-offset:3px;background:rgba(255,255,255,.14);}
     60%{outline:2px solid rgba(255,255,255,.75);outline-offset:3px;background:rgba(255,255,255,.08);}

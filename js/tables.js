@@ -371,13 +371,12 @@ function renderTable(type, status){
             // zmiany wyglądu/rozmiaru - tylko krótkie przyciemnienie).
             if (p.next && p.next !== "✓" && status !== STATUS_WATCHED) {
               wrap.classList.add("prog-tappable");
-              if (flashProgressId === item.id) wrap.classList.add("prog-flash");
               wrap.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
               wrap.addEventListener("click", async (e)=>{
                 e.stopPropagation();
                 if (wrap.classList.contains("prog-busy")) return;
                 wrap.classList.add("prog-busy");
-                try { await markNextFromList(item.id); }
+                try { await markNextFromList(item.id, wrap); }
                 finally { wrap.classList.remove("prog-busy"); }
               });
               wrap.addEventListener("dblclick", (e)=>e.stopPropagation());
@@ -505,11 +504,25 @@ function renderTable(type, status){
 }
 
 // Odhacza kolejny odcinek z poziomu listy (przycisk albo komórka postępu).
-let flashProgressId = null;
-async function markNextFromList(id){
-  flashProgressId = id;
-  const result = await markNextEpisodeWatched(id);
-  setTimeout(()=>{ if (flashProgressId === id) flashProgressId = null; }, 300);
+// cell (opcjonalnie): komórka postępu w widoku z paskiem - zostaje najpierw
+// zaktualizowana i podświetlona w miejscu, a po chwili lista się przerysowuje.
+async function markNextFromList(id, cell){
+  const opts = cell ? {beforeRender: async (item)=>{
+    const p = formatProgress(item);
+    let total = 0, watched = 0;
+    for (const s of item.seasons||[]) for (const e of s.episodes||[]) { total++; if (e.watched) watched++; }
+    const nextEl = cell.querySelector(".prog-next");
+    const cntEl = cell.querySelector(".prog-counts");
+    const fill = cell.querySelector(".progress-bar-fill");
+    if (nextEl) nextEl.textContent = (p.next && p.next !== "✓") ? p.next : "✓";
+    if (cntEl) cntEl.textContent = p.counts;
+    if (fill) fill.style.width = (total ? Math.round((watched/total)*100) : 0) + "%";
+    cell.classList.remove("prog-flash");
+    void cell.offsetWidth;
+    cell.classList.add("prog-flash");
+    await new Promise(r=>setTimeout(r, 1100));
+  }} : undefined;
+  const result = await markNextEpisodeWatched(id, opts);
   if (result && result.notAiredYet) {
     const dateInfo = result.air_date
       ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).`
