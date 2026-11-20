@@ -106,7 +106,6 @@ function applyNewInfoLayout(overlay, ctx){
     if (preview) statusTxt = "";
     if (c.status === STATUS_PLANNED && typeof plannedSinceShort === "function") { const s = plannedSinceShort(c.addedAt); if (s) statusTxt += ` · ${s}`; }
     const poster = c.poster_path ? tmdbPosterUrl(c.poster_path, "w342") : "";
-    const bg = c.poster_path ? tmdbPosterUrl(c.poster_path, "w185") : "";
 
     let progress = "";
     let nextCode = "";
@@ -131,7 +130,6 @@ function applyNewInfoLayout(overlay, ctx){
 
     hero.innerHTML = `
       <div class="vd-top">
-        ${bg ? `<div class="vd-bg" style="background-image:url('${bg}')"></div>` : ""}
         <div class="vd-top-in">
           <div class="vd-poster">${poster ? `<img src="${poster}" alt="Okładka">` : `<span>${escapeHtml(c.title||"")}</span>`}</div>
           <div class="vd-info">
