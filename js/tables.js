@@ -3,7 +3,7 @@
 // ============================================================
 
 function columnsFor(type, status){
-  if (status === STATUS_UPCOMING) return ["title","days","del"];
+  if (status === STATUS_UPCOMING) return ["title","days"];
   if (status === STATUS_PLANNED) return ["title","priority"];
   if (type === TYPE_SERIES) {
     if (status === STATUS_WATCHING) return ["title","progress"];
@@ -203,38 +203,8 @@ function renderUpcomingTable(){
     const tdDays = document.createElement("td");
     tdDays.className = "col-days";
     tdDays.textContent = formatDaysLabel(row.days);
-    const tdDel = document.createElement("td");
-    tdDel.className = "col-del";
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "btn small next-ep-btn upcoming-add-btn";
-    addBtn.textContent = "Dodaj";
-    addBtn.addEventListener("click", async (e)=>{
-      e.stopPropagation();
-      const ok = await showConfirm("Dodaj do oglądanych", `Dodać „${row.title}” — sezon ${row.season_number} do oglądanych?`);
-      if (!ok) return;
-      const item = row.item_id ? findItem(row.item_id) : null;
-      if (!item) { await showAlert("Błąd", "Nie znaleziono serialu w bazie.", "error"); return; }
-      const nextNum = (item.seasons||[]).reduce((m,s)=>Math.max(m, Number(s.number)||0), 0) + 1;
-      const count = Math.max(0, Number(row.episode_count)||0);
-      const episodes = Array.from({length:count}, (_,i)=>({number:i+1, watched:false, duration:0, title:""}));
-      if (!Array.isArray(item.seasons)) item.seasons = [];
-      item.seasons.push({number:nextNum, episodes});
-      item.seasons.sort((a,b)=>(a.number||0)-(b.number||0));
-      item.status = STATUS_WATCHING;
-      delete item.finished_date;
-      db.items = db.items.filter(i=>i.id!==item.id);
-      db.items.unshift(item);
-      const uk = upcomingKeyOf(row);
-      db.upcoming = (db.upcoming||[]).filter(x=>upcomingKeyOf(x)!==uk);
-      setDirty(true);
-      renderAll();
-      await showAlert("Dodano sezon", `Dodano sezon ${nextNum} (${count} odcinków). Serial przeniesiono do zakładki „Oglądane”.`, "info");
-    });
-    tdDel.appendChild(addBtn);
     tr.appendChild(tdTitle);
     tr.appendChild(tdDays);
-    tr.appendChild(tdDel);
     if (selectedId[key] === upcomingKeyOf(row)) tr.classList.add("selected");
     tr.addEventListener("click", ()=>{
       selectedId[key] = upcomingKeyOf(row);
@@ -244,6 +214,30 @@ function renderUpcomingTable(){
     addDoubleActivation(tr, ()=>{ openUpcomingViewDialog(row); });
     tbody.appendChild(tr);
   });
+}
+
+// Dodaje nowy sezon z "Nowości" do serialu i przenosi go do Oglądanych.
+async function addUpcomingSeason(row){
+  const ok = await showConfirm("Dodaj do oglądanych", `Dodać „${row.title}” — sezon ${row.season_number} do oglądanych?`);
+  if (!ok) return false;
+  const item = row.item_id ? findItem(row.item_id) : null;
+  if (!item) { await showAlert("Błąd", "Nie znaleziono serialu w bazie.", "error"); return false; }
+  const nextNum = (item.seasons||[]).reduce((m,s)=>Math.max(m, Number(s.number)||0), 0) + 1;
+  const count = Math.max(0, Number(row.episode_count)||0);
+  const episodes = Array.from({length:count}, (_,i)=>({number:i+1, watched:false, duration:0, title:""}));
+  if (!Array.isArray(item.seasons)) item.seasons = [];
+  item.seasons.push({number:nextNum, episodes});
+  item.seasons.sort((a,b)=>(a.number||0)-(b.number||0));
+  item.status = STATUS_WATCHING;
+  delete item.finished_date;
+  db.items = db.items.filter(i=>i.id!==item.id);
+  db.items.unshift(item);
+  const uk = upcomingKeyOf(row);
+  db.upcoming = (db.upcoming||[]).filter(x=>upcomingKeyOf(x)!==uk);
+  setDirty(true);
+  renderAll();
+  await showAlert("Dodano sezon", `Dodano sezon ${nextNum} (${count} odcinków). Serial przeniesiono do zakładki „Oglądane”.`, "info");
+  return true;
 }
 
 function openUpcomingViewDialog(row){
@@ -260,6 +254,7 @@ function openUpcomingViewDialog(row){
         <div class="view-row"><div class="vlabel">Liczba odcinków:</div><div class="vval">${escapeHtml(String(row.episode_count||"—"))}</div></div>
       </div>
       <div class="modal-footer">
+        <button class="btn success" id="add-upcoming-view-btn">Dodaj</button>
         <button class="btn" id="close-upcoming-view-btn">Zamknij</button>
       </div>
     `, {wide:true});
@@ -268,6 +263,9 @@ function openUpcomingViewDialog(row){
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(); }
     document.addEventListener("keydown", onKey);
     overlay.querySelector("#close-upcoming-view-btn").addEventListener("click", finish);
+    overlay.querySelector("#add-upcoming-view-btn").addEventListener("click", async ()=>{
+      if (await addUpcomingSeason(row)) finish();
+    });
   });
 }
 

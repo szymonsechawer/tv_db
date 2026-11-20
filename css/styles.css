@@ -765,3 +765,5 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-chips{display:flex;flex-wrap:wrap;gap:6px;}
 .vd-chips span,.vd-chips button{font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-light);font-family:inherit;}
 .vd-chips button{cursor:pointer;color:var(--text-muted);}
+.btn.success{background:#2e8b47;border-color:#2e8b47;color:#fff;}
+.btn.success:active{background:#257a3d;}
