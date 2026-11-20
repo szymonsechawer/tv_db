@@ -693,8 +693,13 @@ body.menu-mode #menu-topbar{display:flex;align-items:center;gap:8px;padding:2px 
 body.menu-mode #main-tabs,
 body.menu-mode #subtabs-movie,
 body.menu-mode #subtabs-series,
-body.menu-mode #button-bar,
-body.menu-mode #button-bar-check-row{display:none !important;}
+body.menu-mode #button-bar{display:none !important;}
+/* "Sprawdź nowości" pod listą tylko w Nowościach (nowe sezony) */
+body.menu-mode:not(.on-upcoming-seasons) #button-bar-check-row{display:none !important;}
+body.menu-mode #button-bar-check-row{padding-top:10px;}
+body.menu-mode #button-bar-check-row .icon-btn{background:var(--bg-medium);border:1px solid var(--border);color:var(--text-light);border-radius:12px;gap:8px;}
+body.menu-mode #button-bar-check-row .icon-btn .btn-label{display:inline !important;font-weight:700;}
+body.menu-mode #button-bar-check-row .icon-btn:active{transform:scale(.97);}
 /* Sortuj i Filtruj zostają pod listą, w kolorach paska z menu i lupą */
 body.menu-mode #btn-view{display:none;}
 body.menu-mode.on-upcoming #button-bar-sort-row{display:none !important;}
