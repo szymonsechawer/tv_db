@@ -429,9 +429,7 @@ function renderTable(type, status){
           }
         } else if (col === "title") {
           if (!showPosterInList()) {
-            const titleLine = document.createElement("div");
-            titleLine.className = "title-main";
-            titleLine.textContent = item.title || "";
+            const titleLine = buildTitleLine(item, status);
             td.appendChild(titleLine);
             if (item.premiere_date) {
               const dateLine = document.createElement("div");
@@ -445,9 +443,7 @@ function renderTable(type, status){
             wrap.appendChild(buildRowPosterEl(item.poster_path));
             const textCol = document.createElement("div");
             textCol.className = "title-text-col";
-            const titleLine = document.createElement("div");
-            titleLine.className = "title-main";
-            titleLine.textContent = item.title || "";
+            const titleLine = buildTitleLine(item, status);
             textCol.appendChild(titleLine);
             if (item.premiere_date) {
               const dateLine = document.createElement("div");
@@ -459,6 +455,8 @@ function renderTable(type, status){
             td.appendChild(wrap);
           }
         } else if (col === "priority") {
+          const sinceEl = status === STATUS_PLANNED ? buildPlannedSinceEl(item) : null;
+          if (sinceEl) { td.appendChild(sinceEl); td.classList.add("has-since"); }
           const pr = Math.min(3, Math.max(0, Number(item.priority)||0));
           if (pr > 0) {
             const mark = document.createElement("span");
@@ -501,6 +499,34 @@ function renderTable(type, status){
     }
     return "";
   }
+}
+
+// W Planowanych przy prawej krawędzi wiersza (kolumna priorytetu) małym
+// drukiem "od X dni" od dodania. Pozycje bez prawdziwej daty - bez dopisku.
+function plannedSinceShort(addedAt){
+  if (!(addedAt > 1e12)) return "";
+  const d = new Date(addedAt);
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const n = new Date();
+  const days = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - start) / 86400000);
+  if (days <= 0) return "od dziś";
+  return days === 1 ? "od 1 dnia" : `od ${days} dni`;
+}
+function buildTitleLine(item, status){
+  const titleLine = document.createElement("div");
+  titleLine.className = "title-main";
+  titleLine.textContent = item.title || "";
+  return titleLine;
+}
+function buildPlannedSinceEl(item){
+  const since = plannedSinceShort(item.addedAt);
+  if (!since) return null;
+  const s = document.createElement("div");
+  s.className = "title-since";
+  s.textContent = since;
+  const ad = new Date(item.addedAt);
+  s.title = "Na liście od " + formatDateDMY(`${ad.getFullYear()}-${String(ad.getMonth()+1).padStart(2,"0")}-${String(ad.getDate()).padStart(2,"0")}`);
+  return s;
 }
 
 // Odhacza kolejny odcinek z poziomu listy (przycisk albo komórka postępu).
