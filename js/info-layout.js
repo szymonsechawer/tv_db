@@ -97,13 +97,7 @@ function applyNewInfoLayout(overlay, ctx){
   for (const r of [castRow, creatorsRow]) if (r) { r.classList.add("vd-stack"); const c = document.createElement("div"); c.className = "vd-chips"; r.appendChild(c); }
   const watchRow = rowOf("#view-watch-text"); if (watchRow) watchRow.classList.add("vd-stack");
   const descRow = rowOf("#view-desc-text");
-  if (descRow) {
-    descRow.classList.add("vd-stack");
-    const more = document.createElement("button");
-    more.type = "button"; more.className = "vd-desc-more"; more.textContent = "więcej";
-    more.addEventListener("click", ()=>{ descRow.classList.toggle("vd-desc-open"); more.textContent = descRow.classList.contains("vd-desc-open") ? "mniej" : "więcej"; });
-    descRow.appendChild(more);
-  }
+  if (descRow) descRow.classList.add("vd-stack");   // opis zawsze w całości
   if (tagsRow) tagsRow.classList.add("vd-stack");
   if (finRow) finRow.classList.add("vd-stack");
 
@@ -191,10 +185,6 @@ function applyNewInfoLayout(overlay, ctx){
     };
     chipList(castRow, c.cast, 4);
     chipList(creatorsRow, c.creators, 4);
-    if (descRow) {
-      const t = (overlay.querySelector("#view-desc-text")||{}).textContent || "";
-      descRow.classList.toggle("vd-desc-long", t.length > 220);
-    }
     // kolekcja: ile obejrzanych
     const colTitle = overlay.querySelector("#view-collection-title");
     if (colTitle && Array.isArray(c.collection) && c.collection.length) {

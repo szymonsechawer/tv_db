@@ -389,8 +389,7 @@ function openViewDialog(idOrItem, opts){
           if (wp.flatrate.length) bits.push(`Streaming: ${escapeHtml(wp.flatrate.join(", "))}`);
           if (wp.rent.length) bits.push(`Wypożyczenie: ${escapeHtml(wp.rent.join(", "))}`);
           if (wp.buy.length) bits.push(`Zakup: ${escapeHtml(wp.buy.join(", "))}`);
-          const linkHtml = wp.link ? ` <a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="view-link">(szczegóły)</a>` : "";
-          watchEl.innerHTML = bits.join("<br>") + linkHtml;
+          watchEl.innerHTML = bits.join("<br>");
           watchEl.classList.remove("muted");
         } else {
           watchEl.textContent = "Brak informacji.";
