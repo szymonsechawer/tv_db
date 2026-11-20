@@ -345,6 +345,8 @@
   .rating-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
   .rating-grid .btn{padding:12px 0;font-size:16px;font-weight:700;}
   .rating-grid .btn.half{font-size:14px;font-weight:600;color:var(--text-muted);}
+  .progress-cell.prog-tappable{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;}
+  .progress-cell.prog-tappable:active,.progress-cell.prog-busy{opacity:.45;}
   .poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:2px;}
   .poster-tile{
     position:relative;aspect-ratio:2/3;padding:0;border:none;border-radius:8px;overflow:hidden;cursor:pointer;
