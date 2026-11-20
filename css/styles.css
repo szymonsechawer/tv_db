@@ -781,3 +781,7 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-new .inner-tabs{gap:8px;}
 .vd-new .inner-tabs .tab-btn{flex:1;padding:7px 6px;font-size:12.5px;font-weight:700;border-radius:9px;border:1px solid transparent;line-height:normal;box-sizing:border-box;}
 .vd-act,.vd-new .inner-tabs .tab-btn{min-height:32px;}
+/* Okładka w oknie informacji zawsze w tym samym rozmiarze (2:3),
+   niezależnie od długości tytułu - rośnie pole, nie okładka. */
+.vd-top-in{align-items:flex-start;}
+.vd-poster{align-self:flex-start;width:104px;height:156px;flex:0 0 104px;}
