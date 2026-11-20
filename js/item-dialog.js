@@ -871,6 +871,21 @@ function openViewDialog(idOrItem, opts){
 
     refreshStaticRows();
 
+    if (typeof applyNewInfoLayout === "function") {
+      applyNewInfoLayout(overlay, {id, item, type, readOnly, preview,
+        onMarkNext: async ()=>{
+          const result = await markNextEpisodeWatched(id);
+          if (result && result.notAiredYet) {
+            const dateInfo = result.air_date ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).` : "";
+            await showAlert("Odcinek jeszcze nie miał premiery", `Odcinek ${result.episode} (sezon ${result.season}) nie został jeszcze wyemitowany, więc nie można go oznaczyć jako obejrzany.${dateInfo}`);
+          }
+          refreshStaticRows();
+          if (typeof refreshSeasonsPane === "function") refreshSeasonsPane();
+        },
+        onChange: ()=>{ refreshStaticRows(); refreshExtras(); },
+      });
+    }
+
     requestAnimationFrame(()=>{
       const bodyEl = overlay.querySelector(".modal-body");
       if (bodyEl) {
