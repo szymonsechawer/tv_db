@@ -18,7 +18,6 @@ const SHELL_FILES = [
   "./js/stats.js",
   "./js/settings.js",
   "./js/tabs.js",
-  "./js/reminders.js",
   "./js/main.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -72,12 +71,3 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Kliknięcie powiadomienia o premierze - otwórz/przywołaj aplikację.
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  event.waitUntil((async () => {
-    const all = await self.clients.matchAll({type: "window", includeUncontrolled: true});
-    for (const c of all) { if ("focus" in c) return c.focus(); }
-    if (self.clients.openWindow) return self.clients.openWindow("./");
-  })());
-});

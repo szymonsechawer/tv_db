@@ -89,5 +89,4 @@ initSettingsTab();
   renderSettingsTab();
   renderAll();
   renderStorageInfo();
-  if (typeof checkPremiereReminders === "function") checkPremiereReminders();
 })();
