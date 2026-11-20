@@ -367,6 +367,24 @@ function renderTable(type, status){
             track.appendChild(fill);
             wrap.appendChild(top);
             wrap.appendChild(track);
+            // Dotknięcie komórki postępu odhacza kolejny odcinek (bez
+            // zmiany wyglądu/rozmiaru - tylko krótkie przyciemnienie).
+            if (p.next && p.next !== "✓" && status !== STATUS_WATCHED) {
+              wrap.classList.add("prog-tappable");
+              if (flashProgressId === item.id) wrap.classList.add("prog-flash");
+              wrap.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
+              wrap.addEventListener("click", async (e)=>{
+                e.stopPropagation();
+                if (wrap.classList.contains("prog-busy")) return;
+                wrap.classList.add("prog-busy");
+                try { await markNextFromList(item.id); }
+                finally { wrap.classList.remove("prog-busy"); }
+              });
+              wrap.addEventListener("dblclick", (e)=>e.stopPropagation());
+              // Nie przekazuj dotknięć do wiersza (podwójne dotknięcie
+              // wiersza otwiera okno informacji).
+              wrap.addEventListener("touchend", (e)=>e.stopPropagation());
+            }
             td.appendChild(wrap);
           } else {
             const wrap = document.createElement("div");
@@ -389,13 +407,7 @@ function renderTable(type, status){
                 e.stopPropagation();
                 btn.disabled = true;
                 try {
-                  const result = await markNextEpisodeWatched(item.id);
-                  if (result && result.notAiredYet) {
-                    const dateInfo = result.air_date
-                      ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).`
-                      : "";
-                    await showAlert("Odcinek jeszcze nie miał premiery", `Odcinek ${result.episode} (sezon ${result.season}) nie został jeszcze wyemitowany, więc nie można go oznaczyć jako obejrzany.${dateInfo}`);
-                  }
+                  await markNextFromList(item.id);
                 } finally {
                   btn.disabled = false;
                 }
@@ -490,6 +502,21 @@ function renderTable(type, status){
     }
     return "";
   }
+}
+
+// Odhacza kolejny odcinek z poziomu listy (przycisk albo komórka postępu).
+let flashProgressId = null;
+async function markNextFromList(id){
+  flashProgressId = id;
+  const result = await markNextEpisodeWatched(id);
+  setTimeout(()=>{ if (flashProgressId === id) flashProgressId = null; }, 300);
+  if (result && result.notAiredYet) {
+    const dateInfo = result.air_date
+      ? ` Premiera: ${formatDateDMY(result.air_date)} (${formatDaysLabel(daysUntil(result.air_date))}).`
+      : "";
+    await showAlert("Odcinek jeszcze nie miał premiery", `Odcinek ${result.episode} (sezon ${result.season}) nie został jeszcze wyemitowany, więc nie można go oznaczyć jako obejrzany.${dateInfo}`);
+  }
+  return result;
 }
 
 // Widok 4: siatka samych okładek; kliknięcie otwiera okno informacji.

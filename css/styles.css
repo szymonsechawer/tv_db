@@ -345,6 +345,19 @@
   .rating-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
   .rating-grid .btn{padding:12px 0;font-size:16px;font-weight:700;}
   .rating-grid .btn.half{font-size:14px;font-weight:600;color:var(--text-muted);}
+  .progress-cell.prog-tappable{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;}
+  .progress-cell.prog-tappable{border-radius:8px;}
+  .progress-cell.prog-tappable:active,.progress-cell.prog-busy{opacity:.45;}
+  /* Po odhaczeniu: biała ramka i delikatna poświata, znikające po chwili
+     (outline nie zmienia rozmiaru komórki). */
+  .progress-cell.prog-flash{animation:progFlash 1.4s ease-out;}
+  .progress-cell.prog-flash .progress-bar-fill{animation:progFillFlash 1.4s ease-out;}
+  @keyframes progFlash{
+    0%{outline:2px solid #fff;outline-offset:3px;background:rgba(255,255,255,.14);}
+    60%{outline:2px solid rgba(255,255,255,.75);outline-offset:3px;background:rgba(255,255,255,.08);}
+    100%{outline:2px solid rgba(255,255,255,0);outline-offset:3px;background:transparent;}
+  }
+  @keyframes progFillFlash{0%,40%{background:#5fd38d;}100%{}}
   .poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:2px;}
   .poster-tile{
     position:relative;aspect-ratio:2/3;padding:0;border:none;border-radius:8px;overflow:hidden;cursor:pointer;
