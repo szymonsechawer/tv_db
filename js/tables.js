@@ -256,11 +256,9 @@ function openUpcomingViewDialog(row){
     const days = daysUntil(row.air_date);
     const dateIso = String(row.air_date||"").slice(0,10);
     let dateTxt = "—";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
-      const d = new Date(dateIso + "T12:00:00");
-      dateTxt = `${formatDateDMY(dateIso)} (${PL_WEEKDAYS[d.getDay()]})`;
-    } else if (row.air_date) dateTxt = String(row.air_date);
-    const whenTxt = days === null ? "—" : (days === 0 ? "dziś" : (days < 0 ? "już miał premierę" : formatDaysLabel(days)));
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) dateTxt = formatDateDMY(dateIso);
+    else if (row.air_date) dateTxt = String(row.air_date);
+    const whenTxt = days === null ? "—" : (days === 0 ? "dziś" : (days < 0 ? "już miał premierę" : `${days} ${days === 1 ? "dzień" : "dni"}`));
     const epCount = Number(row.episode_count)||0;
     const row2 = (label, value)=>`<div class="view-row vd-stack"><div class="vlabel">${label}</div><div class="vval">${value}</div></div>`;
     const overlay = openOverlay(`
