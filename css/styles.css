@@ -789,3 +789,4 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-top-in{align-items:center;}
 .vd-poster{align-self:center;}
 .vd-status-new{background:#2e8b4733;color:#8fe0a8;}
+.tmdb-suggest .sug-note{color:var(--text-muted);font-style:italic;cursor:default;}
