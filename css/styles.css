@@ -694,8 +694,13 @@ body.menu-mode #main-tabs,
 body.menu-mode #subtabs-movie,
 body.menu-mode #subtabs-series,
 body.menu-mode #button-bar,
-body.menu-mode #button-bar-sort-row,
 body.menu-mode #button-bar-check-row{display:none !important;}
+/* Sortuj i Filtruj zostają pod listą, w kolorach paska z menu i lupą */
+body.menu-mode #btn-view{display:none;}
+body.menu-mode.on-upcoming #button-bar-sort-row{display:none !important;}
+body.menu-mode #button-bar-sort-row .icon-btn{background:var(--bg-medium);border:1px solid var(--border);color:var(--text-light);border-radius:12px;}
+body.menu-mode #button-bar-sort-row .icon-btn:active{transform:scale(.97);}
+body.menu-mode #btn-filter.filter-on{background:var(--accent);border-color:var(--accent);box-shadow:none;}
 body.menu-mode #search-bar{display:none;}
 body.menu-mode.search-open #search-bar{display:flex;}
 .menu-icon-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--border);background:var(--bg-medium);color:var(--text-light);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
