@@ -786,3 +786,7 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-rate b{font-size:17px;}
 .vd-status{font-size:12px;padding:4px 10px;}
 .vd-meta span{white-space:nowrap;}
+/* Zakładki Informacje / Sezony i odcinki - ten sam rozmiar co Odhacz / Zwiastun */
+.vd-new .inner-tabs{gap:8px;}
+.vd-new .inner-tabs .tab-btn{flex:1;padding:7px 6px;font-size:12.5px;font-weight:700;border-radius:9px;border:1px solid transparent;line-height:normal;box-sizing:border-box;}
+.vd-act,.vd-new .inner-tabs .tab-btn{min-height:32px;}
