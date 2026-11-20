@@ -84,5 +84,10 @@ window.addEventListener("beforeunload", (e)=>{
 // przypadkach (baza wczytana lub pusta) trzeba wyrenderować interfejs.
 initTabs();
 initSettingsTab();
-loadFromLocalStorage();
-renderAll();
+(async ()=>{
+  await loadPersistedDb();
+  renderSettingsTab();
+  renderAll();
+  renderStorageInfo();
+  if (typeof checkPremiereReminders === "function") checkPremiereReminders();
+})();

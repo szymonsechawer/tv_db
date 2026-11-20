@@ -115,27 +115,179 @@ function extractPlannedIntoNotes(items, notes){
   return remaining;
 }
 
-function saveToLocalStorage(){
-  try{
-    const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    localStorage.setItem(STORAGE_NAME_KEY, currentDbName);
-  }catch(e){ }
+// ============================================================
+// Trwały zapis bazy w przeglądarce: IndexedDB (duży limit, setki MB),
+// z awaryjnym localStorage (ok. 5 MB) gdy IndexedDB jest niedostępne.
+// Nazwa saveToLocalStorage() zostaje dla zgodności z resztą kodu.
+// ============================================================
+const IDB_NAME = "tv_db";
+const IDB_STORE = "kv";
+const IDB_DATA_KEY = "data";
+let storageBackend = "localStorage";   // "indexedDB" po udanym otwarciu
+let lastSaveError = null;
+let saveErrorShown = false;
+let idbPromise = null;
+let saveTimer = null;
+let lastSavedBytes = 0;
+
+function idbOpen(){
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject)=>{
+    if (!("indexedDB" in window)) { reject(new Error("Brak IndexedDB")); return; }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error || new Error("Nie udało się otworzyć IndexedDB"));
+    req.onblocked = ()=>reject(new Error("IndexedDB zablokowane"));
+  });
+  idbPromise.catch(()=>{ idbPromise = null; });
+  return idbPromise;
+}
+async function idbGet(key){
+  const d = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const r = d.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).get(key);
+    r.onsuccess = ()=>resolve(r.result);
+    r.onerror = ()=>reject(r.error);
+  });
+}
+async function idbPut(key, value){
+  const d = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = d.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error || new Error("Błąd zapisu IndexedDB"));
+    tx.onabort = ()=>reject(tx.error || new Error("Zapis IndexedDB przerwany (brak miejsca?)"));
+  });
 }
 
+function buildPersistJson(){
+  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
+  return JSON.stringify(data);
+}
+
+// Zapis jest odkładany o chwilę i łączony (wiele zmian = jeden zapis).
+function saveToLocalStorage(){
+  try { localStorage.setItem(STORAGE_NAME_KEY, currentDbName); } catch(e){}
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ saveTimer = null; persistNow(); }, 150);
+}
+
+async function persistNow(){
+  const json = buildPersistJson();
+  if (storageBackend === "indexedDB") {
+    try {
+      await idbPut(IDB_DATA_KEY, json);
+      lastSavedBytes = json.length;
+      onSaveOk();
+      return true;
+    } catch(err) {
+      // spróbuj awaryjnie localStorage
+      try { localStorage.setItem(STORAGE_KEY, json); lastSavedBytes = json.length; onSaveOk(); return true; }
+      catch(e2) { onSaveError(err); return false; }
+    }
+  }
+  try { localStorage.setItem(STORAGE_KEY, json); lastSavedBytes = json.length; onSaveOk(); return true; }
+  catch(err) { onSaveError(err); return false; }
+}
+
+function flushPendingSave(){
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; persistNow(); }
+}
+document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState === "hidden") flushPendingSave(); });
+window.addEventListener("pagehide", flushPendingSave);
+
+function onSaveOk(){
+  lastSaveError = null;
+  saveErrorShown = false;
+  if (typeof renderStorageInfo === "function") renderStorageInfo();
+}
+function onSaveError(err){
+  lastSaveError = err;
+  if (typeof renderStorageInfo === "function") renderStorageInfo();
+  if (!saveErrorShown) {
+    saveErrorShown = true;
+    showAlert("Nie udało się zapisać danych",
+      "Przeglądarka nie zapisała ostatnich zmian (brak miejsca lub błąd pamięci).\n\nZapisz bazę do pliku przyciskiem „Zapisz”, żeby niczego nie stracić.\n\nSzczegóły: " + ((err && err.message) || err),
+      "error");
+  }
+}
+
+function applyLoadedData(data){
+  db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
+  if (!db.settings.tmdb_key) {
+    try { db.settings.tmdb_key = localStorage.getItem(TMDB_KEY_STORAGE) || ""; } catch(e){}
+  }
+  try { currentDbName = localStorage.getItem(STORAGE_NAME_KEY) || DEFAULT_DB_FILENAME; } catch(e){}
+}
+function parseStored(raw){
+  if (!raw) return null;
+  const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (typeof data !== "object" || data===null || !Array.isArray(data.items)) return null;
+  return data;
+}
+
+// Wczytanie przy starcie. Jednorazowo przenosi starą bazę z localStorage
+// do IndexedDB (po sprawdzeniu zapisu usuwa kopię z localStorage, żeby
+// zwolnić miejsce).
+async function loadPersistedDb(){
+  let fromIdb = null;
+  try {
+    await idbOpen();
+    storageBackend = "indexedDB";
+    fromIdb = parseStored(await idbGet(IDB_DATA_KEY));
+  } catch(e) { storageBackend = "localStorage"; }
+
+  let fromLs = null;
+  try { fromLs = parseStored(localStorage.getItem(STORAGE_KEY)); } catch(e){}
+
+  const data = fromIdb || fromLs;
+  if (!data) return false;
+  applyLoadedData(data);
+
+  if (storageBackend === "indexedDB" && !fromIdb && fromLs) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      await idbPut(IDB_DATA_KEY, raw);
+      const check = await idbGet(IDB_DATA_KEY);
+      if (check && check.length === raw.length) {
+        localStorage.removeItem(STORAGE_KEY);
+        lastSavedBytes = raw.length;
+      }
+    } catch(e) { /* zostaje localStorage */ }
+  } else if (storageBackend === "indexedDB" && fromIdb && fromLs) {
+    // stara kopia po migracji - niepotrzebna
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
+  }
+  if (fromIdb) lastSavedBytes = JSON.stringify(fromIdb).length;
+  if (navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch(e){} }
+  return true;
+}
+
+// Zgodność: synchroniczny odczyt z localStorage (używany tylko awaryjnie).
 function loadFromLocalStorage(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
-    if (typeof data !== "object" || data===null || !Array.isArray(data.items)) return false;
-    db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
-    if (!db.settings.tmdb_key) {
-      try { db.settings.tmdb_key = localStorage.getItem(TMDB_KEY_STORAGE) || ""; } catch(e){}
-    }
-    currentDbName = localStorage.getItem(STORAGE_NAME_KEY) || DEFAULT_DB_FILENAME;
+    const data = parseStored(localStorage.getItem(STORAGE_KEY));
+    if (!data) return false;
+    applyLoadedData(data);
     return true;
   }catch(e){ return false; }
+}
+
+function renderStorageInfo(){
+  const el = document.getElementById("set-storage-status");
+  if (!el) return;
+  const mb = (lastSavedBytes / (1024*1024)).toFixed(1).replace(".", ",");
+  if (lastSaveError) {
+    el.textContent = `Błąd zapisu! Zapisz bazę do pliku. (${(lastSaveError && lastSaveError.message) || lastSaveError})`;
+    el.classList.add("err");
+    return;
+  }
+  el.classList.remove("err");
+  el.textContent = storageBackend === "indexedDB"
+    ? `Dane zapisywane w IndexedDB (duży limit pamięci) · ok. ${mb} MB`
+    : `Dane zapisywane w localStorage (limit ok. 5 MB) · ok. ${mb} MB`;
 }
 
 function setDirty(v){
@@ -204,6 +356,7 @@ async function saveDb(){
   const json = JSON.stringify(data, null, 2);
 
   saveToLocalStorage();
+  flushPendingSave();
   dirty = false;
   updateDbBadge();
 
