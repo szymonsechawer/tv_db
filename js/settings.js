@@ -268,6 +268,40 @@ async function refreshAllEpisodeTitles(){
 }
 
 
+// Uzupełnia odcinki bieżącego sezonu (nowe odcinki, daty emisji, tytuły,
+// czas) na podstawie TMDb - żeby lista "Nowe odcinki" była aktualna.
+// Dotyczy tylko sezonów, które już są w bazie (nowy sezon trafia do
+// "Nowe sezony", jak dotąd).
+async function refreshCurrentSeasonEpisodes(item, tid, details){
+  const nums = new Set();
+  for (const k of ["next_episode_to_air", "last_episode_to_air"]) {
+    const e = details[k];
+    if (e && e.season_number) nums.add(Number(e.season_number));
+  }
+  for (const num of nums) {
+    const season = (item.seasons||[]).find(s=>Number(s.number)===num);
+    if (!season) continue;
+    let tmdbEps;
+    try { tmdbEps = await tmdbSeasonEpisodes(tid, num, true); } catch(e) { continue; }
+    if (!Array.isArray(tmdbEps)) continue;
+    if (!Array.isArray(season.episodes)) season.episodes = [];
+    for (const te of tmdbEps) {
+      const n = Number(te.episode_number);
+      if (!n) continue;
+      let ep = season.episodes.find(e=>Number(e.number)===n);
+      if (!ep) {
+        ep = {number: n, title: te.name || "", duration: te.runtime || 0, watched: false, air_date: te.air_date || ""};
+        season.episodes.push(ep);
+        continue;
+      }
+      if (te.air_date && ep.air_date !== te.air_date) ep.air_date = te.air_date;
+      if (te.name && !ep.title) ep.title = te.name;
+      if (te.runtime && !ep.duration) ep.duration = te.runtime;
+    }
+    season.episodes.sort((a,b)=>(a.number||0)-(b.number||0));
+  }
+}
+
 async function checkUpcomingSeasons(){
   const btn = document.getElementById("btn-check");
   const key = await ensureTmdbKey(false);
@@ -294,6 +328,7 @@ async function checkUpcomingSeasons(){
       if (!tid) return;
       const details = await tmdbFetch("/tv/" + tid, {});
       if (!details || !Array.isArray(details.seasons)) return;
+      if (item.status === STATUS_WATCHING) await refreshCurrentSeasonEpisodes(item, tid, details);
       const localMax = (item.seasons||[]).reduce((m,s)=>Math.max(m, Number(s.number)||0), 0);
       const nextNum = localMax + 1;
       const season = details.seasons.find(s=>Number(s.season_number)===nextNum);

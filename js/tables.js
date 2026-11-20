@@ -89,6 +89,17 @@ function sortKey(item, column, type){
 function renderUpcomingTable(){
   const pane = document.getElementById(`pane-${TYPE_SERIES}-${STATUS_UPCOMING}`);
   if (!pane) return;
+  ensureUpcomingSwitch(pane);
+  const feed = pane.querySelector(".episodes-feed");
+  const tableWrapEl = pane.querySelector(".table-wrap");
+  if (upcomingMode === "episodes") {
+    tableWrapEl.style.display = "none";
+    feed.style.display = "";
+    renderEpisodesFeed(feed);
+    return;
+  }
+  feed.style.display = "none";
+  tableWrapEl.style.display = "";
   const thead = pane.querySelector("thead");
   const tbody = pane.querySelector("tbody");
   const columns = columnsFor(TYPE_SERIES, STATUS_UPCOMING);
@@ -556,6 +567,112 @@ async function markNextFromList(id, cell){
     await showAlert("Odcinek jeszcze nie miał premiery", `Odcinek ${result.episode} (sezon ${result.season}) nie został jeszcze wyemitowany, więc nie można go oznaczyć jako obejrzany.${dateInfo}`);
   }
   return result;
+}
+
+// ============================================================
+// Nowości → "Nowe odcinki": nadchodzące odcinki (od dziś) z obserwowanych
+// seriali.
+// ============================================================
+let upcomingMode = (()=>{ try { return localStorage.getItem("tv_db_upcoming_mode") === "episodes" ? "episodes" : "seasons"; } catch(e){ return "seasons"; } })();
+const FEED_FUTURE_DAYS = 60;
+
+function ensureUpcomingSwitch(pane){
+  if (pane.querySelector(".upcoming-switch")) {
+    pane.querySelectorAll(".upcoming-switch .btn").forEach(b=>b.classList.toggle("active", b.dataset.mode===upcomingMode));
+    return;
+  }
+  const sw = document.createElement("div");
+  sw.className = "upcoming-switch";
+  sw.innerHTML = `<button class="btn small secondary" data-mode="seasons" type="button">Nowe sezony</button><button class="btn small secondary" data-mode="episodes" type="button">Nowe odcinki</button>`;
+  sw.querySelectorAll(".btn").forEach(b=>b.addEventListener("click", ()=>{
+    upcomingMode = b.dataset.mode;
+    try { localStorage.setItem("tv_db_upcoming_mode", upcomingMode); } catch(e){}
+    renderUpcomingTable();
+  }));
+  const feed = document.createElement("div");
+  feed.className = "episodes-feed";
+  feed.style.display = "none";
+  pane.insertBefore(sw, pane.firstChild);
+  pane.querySelector(".table-wrap").after(feed);
+  ensureUpcomingSwitch(pane);
+}
+
+function collectEpisodesFeed(){
+  const out = [];
+  const seen = new Set();
+  const followed = [STATUS_WATCHING, STATUS_PAUSED, STATUS_WATCHED];
+  for (const it of db.items) {
+    if (it.type !== TYPE_SERIES || !followed.includes(it.status)) continue;
+    for (const s of it.seasons||[]) for (const ep of s.episodes||[]) {
+      const days = daysUntil(ep.air_date);
+      if (days === null || !/^\d{4}-\d{2}-\d{2}/.test(String(ep.air_date))) continue;
+      if (days < 0 || days > FEED_FUTURE_DAYS) continue;   // tylko dziś i nadchodzące
+      const k = `${it.id}:${s.number}:${ep.number}`;
+      seen.add(k);
+      out.push({item: it, season: s.number, episode: ep.number, epTitle: ep.title || "", air_date: String(ep.air_date).slice(0,10), days, watched: !!ep.watched});
+    }
+  }
+  // premiery sezonów z "Nowe sezony" (odcinek 1)
+  for (const u of db.upcoming||[]) {
+    const days = daysUntil(u.air_date);
+    if (days === null || days < 0 || days > FEED_FUTURE_DAYS) continue;
+    const it = u.item_id ? findItem(u.item_id) : null;
+    const k = `${u.item_id}:${u.season_number}:1`;
+    if (seen.has(k)) continue;
+    out.push({item: it, title: u.title, season: u.season_number, episode: 1, epTitle: "Premiera sezonu", air_date: String(u.air_date).slice(0,10), days, premiere: true});
+  }
+  const search = searchQuery.trim().toLowerCase();
+  const filtered = search ? out.filter(r => ((r.item && r.item.title) || r.title || "").toLowerCase().includes(search)) : out;
+  filtered.sort((a,b)=> a.air_date.localeCompare(b.air_date) || ((a.item&&a.item.title)||a.title||"").localeCompare((b.item&&b.item.title)||b.title||"", "pl") || a.season-b.season || a.episode-b.episode);
+  return filtered;
+}
+
+const PL_WEEKDAYS = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+function feedGroupLabel(r){
+  if (r.days === 0) return "Dziś";
+  if (r.days === 1) return "Jutro";
+  const d = new Date(r.air_date + "T12:00:00");
+  const wd = PL_WEEKDAYS[d.getDay()];
+  return `${wd.charAt(0).toUpperCase()+wd.slice(1)}, ${formatDateDMY(r.air_date)}`;
+}
+
+function renderEpisodesFeed(feed){
+  const rows = collectEpisodesFeed();
+  feed.innerHTML = "";
+  if (!rows.length) {
+    const empty = document.createElement("div");
+    empty.className = "feed-empty muted";
+    empty.textContent = "Brak nowych odcinków w najbliższym czasie. Kliknij „Sprawdź”, żeby pobrać aktualne daty z TMDb.";
+    feed.appendChild(empty);
+    return;
+  }
+  let lastLabel = null;
+  for (const r of rows) {
+    const label = feedGroupLabel(r);
+    if (label !== lastLabel) {
+      const h = document.createElement("div");
+      h.className = "feed-day" + (r.days === 0 ? " today" : "");
+      h.textContent = label;
+      feed.appendChild(h);
+      lastLabel = label;
+    }
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "feed-row";
+    const title = (r.item && r.item.title) || r.title || "";
+    const code = `S${String(r.season).padStart(2,"0")}E${String(r.episode).padStart(2,"0")}`;
+    const when = r.days === 0 ? "dziś" : formatDaysLabel(r.days);
+    row.innerHTML = `
+      ${showPosterInList() && r.item && r.item.poster_path ? `<img class="feed-poster" loading="lazy" alt="" src="${escapeHtml(tmdbPosterUrl(r.item.poster_path, "w92"))}">` : ""}
+      <span class="feed-main"><span class="feed-title"></span><span class="feed-sub"><b>${code}</b>${r.epTitle ? " · " : ""}<span class="feed-eptitle"></span></span></span>
+      <span class="feed-when">${escapeHtml(when)}</span>`;
+    row.querySelector(".feed-title").textContent = title;
+    row.querySelector(".feed-eptitle").textContent = r.epTitle;
+    const img = row.querySelector(".feed-poster");
+    if (img) img.addEventListener("error", ()=>img.remove());
+    if (r.item) row.addEventListener("click", ()=>openViewDialog(r.item.id));
+    feed.appendChild(row);
+  }
 }
 
 // Widok 4: siatka samych okładek; kliknięcie otwiera okno informacji.
