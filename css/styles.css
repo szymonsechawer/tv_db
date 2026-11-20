@@ -767,5 +767,3 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-chips{display:flex;flex-wrap:wrap;gap:6px;}
 .vd-chips span,.vd-chips button{font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-light);font-family:inherit;}
 .vd-chips button{cursor:pointer;color:var(--text-muted);}
-.vd-more{display:flex;justify-content:space-between;align-items:center;width:100%;margin:10px 0 4px;padding:10px 12px;border-radius:10px;background:var(--bg-medium);border:1px solid var(--border);color:var(--text-light);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;}
-.vd-details{margin-bottom:6px;}

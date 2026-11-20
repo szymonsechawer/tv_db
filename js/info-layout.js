@@ -74,23 +74,11 @@ function applyNewInfoLayout(overlay, ctx){
   if (tagsRow && anchor) { anchor.after(tagsRow); anchor = tagsRow; }
   const finRow = overlay.querySelector("#view-finished-row");
   if (finRow && anchor) { anchor.after(finRow); anchor = finRow; }
-  // Szczegóły (zwinięte)
-  const details = document.createElement("div");
-  details.className = "vd-details";
-  details.style.display = "none";
-  const detToggle = document.createElement("button");
-  detToggle.type = "button";
-  detToggle.className = "vd-more";
-  detToggle.innerHTML = `<span>Szczegóły · kraj, wytwórnia, budżet, język</span><span class="vd-arrow">▸</span>`;
-  detToggle.addEventListener("click", ()=>{
-    const open = details.style.display === "none";
-    details.style.display = open ? "" : "none";
-    detToggle.querySelector(".vd-arrow").textContent = open ? "▾" : "▸";
-  });
-  infoBox.after(detToggle);
-  detToggle.after(details);
-  for (const s of ["#view-countries-text","#view-origin-text","#view-language-text","#view-companies-text","#view-budget-row"]) {
-    const r = rowOf(s); if (r) details.appendChild(r);
+  // Szczegóły - zawsze widoczne, w tym samym stylu co Opis
+  for (const sel of ["#view-countries-text","#view-origin-text","#view-language-text","#view-companies-text","#view-budget-row"]) {
+    const r = rowOf(sel); if (!r) continue;
+    infoBox.appendChild(r);
+    r.classList.add("vd-stack");
   }
   // etykieta "Twórcy/Reżyseria" i obsada jako przyciski
   const castRow = rowOf("#view-cast-text"), creatorsRow = rowOf("#view-creators-text");
