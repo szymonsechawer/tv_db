@@ -777,13 +777,3 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-menu button{background:none;border:none;color:var(--text-light);text-align:left;padding:10px 12px;border-radius:8px;font:inherit;font-size:14px;cursor:pointer;}
 .vd-menu button:active{background:#ffffff14;}
 .vd-menu .vd-del{color:#ff6b6b;}
-/* Okno informacji powiększone do rozmiaru głównego widoku - z ramką
-   i przyciemnionym tłem, jak pozostałe okna. */
-.overlay.vd-new{
-  padding:10px;
-  padding-left:max(10px, env(safe-area-inset-left));
-  padding-right:max(10px, env(safe-area-inset-right));
-  padding-top:max(10px, env(safe-area-inset-top));
-  padding-bottom:max(10px, env(safe-area-inset-bottom));
-}
-.overlay.vd-new > .modal{max-width:720px;width:100%;height:100%;max-height:none;}
