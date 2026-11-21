@@ -47,6 +47,65 @@ function updateStats(){
   updateAverageStats();
   renderCatchUpInfo();
   renderTodoTime();
+  renderGeneralTiles(s);
+}
+
+// ============================================================
+// Ogólne: kafelki z najważniejszymi liczbami
+// ============================================================
+function fmtNum(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0"); }
+function fmtSpanShort(minutes){
+  let m = Math.round(minutes || 0);
+  if (m <= 0) return "0 min";
+  const y = Math.floor(m / (MIN_PER_DAY*365)); m -= y*MIN_PER_DAY*365;
+  const mo = Math.floor(m / MIN_PER_MONTH); m -= mo*MIN_PER_MONTH;
+  const d = Math.floor(m / MIN_PER_DAY); m -= d*MIN_PER_DAY;
+  const h = Math.floor(m / 60); const mi = m - h*60;
+  const parts = [];
+  if (y) parts.push(`${y} ${polishPlural(y,"rok","lata","lat")}`);
+  if (mo) parts.push(`${mo} mies.`);
+  if (d) parts.push(`${d} ${d===1?"dzień":"dni"}`);
+  if (h) parts.push(`${h} h`);
+  if (mi) parts.push(`${mi} min`);
+  return parts.slice(0, 2).join(" ");
+}
+function fmtDaysHours(minutes){
+  const totalH = Math.round((minutes||0) / 60);
+  const d = Math.floor(totalH / 24), h = totalH % 24;
+  if (!d) return `${h} h`;
+  return h ? `${fmtNum(d)} ${d===1?"dzień":"dni"} ${h} h` : `${fmtNum(d)} ${d===1?"dzień":"dni"}`;
+}
+function renderGeneralTiles(s){
+  const box = document.getElementById("stat-tiles");
+  if (!box) return;
+  s = s || computeStats();
+  const esc = escapeHtml;
+  const lines = (arr)=>arr.filter(Boolean).map(t=>`<span>${t}</span>`).join("");
+  const epAvg = computeAverageStats("episodes");
+  const epMin = computeAverageMinutesPerDay("episodes");
+  const total = s.episodesMinutes + s.moviesMinutes;
+  const serPct = total ? Math.round(s.episodesMinutes / total * 100) : 0;
+  const totalDays = Math.floor(total / MIN_PER_DAY);
+  const t = computeTodoTime();
+  const c = computeCatchUp();
+  let catchBig, catchLines;
+  if (c.done) { catchBig = "Nadgonione! 🎉"; catchLines = ["brak zaległych odcinków"]; }
+  else if (c.unknown) { catchBig = `${fmtNum(c.backlog)} odc.`; catchLines = ["zaległych odcinków", "brak danych o średniej"]; }
+  else { catchBig = esc(c.dateText); catchLines = [`za ${fmtNum(c.days)} ${plDays(c.days)}`, `${fmtNum(c.backlog)} zaległych odc.`, "przy obecnym tempie"]; }
+  box.innerHTML = `
+    <div class="st-t st-ser"><small>Seriale</small><b>${fmtNum(s.seriesTotalCount)}</b><div class="st-l">${lines([`${fmtNum(s.seriesCount)} zakończonych`, `${fmtNum(s.seriesWatchingCount)} oglądanych`])}</div></div>
+    <div class="st-t st-mov"><small>Filmy</small><b>${fmtNum(s.moviesCount)}</b><div class="st-l">${lines(["obejrzanych"])}</div></div>
+    <div class="st-t st-ser"><small>Odcinki</small><b>${fmtNum(s.episodesWatched)}</b><div class="st-l">${lines(["obejrzanych", `${fmtNum(s.episodesRemaining)} pozostało`])}</div></div>
+    <div class="st-t"><small>Dziennie</small><b>${epAvg.hasData ? esc(String(formatAvgNumber(epAvg.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", epMin.hasData ? `ok. ${esc(fmtSpanShort(epMin.perDay))}` : ""])}</div></div>
+    <div class="st-t st-w"><small>Łączny czas przed ekranem</small><b>${totalDays >= 1 ? `${fmtNum(totalDays)} ${totalDays===1?"dzień":"dni"}` : esc(fmtSpanShort(total))}</b>
+      <div class="st-bar"><span class="st-bs" style="width:${serPct}%"></span><span class="st-bm" style="width:${100-serPct}%"></span></div>
+      <div class="st-l">${lines([`<i class="st-dot st-ds"></i>Seriale: ${esc(fmtSpanShort(s.episodesMinutes))}`, `<i class="st-dot st-dm"></i>Filmy: ${esc(fmtSpanShort(s.moviesMinutes))}`])}</div></div>
+    <div class="st-t st-w"><small>Do nadrobienia</small><b>${esc(fmtDaysHours(t.total))}</b><div class="st-l">${lines([
+      `Odcinki w Oglądanych: ${fmtNum(t.watching.count)} odc. · ${esc(formatHoursShort(t.watching.minutes))}`,
+      `Seriale w Planowanych: ${fmtNum(t.plannedSeries.count)} odc. · ${esc(formatHoursShort(t.plannedSeries.minutes))}`,
+      `Filmy w Planowanych: ${fmtNum(t.movies.count)} ${polishPlural(t.movies.count,"film","filmy","filmów")} · ${esc(formatHoursShort(t.movies.minutes))}`])}</div>
+      ${t.estimated ? `<div class="st-note">Dla ${fmtNum(t.estimated)} pozycji bez czasu trwania przyjęto średni czas.</div>` : ""}</div>
+    <div class="st-t st-w"><small>Zaległe odcinki nadgonisz</small><b>${catchBig}</b><div class="st-l">${lines(catchLines)}</div></div>`;
 }
 
 // Zbiera wpisy {ts, duration} obejrzenia filmów albo odcinków (ts = timestamp

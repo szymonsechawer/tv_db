@@ -856,3 +856,20 @@ html[data-theme="jasny"] .menu-title{border-color:rgba(0,0,0,.14);}
 .vl-v .view-tag{margin:0 0 0 4px;}
 .vl-desc{padding:11px 13px;font-size:13.5px;line-height:1.5;font-weight:500;white-space:pre-wrap;}
 .vd-new #view-collection-title{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin:12px 0 6px 4px;}
+
+/* Statystyki → Ogólne: kafelki */
+#pane-stats-general > .stats-section{display:none;}
+.st-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.st-t{background:var(--bg-entry);border:1px solid var(--border);border-radius:14px;padding:12px;min-width:0;}
+.st-t small{display:block;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+.st-t b{display:block;font-size:26px;line-height:1.15;margin:4px 0 6px;}
+.st-w{grid-column:span 2;}
+.st-ser b{color:#3b8fd9;} .st-mov b{color:#e0a43c;}
+.st-l{display:flex;flex-direction:column;gap:3px;}
+.st-l span{font-size:12.5px;color:var(--text-muted);font-weight:600;line-height:1.3;}
+.st-bar{height:10px;border-radius:5px;background:var(--bg-medium);overflow:hidden;display:flex;margin:2px 0 8px;}
+.st-bar span{display:block;height:100%;}
+.st-bs,.st-ds{background:#3b8fd9;} .st-bm,.st-dm{background:#e0a43c;}
+.st-dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:0;}
+.st-note{font-size:11.5px;color:var(--text-muted);opacity:.8;margin-top:6px;font-weight:500;}
+@media (min-width:700px){ .st-tiles{grid-template-columns:repeat(4,1fr);} .st-w{grid-column:span 2;} }
