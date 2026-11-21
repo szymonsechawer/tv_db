@@ -84,11 +84,6 @@ window.addEventListener("beforeunload", (e)=>{
 // przypadkach (baza wczytana lub pusta) trzeba wyrenderować interfejs.
 initTabs();
 initSettingsTab();
-(function(){
-  const v = document.createElement("div");
-  v.id = "app-version"; v.textContent = "v" + APP_BUILD;
-  document.body.appendChild(v);
-})();
 (async ()=>{
   await loadPersistedDb();
   if (typeof syncThemeFromDb === "function") syncThemeFromDb();
