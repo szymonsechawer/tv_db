@@ -292,6 +292,7 @@ function renderStorageInfo(){
 
 function setDirty(v){
   dirty = v;
+  if (v && typeof saveRemNoteChange === "function") saveRemNoteChange();
   saveToLocalStorage();
   updateDbBadge();
 }
@@ -342,6 +343,7 @@ async function loadDbFromFile(file){
     renderSettingsTab();
     currentDbName = file.name || DEFAULT_DB_FILENAME;
     setDirty(false);
+    if (typeof saveRemReset === "function") saveRemReset();
     renderAll();
     await showAlert("Baza danych otwarta", `Wczytano bazę danych (${db.items.length} pozycji):\n${currentDbName}`, "info");
   }catch(err){
@@ -352,6 +354,7 @@ async function loadDbFromFile(file){
 document.getElementById("btn-save").addEventListener("click", ()=>{ saveDb(); });
 
 async function saveDb(){
+  if (typeof saveRemReset === "function") saveRemReset();
   const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
   const json = JSON.stringify(data, null, 2);
 
