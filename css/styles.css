@@ -836,13 +836,3 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-page-hero.vd-compact .vd-genres{justify-content:flex-start;}
 .vd-page-hero.vd-compact .vd-status{align-self:flex-start;}
 .vd-page-hero.vd-compact .vd-title{font-size:20px;}
-
-/* Ustawienia → Wygląd: wybór motywu */
-.theme-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
-.theme-opt{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:6px;border-radius:12px;background:var(--bg-medium);border:2px solid var(--border);color:var(--text-light);font:inherit;cursor:pointer;}
-.theme-opt.active{border-color:var(--accent);}
-.theme-prev{position:relative;height:54px;border-radius:8px;border:1px solid #ffffff22;overflow:hidden;}
-.theme-prev i{position:absolute;left:8px;right:8px;height:10px;border-radius:5px;}
-.theme-prev i:first-child{top:10px;}
-.theme-prev i:last-child{bottom:10px;right:28px;}
-.theme-name{font-size:12px;font-weight:600;text-align:center;}
