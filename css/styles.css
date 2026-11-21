@@ -790,14 +790,49 @@ body.menu-mode .upcoming-switch{display:none;}
 .vd-poster{align-self:center;}
 .vd-status-new{background:#2e8b4733;color:#8fe0a8;}
 .tmdb-suggest .sug-note{color:var(--text-muted);font-style:italic;cursor:default;}
-/* Wariant B: na tablecie większy nagłówek z okładką (bez przesuwania),
-   telefon bez zmian. */
+
+/* ===== Okno informacji: 2 strony (przesunięcie w lewo) ===== */
+.tab-scroll.vd-paged{overflow:hidden;display:flex;flex-direction:column;}
+.vd-pages{flex:1;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain;}
+.vd-pages::-webkit-scrollbar{display:none;}
+.vd-page{flex:0 0 100%;width:100%;min-width:0;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;-webkit-overflow-scrolling:touch;box-sizing:border-box;}
+.vd-page-rest{padding-left:2px;}
+/* strona 1 - duży nagłówek */
+.vd-page-hero{display:flex;flex-direction:column;overflow:hidden;}
+.vd-page-hero .vd-hero{flex:1;display:flex;flex-direction:column;margin:0;}
+.vd-page-hero .vd-top{flex:1;display:flex;align-items:center;}
+.vd-page-hero .vd-top-in{flex-direction:column;align-items:center;text-align:center;gap:14px;padding:18px 16px;width:100%;box-sizing:border-box;}
+.vd-page-hero .vd-poster{width:min(58%,250px);height:auto;flex:none;aspect-ratio:2/3;align-self:center;border-radius:14px;}
+.vd-page-hero .vd-info{align-items:center;gap:7px;}
+.vd-page-hero .vd-title{font-size:24px;}
+.vd-page-hero .vd-orig{font-size:14px;}
+.vd-page-hero .vd-meta{font-size:14px;}
+.vd-page-hero .vd-genres{justify-content:center;}
+.vd-page-hero .vd-genres span{font-size:12.5px;padding:4px 10px;}
+.vd-page-hero .vd-rate{font-size:15px;}
+.vd-page-hero .vd-rate b{font-size:19px;}
+.vd-page-hero .vd-status{align-self:center;font-size:12.5px;padding:4px 11px;}
+.vd-to-details{margin:10px auto 2px;display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 10px;}
+.vd-to-details span{font-size:20px;line-height:1;}
+.vd-page-dots{display:flex;gap:7px;align-items:center;margin-right:auto;padding-left:4px;}
+.vd-page-dots button{width:8px;height:8px;border-radius:50%;border:none;padding:0;background:#ffffff40;cursor:pointer;}
+.vd-page-dots button.on{background:var(--accent);width:20px;border-radius:4px;}
+/* tablet: okładka obok tekstu, większa */
 @media (min-width:700px){
-  .vd-top-in{padding:22px;gap:24px;}
-  .vd-poster{width:220px;height:330px;flex:0 0 220px;}
-  .vd-title{font-size:28px;}
-  .vd-orig,.vd-meta{font-size:15px;}
-  .vd-genres span{font-size:13px;padding:4px 10px;}
-  .vd-rate{font-size:16px;}.vd-rate b{font-size:20px;}
-  .vd-status{font-size:13px;}
+  .vd-page-hero .vd-top-in{flex-direction:row;text-align:left;gap:28px;padding:28px;}
+  .vd-page-hero .vd-poster{width:min(50%,440px);}
+  .vd-page-hero .vd-info{align-items:flex-start;gap:10px;}
+  .vd-page-hero .vd-title{font-size:32px;}
+  .vd-page-hero .vd-orig,.vd-page-hero .vd-meta{font-size:16px;}
+  .vd-page-hero .vd-genres{justify-content:flex-start;}
+  .vd-page-hero .vd-genres span{font-size:14px;}
+  .vd-page-hero .vd-rate{font-size:17px;}.vd-page-hero .vd-rate b{font-size:22px;}
+  .vd-page-hero .vd-status{align-self:flex-start;font-size:14px;}
 }
+.vd-page-hero .vd-poster img{width:100%;height:100%;object-fit:cover;}
+/* mały telefon: okładka obok tekstu, żeby strona 1 zmieściła się bez przewijania */
+.vd-page-hero.vd-compact .vd-top-in{flex-direction:row;text-align:left;gap:14px;padding:14px;}
+.vd-page-hero.vd-compact .vd-info{align-items:flex-start;}
+.vd-page-hero.vd-compact .vd-genres{justify-content:flex-start;}
+.vd-page-hero.vd-compact .vd-status{align-self:flex-start;}
+.vd-page-hero.vd-compact .vd-title{font-size:20px;}

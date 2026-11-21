@@ -91,9 +91,85 @@ function applyNewInfoLayout(overlay, ctx){
 
   // --- stopka: bez zmian (Zamknij, Edytuj, Usuń) ---
 
+  // --- dwie strony: 1) duży nagłówek, 2) reszta (przesunięcie w lewo) ---
+  const pages = document.createElement("div");
+  pages.className = "vd-pages";
+  const page1 = document.createElement("div");
+  page1.className = "vd-page vd-page-hero";
+  const page2 = document.createElement("div");
+  page2.className = "vd-page vd-page-rest";
+  page1.appendChild(hero);
+  while (scroll.firstChild) page2.appendChild(scroll.firstChild);
+  const toDetails = document.createElement("button");
+  toDetails.type = "button";
+  toDetails.className = "vd-to-details";
+  toDetails.innerHTML = `Szczegóły <span>›</span>`;
+  page1.appendChild(toDetails);
+  pages.append(page1, page2);
+  scroll.appendChild(pages);
+  scroll.classList.add("vd-paged");
+  const dotsEl = document.createElement("div");
+  dotsEl.className = "vd-page-dots";
+  dotsEl.innerHTML = `<button type="button" aria-label="Strona 1" class="on"></button><button type="button" aria-label="Strona 2"></button>`;
+  const footerEl = overlay.querySelector(".modal-footer");
+  if (footerEl) footerEl.insertBefore(dotsEl, footerEl.firstChild);
+  const goPage = (i)=>pages.scrollTo({left: i * pages.clientWidth, behavior: "smooth"});
+  toDetails.addEventListener("click", ()=>goPage(1));
+  dotsEl.querySelectorAll("button").forEach((b,i)=>b.addEventListener("click", ()=>goPage(i)));
+  pages.addEventListener("scroll", ()=>{
+    const i = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
+    dotsEl.querySelectorAll("button").forEach((b,j)=>b.classList.toggle("on", i===j));
+  }, {passive:true});
+  // Strona 1 zawsze mieści się bez przewijania: okładka dopasowuje swoją
+  // wysokość do miejsca, które zostaje po tekście, postępie i przyciskach.
+  function fitHero(){
+    const poster = page1.querySelector(".vd-poster");
+    if (!poster || !page1.clientHeight) return;
+    const wide = window.matchMedia("(min-width:700px)").matches;
+    poster.style.height = ""; poster.style.width = "";
+    const pageH = page1.clientHeight;
+    const pageW = page1.clientWidth;
+    // wysokość wszystkiego poza okładką
+    const topIn = page1.querySelector(".vd-top-in");
+    const info = page1.querySelector(".vd-info");
+    const csTop = getComputedStyle(topIn);
+    const padV = parseFloat(csTop.paddingTop) + parseFloat(csTop.paddingBottom);
+    const gap = parseFloat(csTop.rowGap || csTop.gap) || 0;
+    const outside = [...page1.children].filter(el=>!el.contains(poster)).reduce((a,el)=>a+el.getBoundingClientRect().height + (parseFloat(getComputedStyle(el).marginTop)||0) + (parseFloat(getComputedStyle(el).marginBottom)||0), 0);
+    const heroExtras = [...hero.children].filter(el=>!el.contains(poster)).reduce((a,el)=>a+el.getBoundingClientRect().height + (parseFloat(getComputedStyle(el).marginTop)||0) + (parseFloat(getComputedStyle(el).marginBottom)||0), 0);
+    const topMargin = parseFloat(getComputedStyle(hero.querySelector(".vd-top")).marginBottom)||0;
+    let avail;
+    if (wide) avail = pageH - outside - heroExtras - topMargin - padV - 4;                       // okładka obok tekstu
+    else avail = pageH - outside - heroExtras - topMargin - padV - gap - info.getBoundingClientRect().height - 4;   // okładka nad tekstem
+    // Mały ekran i dużo tekstu (np. serial z postępem) - okładka obok tekstu.
+    let side = wide;
+    if (!wide) {
+      page1.classList.remove("vd-compact");
+      if (avail < 140) {
+        page1.classList.add("vd-compact");
+        side = true;
+        avail = pageH - outside - heroExtras - topMargin - padV - 4;
+      }
+    }
+    const maxW = wide ? Math.min(pageW * 0.5, 440) : (side ? pageW * 0.36 : Math.min(pageW * 0.62, 260));
+    let h = Math.max(Math.min(avail, maxW * 1.5), 60);
+    const apply = ()=>{ poster.style.height = Math.floor(h) + "px"; poster.style.width = Math.floor(h / 1.5) + "px"; };
+    apply();
+    // zabezpieczenie: zmniejszaj, dopóki strona się nie mieści
+    let guard = 40;
+    while (page1.scrollHeight > page1.clientHeight + 1 && h > 60 && guard--) { h -= 6; apply(); }
+  }
+  ctx.fitHero = fitHero;
+  const ro = (typeof ResizeObserver !== "undefined") ? new ResizeObserver(()=>fitHero()) : null;
+  if (ro) ro.observe(page1); else window.addEventListener("resize", fitHero);
+  requestAnimationFrame(()=>requestAnimationFrame(fitHero));
+
+  // kliknięcie zakładki "Sezony i odcinki" z innego miejsca - przejdź na stronę 2
+  overlay.querySelectorAll(".inner-tabs .tab-btn").forEach(b=>b.addEventListener("click", ()=>goPage(1)));
+
   // --- render nagłówka ---
   function plural(n, a, b, c){ return typeof polishPlural === "function" ? polishPlural(n, a, b, c) : c; }
-  function render(){
+  let render = function(){
     const c = cur();
     const year = String(c.premiere_date||"").slice(0,4);
     const meta = [];
@@ -179,8 +255,11 @@ function applyNewInfoLayout(overlay, ctx){
       const base = c.collection_title ? (/kolekcja/i.test(c.collection_title) ? c.collection_title : `Kolekcja: ${c.collection_title}`) : "Kolekcja";
       colTitle.textContent = `${base} (${seen} z ${total} ${seen === 1 ? "obejrzany" : "obejrzanych"})`;
     }
-  }
+  };
   render();
+  // po przerysowaniu nagłówka dopasuj okładkę ponownie
+  const _render = render;
+  render = function(){ _render(); if (ctx.fitHero) requestAnimationFrame(ctx.fitHero); };
 
   // Odświeżanie nagłówka, gdy okno doczyta dane z TMDb.
   let t = null;
