@@ -127,6 +127,8 @@ function applyNewInfoLayout(overlay, ctx){
     if (!poster || !page1.clientHeight) return;
     const wide = window.matchMedia("(min-width:700px)").matches;
     poster.style.height = ""; poster.style.width = "";
+    const title = page1.querySelector(".vd-title");
+    if (title) title.style.fontSize = "";
     const pageH = page1.clientHeight;
     const pageW = page1.clientWidth;
     // wysokość wszystkiego poza okładką
@@ -141,23 +143,20 @@ function applyNewInfoLayout(overlay, ctx){
     let avail;
     if (wide) avail = pageH - outside - heroExtras - topMargin - padV - 4;                       // okładka obok tekstu
     else avail = pageH - outside - heroExtras - topMargin - padV - gap - info.getBoundingClientRect().height - 4;   // okładka nad tekstem
-    // Mały ekran i dużo tekstu (np. serial z postępem) - okładka obok tekstu.
-    let side = wide;
-    if (!wide) {
-      page1.classList.remove("vd-compact");
-      if (avail < 140) {
-        page1.classList.add("vd-compact");
-        side = true;
-        avail = pageH - outside - heroExtras - topMargin - padV - 4;
-      }
-    }
-    const maxW = wide ? Math.min(pageW * 0.5, 440) : (side ? pageW * 0.36 : Math.min(pageW * 0.62, 260));
-    let h = Math.max(Math.min(avail, maxW * 1.5), 60);
+    // Na telefonie okładka zawsze nad tekstem - jeśli brakuje miejsca,
+    // najpierw zmniejszamy okładkę, potem czcionkę tytułu.
+    const maxW = wide ? Math.min(pageW * 0.5, 440) : Math.min(pageW * 0.62, 260);
+    let h = Math.max(Math.min(avail, maxW * 1.5), 90);
     const apply = ()=>{ poster.style.height = Math.floor(h) + "px"; poster.style.width = Math.floor(h / 1.5) + "px"; };
     apply();
-    // zabezpieczenie: zmniejszaj, dopóki strona się nie mieści
-    let guard = 40;
-    while (page1.scrollHeight > page1.clientHeight + 1 && h > 60 && guard--) { h -= 6; apply(); }
+    const fits = ()=> page1.scrollHeight <= page1.clientHeight + 1;
+    let guard = 60;
+    while (!fits() && h > 90 && guard--) { h -= 6; apply(); }
+    if (!fits() && title) {
+      let fs = parseFloat(getComputedStyle(title).fontSize) || 24;
+      while (!fits() && fs > 15 && guard-- > -40) { fs -= 1; title.style.fontSize = fs + "px"; }
+      while (!fits() && h > 60 && guard-- > -80) { h -= 4; apply(); }
+    }
   }
   ctx.fitHero = fitHero;
   const ro = (typeof ResizeObserver !== "undefined") ? new ResizeObserver(()=>fitHero()) : null;
