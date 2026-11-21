@@ -9,7 +9,6 @@ function renderSettingsTab(){
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
   if (typeof renderThemePicker === "function") renderThemePicker();
-  if (typeof initGhSyncSettings === "function") initGhSyncSettings();
 }
 
 

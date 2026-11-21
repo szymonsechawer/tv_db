@@ -129,8 +129,6 @@ let saveErrorShown = false;
 let idbPromise = null;
 let saveTimer = null;
 let lastSavedBytes = 0;
-let localSavedAt = 0;          // znacznik czasu ostatniej zmiany danych (do synchronizacji)
-let skipSyncOnce = false;      // zapis lokalny bez wysyłania na GitHub (np. po pobraniu)
 
 function idbOpen(){
   if (idbPromise) return idbPromise;
@@ -165,14 +163,12 @@ async function idbPut(key, value){
 }
 
 function buildPersistJson(){
-  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || [], saved_at: localSavedAt};
+  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
   return JSON.stringify(data);
 }
 
 // Zapis jest odkładany o chwilę i łączony (wiele zmian = jeden zapis).
-function saveToLocalStorage(opts){
-  if (!(opts && opts.keepStamp)) localSavedAt = Date.now();
-  if (opts && opts.noSync) skipSyncOnce = true;
+function saveToLocalStorage(){
   try { localStorage.setItem(STORAGE_NAME_KEY, currentDbName); } catch(e){}
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{ saveTimer = null; persistNow(); }, 150);
@@ -180,13 +176,6 @@ function saveToLocalStorage(opts){
 
 async function persistNow(){
   const json = buildPersistJson();
-  const noSync = skipSyncOnce; skipSyncOnce = false;
-  const ok = await persistJson(json);
-  if (ok && !noSync && typeof ghSyncSchedule === "function") ghSyncSchedule();
-  return ok;
-}
-
-async function persistJson(json){
   if (storageBackend === "indexedDB") {
     try {
       await idbPut(IDB_DATA_KEY, json);
@@ -226,7 +215,6 @@ function onSaveError(err){
 }
 
 function applyLoadedData(data){
-  localSavedAt = Number(data.saved_at) || 0;
   db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
   if (!db.settings.tmdb_key) {
     try { db.settings.tmdb_key = localStorage.getItem(TMDB_KEY_STORAGE) || ""; } catch(e){}

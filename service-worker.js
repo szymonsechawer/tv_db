@@ -1,6 +1,6 @@
 // tv_db - service worker: cache the app shell so it opens instantly offline.
 // Network calls to TMDb (api.themoviedb.org) always go to the network - never cached.
-const CACHE_NAME = "tv-db-shell-v2.9.66";
+const CACHE_NAME = "tv-db-shell-v2.9.67";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -19,7 +19,6 @@ const SHELL_FILES = [
   "./js/search.js",
   "./js/stats.js",
   "./js/themes.js",
-  "./js/sync.js",
   "./js/settings.js",
   "./js/tabs.js",
   "./js/main.js",
@@ -57,8 +56,6 @@ self.addEventListener("fetch", (event) => {
 
   // Never intercept TMDb API / image CDN calls - always live network.
   if (url.hostname.includes("themoviedb.org")) return;
-  // Synchronizacja z GitHub - zawsze bezpośrednio z sieci.
-  if (url.hostname === "api.github.com") return;
   if (event.request.method !== "GET") return;
 
   // App shell: cache-first, fall back to network, and refresh cache in background.
