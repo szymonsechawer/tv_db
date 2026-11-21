@@ -693,12 +693,38 @@ function renderPersonListInto(listId, emptyId, type, field, extractFn, limit){
   if (empty) empty.style.display = "none";
   list.innerHTML = data.map(p=>{
     return `
-      <div class="genre-stat-row person-stat-row">
+      <button type="button" class="genre-stat-row person-stat-row person-link" data-name="${escapeHtml(p.name)}">
         <div class="genre-stat-name">${escapeHtml(p.name)}</div>
-        <div class="genre-stat-pct">${p.count}×</div>
-      </div>
+        <div class="genre-stat-pct">${p.count}× <span class="person-chev">›</span></div>
+      </button>
     `;
   }).join("");
+  const rawLabel = (list.closest(".stats-section")?.querySelector("h3")?.textContent || "").trim();
+  const label = rawLabel ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase() : "";
+  list.querySelectorAll(".person-link").forEach(b=>b.addEventListener("click", ()=>openPersonTitlesDialog(type, field, extractFn, b.dataset.name, label)));
+}
+
+// Okno z tytułami, w których występuje dana osoba / wytwórnia
+function openPersonTitlesDialog(type, field, extractFn, name, label){
+  const isMov = type === TYPE_MOVIE;
+  const items = relevantWatchedItems(type).map(it=>{
+    const hit = (it[field]||[]).find(raw=>(extractFn ? extractFn(raw) : String(raw||"").trim()) === name);
+    if (!hit) return null;
+    let role = "";
+    if (field === "cast") { const m = String(hit).match(/\(([^()]*)\)\s*$/); role = m ? m[1] : ""; }
+    return {it, role};
+  }).filter(Boolean).sort((a,b)=>String(b.it.premiere_date||"").localeCompare(String(a.it.premiere_date||"")) || a.it.title.localeCompare(b.it.title));
+  const n = items.length;
+  const unit = isMov ? polishPlural(n,"film","filmy","filmów") : polishPlural(n,"serial","seriale","seriali");
+  const rows = items.map(({it})=>`<div class="pt-row">${escapeHtml(it.title)}</div>`).join("");
+  const overlay = openOverlay(`
+    <div class="modal-header pt-head"><div>${escapeHtml(name)}</div><small>${escapeHtml(label)} · ${n} ${unit}</small></div>
+    <div class="modal-body pt-body">${rows || '<div class="muted">Brak tytułów.</div>'}</div>
+    <div class="modal-footer"><button class="btn" id="pt-close">Zamknij</button></div>
+  `);
+  overlay.classList.add("pt-overlay");
+  overlay.querySelector("#pt-close").addEventListener("click", ()=>closeOverlay(overlay));
+  overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeOverlay(overlay); });
 }
 
 function renderPersonStats(){
