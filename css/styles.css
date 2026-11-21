@@ -916,5 +916,5 @@ html[data-theme="jasny"] .menu-title{border-color:rgba(0,0,0,.14);}
 .status-pane.swipe-in-l{animation:swInL .22s ease-out;}
 .status-pane.swipe-in-r{animation:swInR .22s ease-out;}
 /* Okno informacji serialu: 3 strony, własne zakładki na stronach 2 i 3 */
-.vd-tabsbar{display:flex;gap:8px;margin:0 0 10px;}
-.vd-tabsbar .tab-btn{flex:1;}
+.vd-page-title{height:38px;line-height:36px;text-align:center;font-weight:700;font-size:15px;border:1px solid rgba(255,255,255,.22);border-radius:12px;margin:0 0 10px;}
+html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
