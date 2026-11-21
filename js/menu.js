@@ -56,7 +56,6 @@
     section("Lista");
     item({label:"Dodaj", icon:ICONS.add, onClick:()=>clickBtn("btn-add")});
     if (onList) item({label:"Widok", icon:ICONS.view, onClick:()=>clickBtn("btn-view")});
-    if (isUpcoming && upcomingMode==="episodes") item({label:"Sprawdź nadchodzące", icon:ICONS.check, onClick:()=>clickBtn("btn-check")});
     for (const type of [TYPE_SERIES, TYPE_MOVIE]) {
       section(TYPE_LABELS[type]);
       for (const st of TYPE_STATUS_ORDER[type]) {
@@ -89,6 +88,11 @@
     const onUp = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
     document.body.classList.toggle("on-upcoming", onUp);
     document.body.classList.toggle("on-upcoming-seasons", onUp && upcomingMode!=="episodes");
+    const chkBtn = document.getElementById("btn-check");
+    if (chkBtn && !chkBtn.disabled) {
+      const lbl = chkBtn.querySelector(".btn-label");
+      if (lbl) lbl.textContent = (onUp && upcomingMode==="episodes") ? "Sprawdź nadchodzące" : "Sprawdź nowości";
+    }
   }
 
   top.querySelector("#menu-open").addEventListener("click", openMenu);

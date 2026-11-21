@@ -1,11 +1,12 @@
 // tv_db - service worker: cache the app shell so it opens instantly offline.
 // Network calls to TMDb (api.themoviedb.org) always go to the network - never cached.
-const CACHE_NAME = "tv-db-shell-v2.9.59";
+const CACHE_NAME = "tv-db-shell-v2.9.60";
 const SHELL_FILES = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./css/styles.css",
+  "./css/themes.css",
   "./js/config.js",
   "./js/utils.js",
   "./js/storage.js",
@@ -17,6 +18,7 @@ const SHELL_FILES = [
   "./js/notes.js",
   "./js/search.js",
   "./js/stats.js",
+  "./js/themes.js",
   "./js/settings.js",
   "./js/tabs.js",
   "./js/main.js",
