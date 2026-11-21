@@ -8,6 +8,7 @@ function renderSettingsTab(){
   input.value = (db.settings && db.settings.tmdb_key) || "";
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
+  if (typeof renderThemePicker === "function") renderThemePicker();
 }
 
 
@@ -313,7 +314,7 @@ async function checkUpcomingSeasons(){
   const ignored = Array.isArray(db.upcoming_ignored) ? db.upcoming_ignored : [];
   const prevKeys = (db.upcoming || []).map(upcomingKeyOf);
   let done = 0;
-  const oldLabel = btn.textContent;
+  const oldLabel = btn.innerHTML;
   btn.disabled = true;
   const tick = ()=>{ done++; btn.textContent = `Sprawdzam ${done}/${seriesItems.length}…`; };
   btn.textContent = `Sprawdzam 0/${seriesItems.length}…`;
@@ -362,7 +363,7 @@ async function checkUpcomingSeasons(){
     await Promise.all(workers);
   } finally {
     btn.disabled = false;
-    btn.textContent = oldLabel;
+    btn.innerHTML = oldLabel;
   }
 
   db.upcoming = upcoming;

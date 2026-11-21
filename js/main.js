@@ -86,6 +86,7 @@ initTabs();
 initSettingsTab();
 (async ()=>{
   await loadPersistedDb();
+  if (typeof syncThemeFromDb === "function") syncThemeFromDb();
   renderSettingsTab();
   renderAll();
   renderStorageInfo();

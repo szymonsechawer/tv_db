@@ -20,6 +20,8 @@
 <meta name="format-detection" content="telephone=no">
 
 <link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/themes.css">
+<script>try{var _t=localStorage.getItem("tv_db_theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
 <body>
 
@@ -201,6 +203,11 @@
     </div>
     <div class="type-tab" id="tab-settings">
       <div class="stats-section">
+        <h3>Wygląd</h3>
+        <div class="muted" style="margin-bottom:10px;">Wybierz motyw kolorystyczny aplikacji.</div>
+        <div class="theme-picker" id="theme-picker"></div>
+      </div>
+      <div class="stats-section">
         <h3>TMDb (The Movie Database)</h3>
         <div class="muted" style="margin-bottom:10px;">Klucz API do automatycznego pobierania czasu trwania filmów i odcinków.</div>
         <div class="form-row"><label style="min-width:150px;">Aktualny klucz API:</label>
@@ -279,6 +286,7 @@
 <script src="js/notes.js"></script>
 <script src="js/search.js"></script>
 <script src="js/stats.js"></script>
+<script src="js/themes.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/main.js"></script>

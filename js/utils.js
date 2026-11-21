@@ -28,6 +28,7 @@ function normalizeSettings(s){
     if (typeof s.tmdb_key === "string") out.tmdb_key = s.tmdb_key;
     if (typeof s.tmdb_auto === "boolean") out.tmdb_auto = s.tmdb_auto;
     if (["v1","v2","v3","v4"].includes(s.ui_version)) out.ui_version = s.ui_version;
+    if (typeof s.theme === "string") out.theme = s.theme;
   }
   return out;
 }
