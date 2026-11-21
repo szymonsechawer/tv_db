@@ -460,19 +460,31 @@ function archiveCompletedYears(){
 // Z nadejściem Nowego Roku bieżący wiersz zeruje się i zaczyna liczyć od
 // nowa, a poprzedni rok "spada" na stałe do listy poniżej.
 function buildYearRecordsHtml(kind){
-  const unitLabel = kind==="movies" ? "filmów" : "odcinków";
-  const rowHtml = (s, inProgress) => {
-    const label = inProgress ? `${s.year} rok (w trakcie):` : `${s.year} rok:`;
-    return `<div class="stats-row"><div class="label">${label}</div><div class="value">${s.count} ${unitLabel} · ${formatDuration(s.minutes)}</div></div>`;
-  };
-
+  const isMov = kind === "movies";
+  const short = (n)=> isMov ? "film." : "odc.";
+  const unitFull = (n)=> isMov ? polishPlural(n,"film","filmy","filmów") : polishPlural(n,"odcinek","odcinki","odcinków");
   const current = computeCurrentYearLiveStats(kind);
-  let html = rowHtml(current, true);
-
   const data = (db.year_stats && db.year_stats[kind]) || {};
-  const years = Object.keys(data).map(Number).filter(Number.isInteger).sort((a,b)=>b-a);
-  html += years.map(y=>rowHtml(data[y], false)).join("");
-  return html;
+  const rows = [{...current, live: true}];
+  Object.keys(data).map(Number).filter(y=>Number.isInteger(y) && y !== current.year).sort((a,b)=>b-a)
+    .forEach(y=>rows.push({...data[y], year: y}));
+  const max = Math.max(...rows.map(r=>r.count||0), 1);
+  const yearsHtml = rows.map(r=>`
+    <div class="yr-row">
+      <span class="yr-y">${r.year}${r.live ? '<i>w trakcie</i>' : ''}</span>
+      <span class="yr-bar"><span style="width:${((r.count||0)/max*100).toFixed(1)}%"></span></span>
+      <span class="yr-v">${fmtNum(r.count||0)} ${short(r.count)}<i>${escapeHtml(fmtDaysHours(r.minutes||0))}</i></span>
+    </div>`).join("");
+  const best = rows.reduce((a,r)=> (r.count||0) > (a.count||0) ? r : a, rows[0]);
+  const total = rows.reduce((a,r)=>a+(r.count||0), 0);
+  const n = rows.length;
+  return `<div class="yr-wrap ${isMov ? "st-mov" : "st-ser"}">
+    <div class="st-t st-w"><small>Lata</small><div class="yr-list">${yearsHtml}</div></div>
+    <div class="st-tiles" style="margin-top:8px;">
+      <div class="st-t"><small>Rekordowy rok</small><b>${best.year}</b><div class="st-l"><span>${fmtNum(best.count||0)} ${unitFull(best.count||0)}</span></div></div>
+      <div class="st-t"><small>Razem</small><b>${fmtNum(total)}</b><div class="st-l"><span>${unitFull(total)}</span><span>w ${n} ${polishPlural(n,"rok","lata","lat")}</span></div></div>
+    </div>
+  </div>`;
 }
 
 function openYearRecordsDialog(kind){
