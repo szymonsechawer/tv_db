@@ -209,6 +209,27 @@
         </div>
       </div>
       <div class="stats-section">
+        <h3>Synchronizacja z GitHub</h3>
+        <div class="muted" style="margin-bottom:10px;">Każda zmiana (np. odhaczenie odcinka) zapisuje się automatycznie w Twoim prywatnym repozytorium na GitHub, a przy otwarciu aplikacji pobierana jest najnowsza wersja. Ręczne „Zapisz do pliku” działa jak dotąd.</div>
+        <div class="form-row"><label style="min-width:150px;">Repozytorium:</label>
+          <input class="entry" id="gh-repo" type="text" style="flex:1;" placeholder="użytkownik/nazwa, np. szymonsechawer/tv_db_dane" autocapitalize="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="form-row"><label style="min-width:150px;">Token dostępu:</label>
+          <input class="entry" id="gh-token" type="password" style="flex:1;" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="form-row"><label style="min-width:150px;">Plik w repozytorium:</label>
+          <input class="entry" id="gh-path" type="text" style="flex:1;" placeholder="tv_db.json" autocapitalize="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label style="min-width:150px;"></label>
+          <button class="btn small" id="gh-connect" type="button">Zapisz i połącz</button>
+          <button class="btn small secondary" id="gh-push" type="button">Wyślij teraz</button>
+          <button class="btn small secondary" id="gh-pull" type="button">Pobierz teraz</button>
+          <button class="btn small secondary" id="gh-off" type="button">Wyłącz</button>
+        </div>
+        <div class="tmdb-status" id="gh-status"></div>
+      </div>
+      <div class="stats-section">
         <h3>TMDb (The Movie Database)</h3>
         <div class="muted" style="margin-bottom:10px;">Klucz API do automatycznego pobierania czasu trwania filmów i odcinków.</div>
         <div class="form-row"><label style="min-width:150px;">Aktualny klucz API:</label>
@@ -288,6 +309,7 @@
 <script src="js/search.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/themes.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/main.js"></script>
