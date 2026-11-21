@@ -89,6 +89,79 @@ function applyNewInfoLayout(overlay, ctx){
   if (tagsRow) tagsRow.classList.add("vd-stack");
   if (finRow) finRow.classList.add("vd-stack");
 
+  // --- strona 2 / Informacje: grupy wierszy jak w Ustawieniach iPhone'a ---
+  const vlist = document.createElement("div");
+  vlist.className = "vd-list";
+  infoBox.before(vlist);
+  infoBox.classList.add("vd-hidden");
+  const vlistOpen = {};   // rozwinięte listy (np. cała obsada)
+  function buildInfoList(){
+    const c = cur();
+    const esc = (t)=>escapeHtml(String(t));
+    const groups = [];
+    const row = (label, value, extra)=> value ? `<div class="vl-row${extra||""}"><span class="vl-k">${esc(label)}</span><span class="vl-v">${value}</span></div>` : "";
+    // Gdzie obejrzeć
+    const wp = c.watch_providers;
+    if (wp && ((wp.flatrate||[]).length || (wp.rent||[]).length || (wp.buy||[]).length)) {
+      const many = (key, list)=>{
+        if (!list || !list.length) return "";
+        if (list.length <= 2 || vlistOpen[key]) return esc(list.join(", "));
+        return `<button type="button" class="vl-more" data-open="${key}">${list.length} serwisów ›</button>`;
+      };
+      groups.push(["Gdzie obejrzeć",
+        row("Streaming", (wp.flatrate||[]).length ? esc(wp.flatrate.join(", ")) : "") +
+        row("Wypożyczenie", many("rent", wp.rent)) +
+        row("Zakup", many("buy", wp.buy))]);
+    }
+    // Szczegóły
+    let det = "";
+    const creators = (c.creators||[]).filter(Boolean);
+    if (creators.length) det += row(type === TYPE_MOVIE ? (creators.length > 1 ? "Reżyseria" : "Reżyser") : (creators.length > 1 ? "Twórcy" : "Twórca"), esc(creators.join(", ")));
+    if (type === TYPE_MOVIE && c.duration) det += row("Czas trwania", esc(c.duration >= 60 ? `${Math.floor(c.duration/60)} h ${c.duration%60} min` : `${c.duration} min`));
+    if (type === TYPE_SERIES && Array.isArray(c.seasons) && c.seasons.length) {
+      const eps = c.seasons.reduce((a, se)=>a + ((se.episodes||[]).length), 0);
+      det += row("Sezony", esc(`${c.seasons.length} · ${eps} odc.`));
+    }
+    const pc = c.production_countries||[], oc = c.origin_country||[];
+    if (pc.length) det += row(pc.length > 1 ? "Kraje produkcji" : "Kraj produkcji", esc(pc.join(", ")));
+    if (oc.length && oc.join(",") !== pc.join(",")) det += row("Kraj pochodzenia", esc(oc.join(", ")));
+    if (c.original_language) det += row("Język", esc(c.original_language));
+    const comp = (c.production_companies||[]).filter(Boolean);
+    if (comp.length) {
+      const showAll = vlistOpen.comp || comp.length <= 2;
+      det += row(comp.length > 1 ? "Wytwórnie" : "Wytwórnia", showAll ? esc(comp.join(", ")) : `${esc(comp.slice(0,2).join(", "))} <button type="button" class="vl-more" data-open="comp">+${comp.length-2}</button>`);
+    }
+    if (c.budget) det += row("Budżet", esc(formatMoney(c.budget)));
+    if (c.status === STATUS_WATCHED && c.finished_date) det += row("Data zakończenia", esc(formatDateDMY(c.finished_date)));
+    if (c.tags && c.tags.length) det += row("Tagi", c.tags.map(t=>`<span class="view-tag">${esc(t)}</span>`).join(" "));
+    if (det) groups.push(["Szczegóły", det]);
+    // Obsada
+    const cast = (c.cast||[]).filter(Boolean).map(x=>{
+      const m = String(x).match(/^(.*?)\s*\((.*)\)\s*$/);
+      return m ? [m[1], m[2]] : [String(x), ""];
+    });
+    if (cast.length) {
+      const lim = 6, show = vlistOpen.cast ? cast : cast.slice(0, lim);
+      let h = show.map(([n, r])=>`<div class="vl-row"><span class="vl-k vl-name">${esc(n)}</span><span class="vl-v vl-role">${esc(r)}</span></div>`).join("");
+      if (cast.length > show.length) h += `<button type="button" class="vl-row vl-all" data-open="cast">Pokaż całą obsadę (${cast.length}) ›</button>`;
+      groups.push(["Obsada", h]);
+    }
+    // Opis
+    if (c.description && c.description.trim()) groups.push(["Opis", `<div class="vl-desc">${esc(c.description)}</div>`]);
+    vlist.innerHTML = groups.length
+      ? groups.map(([t, h])=>`<div class="vl-gh">${esc(t)}</div><div class="vl-grp">${h}</div>`).join("")
+      : `<div class="vl-grp"><div class="vl-desc muted">Brak pobranych informacji o tym tytule.</div></div>`;
+    vlist.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click", ()=>{ vlistOpen[b.dataset.open] = true; buildInfoList(); }));
+  }
+  ctx.buildInfoList = buildInfoList;
+  buildInfoList();
+  // dane dociągane w tle (TMDb) - przebuduj listę, gdy stare pola się zmienią
+  if (typeof MutationObserver !== "undefined") {
+    let pend = false;
+    new MutationObserver(()=>{ if (pend) return; pend = true; requestAnimationFrame(()=>{ pend = false; buildInfoList(); }); })
+      .observe(infoBox, {subtree:true, childList:true, characterData:true});
+  }
+
   // --- stopka: bez zmian (Zamknij, Edytuj, Usuń) ---
 
   // --- dwie strony: 1) duży nagłówek, 2) reszta (przesunięcie w lewo) ---
@@ -253,7 +326,7 @@ function applyNewInfoLayout(overlay, ctx){
   render();
   // po przerysowaniu nagłówka dopasuj okładkę ponownie
   const _render = render;
-  render = function(){ _render(); if (ctx.fitHero) requestAnimationFrame(ctx.fitHero); };
+  render = function(){ _render(); if (ctx.buildInfoList) ctx.buildInfoList(); if (ctx.fitHero) requestAnimationFrame(ctx.fitHero); };
 
   // Odświeżanie nagłówka, gdy okno doczyta dane z TMDb.
   let t = null;
