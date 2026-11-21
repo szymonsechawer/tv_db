@@ -716,16 +716,7 @@ function openPersonTitlesDialog(type, field, extractFn, name, label){
   }).filter(Boolean).sort((a,b)=>String(b.it.premiere_date||"").localeCompare(String(a.it.premiere_date||"")) || a.it.title.localeCompare(b.it.title));
   const n = items.length;
   const unit = isMov ? polishPlural(n,"film","filmy","filmów") : polishPlural(n,"serial","seriale","seriali");
-  const rows = items.map(({it, role})=>{
-    const poster = it.poster_path ? tmdbPosterUrl(it.poster_path, "w92") : "";
-    const year = String(it.premiere_date||"").slice(0,4);
-    const meta = [year, it.rating ? `★ ${Number(it.rating).toFixed(1).replace(".", ",")}` : ""].filter(Boolean).join(" · ");
-    return `<button type="button" class="pt-row" data-id="${escapeHtml(it.id)}">
-      <span class="pt-poster">${poster ? `<img src="${poster}" alt="" loading="lazy">` : ""}</span>
-      <span class="pt-txt"><b>${escapeHtml(it.title)}</b>${role ? `<span class="pt-role">${escapeHtml(role)}</span>` : ""}${meta ? `<span class="pt-meta">${escapeHtml(meta)}</span>` : ""}</span>
-      <span class="person-chev">›</span>
-    </button>`;
-  }).join("");
+  const rows = items.map(({it})=>`<div class="pt-row">${escapeHtml(it.title)}</div>`).join("");
   const overlay = openOverlay(`
     <div class="modal-header pt-head"><div>${escapeHtml(name)}</div><small>${escapeHtml(label)} · ${n} ${unit}</small></div>
     <div class="modal-body pt-body">${rows || '<div class="muted">Brak tytułów.</div>'}</div>
@@ -734,7 +725,6 @@ function openPersonTitlesDialog(type, field, extractFn, name, label){
   overlay.classList.add("pt-overlay");
   overlay.querySelector("#pt-close").addEventListener("click", ()=>closeOverlay(overlay));
   overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeOverlay(overlay); });
-  overlay.querySelectorAll(".pt-row").forEach(r=>r.addEventListener("click", ()=>openViewDialog(r.dataset.id)));
 }
 
 function renderPersonStats(){
