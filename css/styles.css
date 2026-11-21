@@ -830,9 +830,3 @@ body.menu-mode .upcoming-switch{display:none;}
   .vd-page-hero .vd-status{align-self:flex-start;font-size:14px;}
 }
 .vd-page-hero .vd-poster img{width:100%;height:100%;object-fit:cover;}
-/* mały telefon: okładka obok tekstu, żeby strona 1 zmieściła się bez przewijania */
-.vd-page-hero.vd-compact .vd-top-in{flex-direction:row;text-align:left;gap:14px;padding:14px;}
-.vd-page-hero.vd-compact .vd-info{align-items:flex-start;}
-.vd-page-hero.vd-compact .vd-genres{justify-content:flex-start;}
-.vd-page-hero.vd-compact .vd-status{align-self:flex-start;}
-.vd-page-hero.vd-compact .vd-title{font-size:20px;}
