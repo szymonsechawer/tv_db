@@ -830,3 +830,6 @@ body.menu-mode .upcoming-switch{display:none;}
   .vd-page-hero .vd-status{align-self:flex-start;font-size:14px;}
 }
 .vd-page-hero .vd-poster img{width:100%;height:100%;object-fit:cover;}
+/* Seriale oglądane: delikatna biała ramka wokół pola odhaczania odcinka */
+.progress-cell.prog-tappable{border:1px solid rgba(255,255,255,.22);padding:5px 8px;}
+html[data-theme="jasny"] .progress-cell.prog-tappable{border-color:rgba(0,0,0,.14);}
