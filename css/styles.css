@@ -909,3 +909,12 @@ html[data-theme="jasny"] .menu-title{border-color:rgba(0,0,0,.14);}
 .st-mov .yr-bar span{background:#e0a43c;}
 .yr-v{text-align:right;min-width:92px;font-size:12.5px;font-weight:700;}
 .yr-v i{display:block;font-style:normal;color:var(--text-muted);font-size:11.5px;font-weight:600;}
+
+/* Statystyki: animacja przy przesunięciu palcem między zakładkami */
+@keyframes swInL{from{transform:translateX(40px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes swInR{from{transform:translateX(-40px);opacity:.3}to{transform:none;opacity:1}}
+.status-pane.swipe-in-l{animation:swInL .22s ease-out;}
+.status-pane.swipe-in-r{animation:swInR .22s ease-out;}
+/* Okno informacji serialu: 3 strony, własne zakładki na stronach 2 i 3 */
+.vd-tabsbar{display:flex;gap:8px;margin:0 0 10px;}
+.vd-tabsbar .tab-btn{flex:1;}
