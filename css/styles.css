@@ -833,7 +833,3 @@ body.menu-mode .upcoming-switch{display:none;}
 /* Seriale oglądane: delikatna biała ramka wokół pola odhaczania odcinka */
 .progress-cell.prog-tappable{border:1px solid rgba(255,255,255,.22);padding:5px 8px;}
 html[data-theme="jasny"] .progress-cell.prog-tappable{border-color:rgba(0,0,0,.14);}
-
-/* Synchronizacja GitHub: krótki komunikat */
-.gh-toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9999;background:var(--bg-medium);color:var(--text-light);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.4);transition:opacity .5s;}
-.gh-toast.hide{opacity:0;}
