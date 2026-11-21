@@ -42,15 +42,42 @@ function initTabs(){
 
 let activeStatsTab = "general";
 
-function switchStatsTab(tab){
+const STATS_TAB_ORDER = ["general","series","movies"];
+function switchStatsTab(tab, dir){
   activeStatsTab = tab;
   const bar = document.getElementById("subtabs-stats");
   bar.querySelectorAll(".tab-btn").forEach(b=>{
     b.classList.toggle("active", b.dataset.statsTab===tab);
   });
   document.querySelectorAll("#subcontent-stats .status-pane").forEach(p=>p.classList.remove("active"));
-  document.getElementById(`pane-stats-${tab}`).classList.add("active");
+  const pane = document.getElementById(`pane-stats-${tab}`);
+  pane.classList.add("active");
+  pane.classList.remove("swipe-in-l","swipe-in-r");
+  if (dir) { void pane.offsetWidth; pane.classList.add(dir > 0 ? "swipe-in-l" : "swipe-in-r"); }
 }
+
+// Przesunięcie palcem w lewo/prawo przełącza Ogólne ↔ Seriale ↔ Filmy.
+(function initStatsSwipe(){
+  const area = document.getElementById("subcontent-stats");
+  if (!area) return;
+  let x0 = 0, y0 = 0, t0 = 0, track = false;
+  area.addEventListener("touchstart", (e)=>{
+    if (e.touches.length !== 1) { track = false; return; }
+    // nie przechwytuj gestów na elementach przewijanych poziomo
+    if (e.target.closest("input, textarea, select")) { track = false; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); track = true;
+  }, {passive:true});
+  area.addEventListener("touchend", (e)=>{
+    if (!track) return; track = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - t0 > 800) return;
+    const i = STATS_TAB_ORDER.indexOf(activeStatsTab);
+    const j = dx < 0 ? i + 1 : i - 1;
+    if (j < 0 || j >= STATS_TAB_ORDER.length) return;
+    switchStatsTab(STATS_TAB_ORDER[j], dx < 0 ? 1 : -1);
+  }, {passive:true});
+})();
 
 function updateCheckButtonVisibility(){
   const row = document.getElementById("button-bar-check-row");

@@ -170,19 +170,56 @@ function applyNewInfoLayout(overlay, ctx){
   page1.appendChild(hero);
   while (scroll.firstChild) page2.appendChild(scroll.firstChild);
   pages.append(page1, page2);
+  // Serial: "Sezony i odcinki" jako osobna, trzecia strona (przesunięcie w lewo)
+  const seasonsPane = page2.querySelector("#vpane-seasons");
+  const infoPane = page2.querySelector("#vpane-info");
+  let page3 = null;
+  if (type === TYPE_SERIES && seasonsPane && tabs) {
+    page3 = document.createElement("div");
+    page3.className = "vd-page vd-page-rest vd-page-seasons";
+    const mkBar = (activeIdx)=>{
+      const bar = document.createElement("div");
+      bar.className = "vd-tabsbar";
+      ["Informacje", "Sezony i odcinki"].forEach((t, i)=>{
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "tab-btn" + (i === activeIdx ? " active" : "");
+        b.textContent = t;
+        b.addEventListener("click", ()=>goPage(i + 1));
+        bar.appendChild(b);
+      });
+      return bar;
+    };
+    tabs.style.display = "none";
+    page2.insertBefore(mkBar(0), page2.firstChild);
+    page3.appendChild(mkBar(1));
+    page3.appendChild(seasonsPane);
+    pages.appendChild(page3);
+  }
+  const pageCount = page3 ? 3 : 2;
   scroll.appendChild(pages);
   scroll.classList.add("vd-paged");
   const dotsEl = document.createElement("div");
   dotsEl.className = "vd-page-dots";
-  dotsEl.innerHTML = `<button type="button" aria-label="Strona 1" class="on"></button><button type="button" aria-label="Strona 2"></button>`;
+  dotsEl.innerHTML = Array.from({length: pageCount}, (_, i)=>`<button type="button" aria-label="Strona ${i+1}"${i===0 ? ' class="on"' : ''}></button>`).join("");
   const footerEl = overlay.querySelector(".modal-footer");
   if (footerEl) footerEl.insertBefore(dotsEl, footerEl.firstChild);
   const goPage = (i)=>pages.scrollTo({left: i * pages.clientWidth, behavior: "smooth"});
   dotsEl.querySelectorAll("button").forEach((b,i)=>b.addEventListener("click", ()=>goPage(i)));
+  // obie zakładki (Informacje i Sezony) zawsze widoczne na swoich stronach
+  const vtabInfoBtn = overlay.querySelector("#vtab-info"), vtabSeasonsBtn = overlay.querySelector("#vtab-seasons");
+  const showBothPanes = ()=>{ if (infoPane) infoPane.style.display = ""; if (seasonsPane) seasonsPane.style.display = ""; };
+  let lastPage = 0;
   pages.addEventListener("scroll", ()=>{
     const i = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
     dotsEl.querySelectorAll("button").forEach((b,j)=>b.classList.toggle("on", i===j));
+    if (page3 && i !== lastPage) {
+      // odśwież sezony przy wejściu na stronę 3 (np. po odhaczeniu odcinka)
+      if (i === 2 && vtabSeasonsBtn) { vtabSeasonsBtn.click(); showBothPanes(); }
+      else if (vtabInfoBtn) { vtabInfoBtn.click(); showBothPanes(); }
+    }
+    lastPage = i;
   }, {passive:true});
+  if (page3) setTimeout(()=>{ if (vtabSeasonsBtn) vtabSeasonsBtn.click(); if (vtabInfoBtn) vtabInfoBtn.click(); showBothPanes(); }, 0);
   // Strona 1 zawsze mieści się bez przewijania: okładka dopasowuje swoją
   // wysokość do miejsca, które zostaje po tekście, postępie i przyciskach.
   function fitHero(){
@@ -227,7 +264,7 @@ function applyNewInfoLayout(overlay, ctx){
   requestAnimationFrame(()=>requestAnimationFrame(fitHero));
 
   // kliknięcie zakładki "Sezony i odcinki" z innego miejsca - przejdź na stronę 2
-  overlay.querySelectorAll(".inner-tabs .tab-btn").forEach(b=>b.addEventListener("click", ()=>goPage(1)));
+  if (!page3) overlay.querySelectorAll(".inner-tabs .tab-btn").forEach(b=>b.addEventListener("click", ()=>goPage(1)));
 
   // --- render nagłówka ---
   function plural(n, a, b, c){ return typeof polishPlural === "function" ? polishPlural(n, a, b, c) : c; }
