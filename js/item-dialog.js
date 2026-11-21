@@ -722,7 +722,14 @@ function openViewDialog(idOrItem, opts){
         const nextRow = pane.querySelector(".ep-next");
         if (nextRow && pane.offsetParent !== null) {
           seasonsScrolled = true;
-          requestAnimationFrame(()=>nextRow.scrollIntoView({block:"center", behavior:"smooth"}));
+          // przewiń tylko w pionie (scrollIntoView przesuwało też strony okna w bok)
+          requestAnimationFrame(()=>{
+            let sc = nextRow.parentElement;
+            while (sc && !(sc.scrollHeight > sc.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+            if (!sc) return;
+            const r = nextRow.getBoundingClientRect(), cr = sc.getBoundingClientRect();
+            sc.scrollTo({top: sc.scrollTop + (r.top - cr.top) - (sc.clientHeight - r.height) / 2, behavior: "smooth"});
+          });
         }
       }
     }
