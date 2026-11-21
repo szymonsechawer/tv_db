@@ -737,7 +737,7 @@ function openPersonAllDialog(all, label, rowsHtml, openPerson){
   const keyed = all.map(p=>({p, k: norm(p.name)}));
   const overlay = openOverlay(`
     <div class="modal-header pt-head"><div>${escapeHtml(label)}</div><small id="pa-count">wszystkie · ${fmtNum(all.length)}</small></div>
-    <div class="pa-search"><input class="entry" id="pa-q" type="search" placeholder="Szukaj…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    <div class="pa-search"><input class="entry" id="pa-q" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
     <div class="modal-body pt-body pa-body">${rowsHtml(all)}</div>
     <div class="modal-footer"><button class="btn" id="pa-close">Zamknij</button></div>
   `);
