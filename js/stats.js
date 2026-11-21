@@ -48,6 +48,50 @@ function updateStats(){
   renderCatchUpInfo();
   renderTodoTime();
   renderGeneralTiles(s);
+  renderPaneTiles("movies");
+  renderPaneTiles("episodes");
+}
+
+// ============================================================
+// Seriale / Filmy: kafelki u góry + paski list względem największej wartości
+// ============================================================
+const MONTH_NAMES_LOC_PL = ["styczniu","lutym","marcu","kwietniu","maju","czerwcu","lipcu","sierpniu","wrześniu","październiku","listopadzie","grudniu"];
+function renderPaneTiles(kind){
+  const isMov = kind === "movies";
+  const box = document.getElementById(isMov ? "stat-tiles-movies" : "stat-tiles-series");
+  if (!box) return;
+  const lines = (arr)=>arr.filter(Boolean).map(t=>`<span>${t}</span>`).join("");
+  const week = computeWeekChartData(kind).days.reduce((a,d)=>a+d.count, 0);
+  const {months} = computeMonthChartData(kind);
+  const yearTotal = months.reduce((a,m)=>a+m.count, 0);
+  let best = -1; months.forEach((m,i)=>{ if (m.count > 0 && (best < 0 || m.count > months[best].count)) best = i; });
+  const r = computeAverageRating(isMov ? TYPE_MOVIE : TYPE_SERIES);
+  const unit = (n)=> isMov ? polishPlural(n,"film","filmy","filmów") : polishPlural(n,"odcinek","odcinki","odcinków");
+  const cls = isMov ? "st-mov" : "st-ser";
+  let fourth;
+  if (isMov) {
+    const durs = db.items.filter(i=>i.type===TYPE_MOVIE && i.status===STATUS_WATCHED && i.duration>0).map(i=>i.duration);
+    const avg = durs.length ? Math.round(durs.reduce((a,b)=>a+b,0)/durs.length) : 0;
+    fourth = `<div class="st-t"><small>Średni czas</small><b>${avg ? escapeHtml(fmtSpanShort(avg)) : "—"}</b><div class="st-l">${lines(["na film"])}</div></div>`;
+  } else {
+    const a = computeAverageStats("episodes"), m = computeAverageMinutesPerDay("episodes");
+    fourth = `<div class="st-t"><small>Dziennie</small><b>${a.hasData ? escapeHtml(String(formatAvgNumber(a.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", m.hasData ? `ok. ${escapeHtml(fmtSpanShort(m.perDay))}` : ""])}</div></div>`;
+  }
+  box.innerHTML = `
+    <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week)])}</div></div>
+    <div class="st-t ${cls}"><small>Ten rok</small><b>${fmtNum(yearTotal)}</b><div class="st-l">${lines([unit(yearTotal), best >= 0 ? `najwięcej w ${MONTH_NAMES_LOC_PL[best]} (${fmtNum(months[best].count)})` : ""])}</div></div>
+    <div class="st-t"><small>Średnia ocena</small><b>${r ? r.avg.toFixed(1).replace(".", ",") : "—"}</b><div class="st-l">${lines([r ? `z ${fmtNum(r.count)} ${r.count===1?"oceny":"ocen"}` : "brak ocen"])}</div></div>
+    ${fourth}`;
+  // paski list (gatunki, kraje) względem największej pozycji na liście
+  const pane = box.closest(".status-pane");
+  if (pane) pane.querySelectorAll(".genre-stats-list").forEach(list=>{
+    const fills = [...list.querySelectorAll(".genre-bar-fill")];
+    if (!fills.length) return;
+    const vals = fills.map(f=>parseFloat(f.dataset.pct || f.style.width) || 0);
+    fills.forEach((f,i)=>{ if (!f.dataset.pct) f.dataset.pct = vals[i]; });
+    const max = Math.max(...vals, 0.0001);
+    fills.forEach((f,i)=>{ f.style.width = (vals[i] / max * 100).toFixed(1) + "%"; });
+  });
 }
 
 // ============================================================
