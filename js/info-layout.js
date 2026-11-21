@@ -105,8 +105,7 @@ function applyNewInfoLayout(overlay, ctx){
     if (wp && ((wp.flatrate||[]).length || (wp.rent||[]).length || (wp.buy||[]).length)) {
       const many = (key, list)=>{
         if (!list || !list.length) return "";
-        if (list.length <= 2 || vlistOpen[key]) return esc(list.join(", "));
-        return `<button type="button" class="vl-more" data-open="${key}">${list.length} serwisów ›</button>`;
+        return esc(list.join(", "));
       };
       groups.push(["Gdzie obejrzeć",
         row("Streaming", (wp.flatrate||[]).length ? esc(wp.flatrate.join(", ")) : "") +
@@ -128,8 +127,7 @@ function applyNewInfoLayout(overlay, ctx){
     if (c.original_language) det += row("Język", esc(c.original_language));
     const comp = (c.production_companies||[]).filter(Boolean);
     if (comp.length) {
-      const showAll = vlistOpen.comp || comp.length <= 2;
-      det += row(comp.length > 1 ? "Wytwórnie" : "Wytwórnia", showAll ? esc(comp.join(", ")) : `${esc(comp.slice(0,2).join(", "))} <button type="button" class="vl-more" data-open="comp">+${comp.length-2}</button>`);
+      det += row(comp.length > 1 ? "Wytwórnie" : "Wytwórnia", esc(comp.join(", ")));
     }
     if (c.budget) det += row("Budżet", esc(formatMoney(c.budget)));
     if (c.status === STATUS_WATCHED && c.finished_date) det += row("Data zakończenia", esc(formatDateDMY(c.finished_date)));
@@ -141,9 +139,7 @@ function applyNewInfoLayout(overlay, ctx){
       return m ? [m[1], m[2]] : [String(x), ""];
     });
     if (cast.length) {
-      const lim = 6, show = vlistOpen.cast ? cast : cast.slice(0, lim);
-      let h = show.map(([n, r])=>`<div class="vl-row"><span class="vl-k vl-name">${esc(n)}</span><span class="vl-v vl-role">${esc(r)}</span></div>`).join("");
-      if (cast.length > show.length) h += `<button type="button" class="vl-row vl-all" data-open="cast">Pokaż całą obsadę (${cast.length}) ›</button>`;
+      const h = cast.map(([n, r])=>`<div class="vl-row"><span class="vl-k vl-name">${esc(n)}</span><span class="vl-v vl-role">${esc(r)}</span></div>`).join("");
       groups.push(["Obsada", h]);
     }
     // Opis
