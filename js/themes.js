@@ -1,7 +1,7 @@
 // ============================================================
 // themes.js — motywy kolorystyczne (Ustawienia → Wygląd)
 // ============================================================
-const APP_THEMES = [{"id": "", "label": "Domyślny", "sw": ["#242424", "#1f6aa5", "#dce4ee"]}, {"id": "kino", "label": "Kino nocą", "bg": "radial-gradient(120% 80% at 50% 0%,#1a2340 0%,#0a0e17 70%)", "sw": ["#151c2c", "#d4a24c", "#eef1f7"]}, {"id": "jasny", "label": "Jasny", "bg": "#eef0f4", "sw": ["#ffffff", "#2563eb", "#1b1f27"]}];
+const APP_THEMES = [{"id": "", "label": "Domyślny", "sw": ["#242424", "#1f6aa5", "#dce4ee"]}, {"id": "kino", "label": "Ciemny", "bg": "radial-gradient(120% 80% at 50% 0%,#1a2340 0%,#0a0e17 70%)", "sw": ["#151c2c", "#d4a24c", "#eef1f7"]}, {"id": "jasny", "label": "Jasny", "bg": "#eef0f4", "sw": ["#ffffff", "#2563eb", "#1b1f27"]}];
 const THEME_META = {"": "#242424", "kino": "#0a0e17", "jasny": "#e8eaef"};
 
 function applyTheme(id){
