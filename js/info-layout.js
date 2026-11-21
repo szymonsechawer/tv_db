@@ -100,11 +100,6 @@ function applyNewInfoLayout(overlay, ctx){
   page2.className = "vd-page vd-page-rest";
   page1.appendChild(hero);
   while (scroll.firstChild) page2.appendChild(scroll.firstChild);
-  const toDetails = document.createElement("button");
-  toDetails.type = "button";
-  toDetails.className = "vd-to-details";
-  toDetails.innerHTML = `Szczegóły <span>›</span>`;
-  page1.appendChild(toDetails);
   pages.append(page1, page2);
   scroll.appendChild(pages);
   scroll.classList.add("vd-paged");
@@ -114,7 +109,6 @@ function applyNewInfoLayout(overlay, ctx){
   const footerEl = overlay.querySelector(".modal-footer");
   if (footerEl) footerEl.insertBefore(dotsEl, footerEl.firstChild);
   const goPage = (i)=>pages.scrollTo({left: i * pages.clientWidth, behavior: "smooth"});
-  toDetails.addEventListener("click", ()=>goPage(1));
   dotsEl.querySelectorAll("button").forEach((b,i)=>b.addEventListener("click", ()=>goPage(i)));
   pages.addEventListener("scroll", ()=>{
     const i = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
