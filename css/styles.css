@@ -838,3 +838,6 @@ html[data-theme="jasny"] .progress-cell.prog-tappable{border-color:rgba(0,0,0,.1
 
 /* Wersja aplikacji na dole menu */
 .menu-version{margin:18px 12px 4px;font-size:11px;font-weight:600;color:var(--text-muted);opacity:.7;}
+/* Napis na górze (np. "Seriale · Oglądane") w delikatnej ramce o stałej szerokości */
+.menu-title{height:42px;line-height:40px;padding:0 12px;border:1px solid rgba(255,255,255,.22);border-radius:12px;}
+html[data-theme="jasny"] .menu-title{border-color:rgba(0,0,0,.14);}
