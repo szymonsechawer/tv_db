@@ -816,8 +816,6 @@ html[data-theme="jasny"] .vd-top.has-bg::after{background:linear-gradient(180deg
 .vd-page-hero .vd-rate{font-size:15px;}
 .vd-page-hero .vd-rate b{font-size:19px;}
 .vd-page-hero .vd-status{align-self:center;font-size:12.5px;padding:4px 11px;}
-.vd-to-details{margin:10px auto 2px;display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 10px;}
-.vd-to-details span{font-size:20px;line-height:1;}
 .vd-page-dots{display:flex;gap:7px;align-items:center;margin-right:auto;padding-left:4px;}
 .vd-page-dots button{width:8px;height:8px;border-radius:50%;border:none;padding:0;background:#ffffff40;cursor:pointer;}
 .vd-page-dots button.on{background:var(--accent);width:20px;border-radius:4px;}
