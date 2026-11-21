@@ -79,6 +79,10 @@
     section("Baza danych");
     item({label:"Zapisz do pliku", icon:ICONS.save, onClick:()=>clickBtn("btn-save")});
     item({label:"Otwórz plik", icon:ICONS.open, onClick:()=>clickBtn("btn-open")});
+    const ver = document.createElement("div");
+    ver.className = "menu-version";
+    ver.textContent = "Wersja " + (typeof APP_BUILD !== "undefined" ? APP_BUILD : "");
+    itemsEl.appendChild(ver);
   }
 
   function openMenu(){ buildMenu(); drawer.classList.add("open"); }
