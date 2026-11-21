@@ -90,4 +90,5 @@ initSettingsTab();
   renderSettingsTab();
   renderAll();
   renderStorageInfo();
+  if (typeof ghStartupSync === "function") ghStartupSync();
 })();
