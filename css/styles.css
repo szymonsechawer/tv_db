@@ -918,3 +918,5 @@ html[data-theme="jasny"] .menu-title{border-color:rgba(0,0,0,.14);}
 /* Okno informacji serialu: 3 strony, własne zakładki na stronach 2 i 3 */
 .vd-page-title{height:38px;line-height:36px;text-align:center;font-weight:700;font-size:15px;border:1px solid rgba(255,255,255,.22);border-radius:12px;margin:0 0 10px;}
 html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
+/* nazwa strony w oknie informacji stoi w miejscu przy przewijaniu */
+.vd-page-title{position:sticky;top:0;z-index:3;background:var(--vd-modal-bg,var(--bg-dark));box-shadow:0 -12px 0 var(--vd-modal-bg,var(--bg-dark)), 0 10px 0 var(--vd-modal-bg,var(--bg-dark));}
