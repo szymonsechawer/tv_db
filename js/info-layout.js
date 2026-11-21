@@ -170,6 +170,10 @@ function applyNewInfoLayout(overlay, ctx){
   page1.appendChild(hero);
   while (scroll.firstChild) page2.appendChild(scroll.firstChild);
   pages.append(page1, page2);
+  // nagłówek strony z nazwą (zamiast przycisków zakładek)
+  const mkPageTitle = (t)=>{ const h = document.createElement("div"); h.className = "vd-page-title"; h.textContent = t; return h; };
+  if (tabs) tabs.style.display = "none";
+  page2.insertBefore(mkPageTitle("Informacje"), page2.firstChild);
   // Serial: "Sezony i odcinki" jako osobna, trzecia strona (przesunięcie w lewo)
   const seasonsPane = page2.querySelector("#vpane-seasons");
   const infoPane = page2.querySelector("#vpane-info");
@@ -177,21 +181,8 @@ function applyNewInfoLayout(overlay, ctx){
   if (type === TYPE_SERIES && seasonsPane && tabs) {
     page3 = document.createElement("div");
     page3.className = "vd-page vd-page-rest vd-page-seasons";
-    const mkBar = (activeIdx)=>{
-      const bar = document.createElement("div");
-      bar.className = "vd-tabsbar";
-      ["Informacje", "Sezony i odcinki"].forEach((t, i)=>{
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "tab-btn" + (i === activeIdx ? " active" : "");
-        b.textContent = t;
-        b.addEventListener("click", ()=>goPage(i + 1));
-        bar.appendChild(b);
-      });
-      return bar;
-    };
     tabs.style.display = "none";
-    page2.insertBefore(mkBar(0), page2.firstChild);
-    page3.appendChild(mkBar(1));
+    page3.appendChild(mkPageTitle("Sezony i odcinki"));
     page3.appendChild(seasonsPane);
     pages.appendChild(page3);
   }
