@@ -678,28 +678,69 @@ function renderPersonListInto(listId, emptyId, type, field, extractFn, limit){
   const list = document.getElementById(listId);
   const empty = document.getElementById(emptyId);
   if (!list) return;
-  let data = computePersonStats(type, field, extractFn);
+  const all = computePersonStats(type, field, extractFn);
+  let top = all;
   // Pomijamy osoby, które pojawiły się tylko raz, gdy lista jest bardzo długa —
   // inaczej ranking "najczęściej oglądanych" tonie w jednorazowych wpisach.
-  if (data.length > limit && data.some(p=>p.count>1)) data = data.filter(p=>p.count>1);
-  data = data.slice(0, limit);
-  if (!data.length) {
+  if (top.length > limit && top.some(p=>p.count>1)) top = top.filter(p=>p.count>1);
+  top = top.slice(0, limit);
+  const moreBtnOld = list.nextElementSibling && list.nextElementSibling.classList.contains("person-more") ? list.nextElementSibling : null;
+  if (!top.length) {
     list.innerHTML = "";
+    if (moreBtnOld) moreBtnOld.remove();
     if (empty) empty.style.display = "";
     return;
   }
   if (empty) empty.style.display = "none";
-  list.innerHTML = data.map(p=>{
-    return `
+  const rowsHtml = (arr)=>arr.map(p=>`
       <button type="button" class="genre-stat-row person-stat-row person-link" data-name="${escapeHtml(p.name)}">
         <div class="genre-stat-name">${escapeHtml(p.name)}</div>
         <div class="genre-stat-pct">${p.count}× <span class="person-chev">›</span></div>
-      </button>
-    `;
-  }).join("");
+      </button>`).join("");
+  list.innerHTML = rowsHtml(top);
   const rawLabel = (list.closest(".stats-section")?.querySelector("h3")?.textContent || "").trim();
   const label = rawLabel ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase() : "";
-  list.querySelectorAll(".person-link").forEach(b=>addDoubleActivation(b, ()=>openPersonTitlesDialog(type, field, extractFn, b.dataset.name, label)));
+  list._personOpen = (name)=>openPersonTitlesDialog(type, field, extractFn, name, label);
+  if (!list.dataset.dblInit) { list.dataset.dblInit = "1"; personRowsDoubleTap(list, (name)=>list._personOpen(name)); }
+  // przycisk rozwijania pełnej listy
+  if (all.length > top.length) {
+    let btn = moreBtnOld;
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button"; btn.className = "person-more";
+      btn.addEventListener("click", ()=>btn._open && btn._open());
+      list.after(btn);
+    }
+    btn.textContent = `Pokaż wszystkie (${fmtNum(all.length)}) ›`;
+    btn._open = ()=>openPersonAllDialog(all, label, rowsHtml, list._personOpen);
+  } else if (moreBtnOld) moreBtnOld.remove();
+}
+
+// dwukrotne dotknięcie wiersza osoby (obsługa zbiorcza dla całej listy)
+function personRowsDoubleTap(container, open){
+  let lastName = null, lastT = 0, moved = false;
+  container.addEventListener("touchstart", ()=>{ moved = false; }, {passive:true});
+  container.addEventListener("touchmove", ()=>{ moved = true; }, {passive:true});
+  container.addEventListener("touchend", (e)=>{
+    const row = e.target.closest(".person-link"); if (!row || moved) { lastName = null; return; }
+    const now = Date.now();
+    if (lastName === row.dataset.name && now - lastT < 400) { e.preventDefault(); lastName = null; open(row.dataset.name); }
+    else { lastName = row.dataset.name; lastT = now; }
+  }, {passive:false});
+  container.addEventListener("dblclick", (e)=>{ const row = e.target.closest(".person-link"); if (row) open(row.dataset.name); });
+}
+
+// Osobne okno z pełną listą osób / wytwórni
+function openPersonAllDialog(all, label, rowsHtml, openPerson){
+  const overlay = openOverlay(`
+    <div class="modal-header pt-head"><div>${escapeHtml(label)}</div><small>wszystkie · ${fmtNum(all.length)}</small></div>
+    <div class="modal-body pt-body pa-body">${rowsHtml(all)}</div>
+    <div class="modal-footer"><button class="btn" id="pa-close">Zamknij</button></div>
+  `);
+  overlay.classList.add("pt-overlay");
+  overlay.querySelector("#pa-close").addEventListener("click", ()=>closeOverlay(overlay));
+  overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeOverlay(overlay); });
+  personRowsDoubleTap(overlay.querySelector(".pa-body"), openPerson);
 }
 
 // Okno z tytułami, w których występuje dana osoba / wytwórnia
