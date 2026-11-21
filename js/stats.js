@@ -653,7 +653,8 @@ function renderAverageRatingStats(){
 
 // Usuwa dopisaną nazwę postaci z wpisu obsady, np. "Jan Kowalski (Postać)" -> "Jan Kowalski".
 function stripCastCharacter(raw){
-  return String(raw||"").replace(/\s*\([^()]*\)\s*$/, "").trim();
+  // od pierwszego " (" — obsługuje też zagnieżdżone nawiasy, np. "Leslie Mann (Linda (voice))"
+  return String(raw||"").replace(/\s*\(.*\)\s*$/, "").trim();
 }
 
 // Zlicza wystąpienia osób (reżyserów/twórców albo obsady) wśród pozycji
@@ -732,15 +733,30 @@ function personRowsDoubleTap(container, open){
 
 // Osobne okno z pełną listą osób / wytwórni
 function openPersonAllDialog(all, label, rowsHtml, openPerson){
+  const norm = (t)=>String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l");
+  const keyed = all.map(p=>({p, k: norm(p.name)}));
   const overlay = openOverlay(`
-    <div class="modal-header pt-head"><div>${escapeHtml(label)}</div><small>wszystkie · ${fmtNum(all.length)}</small></div>
+    <div class="modal-header pt-head"><div>${escapeHtml(label)}</div><small id="pa-count">wszystkie · ${fmtNum(all.length)}</small></div>
+    <div class="pa-search"><input class="entry" id="pa-q" type="search" placeholder="Szukaj…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
     <div class="modal-body pt-body pa-body">${rowsHtml(all)}</div>
     <div class="modal-footer"><button class="btn" id="pa-close">Zamknij</button></div>
   `);
   overlay.classList.add("pt-overlay");
+  const body = overlay.querySelector(".pa-body"), q = overlay.querySelector("#pa-q"), cnt = overlay.querySelector("#pa-count");
+  let timer = null;
+  q.addEventListener("input", ()=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=>{
+      const v = norm(q.value.trim());
+      const list = v ? keyed.filter(x=>x.k.includes(v)).map(x=>x.p) : all;
+      body.innerHTML = list.length ? rowsHtml(list) : '<div class="muted" style="padding:10px 2px;">Brak wyników.</div>';
+      body.scrollTop = 0;
+      cnt.textContent = v ? `znaleziono · ${fmtNum(list.length)} z ${fmtNum(all.length)}` : `wszystkie · ${fmtNum(all.length)}`;
+    }, 120);
+  });
   overlay.querySelector("#pa-close").addEventListener("click", ()=>closeOverlay(overlay));
   overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeOverlay(overlay); });
-  personRowsDoubleTap(overlay.querySelector(".pa-body"), openPerson);
+  personRowsDoubleTap(body, openPerson);
 }
 
 // Okno z tytułami, w których występuje dana osoba / wytwórnia
@@ -750,7 +766,7 @@ function openPersonTitlesDialog(type, field, extractFn, name, label){
     const hit = (it[field]||[]).find(raw=>(extractFn ? extractFn(raw) : String(raw||"").trim()) === name);
     if (!hit) return null;
     let role = "";
-    if (field === "cast") { const m = String(hit).match(/\(([^()]*)\)\s*$/); role = m ? m[1] : ""; }
+    if (field === "cast") { const m = String(hit).match(/\((.*)\)\s*$/); role = m ? m[1] : ""; }
     return {it, role};
   }).filter(Boolean).sort((a,b)=>String(b.it.premiere_date||"").localeCompare(String(a.it.premiere_date||"")) || a.it.title.localeCompare(b.it.title));
   const n = items.length;
