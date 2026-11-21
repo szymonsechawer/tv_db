@@ -701,7 +701,7 @@ function renderPersonListInto(listId, emptyId, type, field, extractFn, limit){
   }).join("");
   const rawLabel = (list.closest(".stats-section")?.querySelector("h3")?.textContent || "").trim();
   const label = rawLabel ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase() : "";
-  list.querySelectorAll(".person-link").forEach(b=>b.addEventListener("click", ()=>openPersonTitlesDialog(type, field, extractFn, b.dataset.name, label)));
+  list.querySelectorAll(".person-link").forEach(b=>addDoubleActivation(b, ()=>openPersonTitlesDialog(type, field, extractFn, b.dataset.name, label)));
 }
 
 // Okno z tytułami, w których występuje dana osoba / wytwórnia
