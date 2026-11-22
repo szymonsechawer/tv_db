@@ -32,7 +32,7 @@
   function locationTitle(){
     if (activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING && upcomingMode==="episodes") return "Seriale · Nadchodzące";
     if (activeMain===TYPE_MOVIE || activeMain===TYPE_SERIES) return `${TYPE_LABELS[activeMain]} · ${STATUS_LABELS[activeStatus[activeMain]]}`;
-    return ({notes:"Notatki", stats:"Statystyki", summary:"Podsumowanie", settings:"Ustawienia"})[activeMain] || "";
+    return ({home:"Strona główna", notes:"Notatki", stats:"Statystyki", summary:"Podsumowanie", settings:"Ustawienia"})[activeMain] || "";
   }
   function section(label){
     const h = document.createElement("div"); h.className = "menu-section"; h.textContent = label; itemsEl.appendChild(h);
@@ -53,6 +53,7 @@
     itemsEl.innerHTML = "";
     const onList = activeMain===TYPE_MOVIE || activeMain===TYPE_SERIES;
     const isUpcoming = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
+    item({label:"Strona główna", icon:"icons/home.svg", active: activeMain==="home", onClick:()=>switchMainTab("home")});
     section("Lista");
     item({label:"Dodaj", icon:ICONS.add, onClick:()=>clickBtn("btn-add")});
     if (onList) item({label:"Widok", icon:ICONS.view, onClick:()=>clickBtn("btn-view")});

@@ -291,7 +291,7 @@ function applyNewInfoLayout(overlay, ctx){
     }
     const actions = [];
     if (!readOnly && !preview) {
-      if (type === TYPE_SERIES && nextCode) actions.push(`<button type="button" class="vd-act primary" data-act="next">✔ Odhacz ${escapeHtml(nextCode)}</button>`);
+      if (type === TYPE_SERIES && nextCode) actions.push(`<button type="button" class="vd-act primary" data-act="next">✔ ${escapeHtml(nextCode)}</button>`);
       if (type === TYPE_MOVIE && c.status !== STATUS_WATCHED) actions.push(`<button type="button" class="vd-act primary" data-act="watched">✓ Obejrzane</button>`);
     }
     if (c.trailer_key) actions.push(`<a class="vd-act" href="https://www.youtube.com/watch?v=${escapeHtml(c.trailer_key)}" target="_blank" rel="noopener">▶ Zwiastun</a>`);
