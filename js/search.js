@@ -51,6 +51,52 @@ function runSearchFilter(){
   for (const type of [TYPE_MOVIE, TYPE_SERIES]) {
     for (const status of TYPE_STATUS_ORDER[type]) renderTable(type, status);
   }
+  renderGlobalSearch();
+}
+
+// Wyszukiwanie globalne: niezależnie od otwartej zakładki pokazuje wszystkie
+// pasujące filmy i seriale, z rodzajem i statusem po prawej.
+const GS_STATUS = { watching: "Oglądany", watched: "Zakończony", paused: "Wstrzymany", planned: "Planowany" };
+function globalSearchItems(q){
+  const search = (q||"").trim().toLowerCase();
+  if (!search) return [];
+  let items = db.items.slice();
+  if (getSearchMode(search) === "tags") {
+    const tokens = search.replace(/#/g, "").split(/[,]+/).map(t=>t.trim()).filter(Boolean);
+    if (!tokens.length) return [];
+    items = items.filter(i => { const hay = (i.tags||[]).join(" ").toLowerCase(); return tokens.every(tok => hay.includes(tok)); });
+  } else {
+    const tokens = search.split(/[,]+|\s+/).map(t=>t.trim()).filter(Boolean);
+    items = items.filter(i => tokens.every(tok => (i.title||"").toLowerCase().includes(tok)));
+  }
+  const starts = (i)=> (i.title||"").toLowerCase().startsWith(search) ? 0 : 1;
+  return items.sort((a,b)=> starts(a)-starts(b) || (a.title||"").localeCompare(b.title||"", "pl"));
+}
+function renderGlobalSearch(){
+  const on = !!searchQuery.trim();
+  document.body.classList.toggle("gsearch-on", on);
+  const body = document.getElementById("gs-body");
+  if (!body) return;
+  body.innerHTML = "";
+  if (!on) return;
+  const items = globalSearchItems(searchQuery);
+  document.getElementById("gs-head").textContent = `Wyniki (${items.length})`;
+  if (!items.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="2">Nic nie znaleziono.</td></tr>`;
+    return;
+  }
+  for (const it of items) {
+    const tr = document.createElement("tr");
+    tr.dataset.id = it.id;
+    const year = String(it.premiere_date||"").slice(0,4);
+    const isSeries = it.type === TYPE_SERIES;
+    const st = it.status || STATUS_WATCHING;
+    tr.innerHTML = `<td class="col-title"><span class="gs-t"></span>${year ? `<span class="gs-y">${escapeHtml(year)}</span>` : ""}</td>
+      <td class="col-gs"><span class="gs-kind">${isSeries ? "Serial" : "Film"}</span><span class="gs-st gs-${escapeHtml(st)}">${escapeHtml(GS_STATUS[st] || STATUS_LABELS[st] || "")}</span></td>`;
+    tr.querySelector(".gs-t").textContent = it.title || "";
+    addDoubleActivation(tr, ()=>openViewDialog(it.id));
+    body.appendChild(tr);
+  }
 }
 
 (function initTagAutocomplete(){
