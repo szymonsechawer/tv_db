@@ -950,3 +950,14 @@ html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
 .sq-rows div:last-child{border-bottom:none;}
 .sq-rows span{color:var(--text-muted);}
 .sq-note{font-size:11.5px;margin-top:6px;}
+
+/* Menu: pozycja podrzędna (np. Podsumowanie pod Statystykami) */
+.menu-item.menu-sub{padding:8px 10px 8px 46px;font-size:14px;color:var(--text-muted);}
+.menu-item.menu-sub .menu-dot{display:none;}
+/* Okno Podsumowania */
+.sum-switch{display:flex;gap:6px;padding:10px 16px 4px;}
+.sum-switch button{flex:1;padding:8px;border-radius:10px;border:none;background:var(--bg-medium);color:var(--text-light);font:inherit;font-weight:700;cursor:pointer;}
+.sum-switch button.on{background:var(--accent);color:#fff;}
+.sum-sect-h{font-size:13px;font-weight:800;margin:6px 2px 8px;}
+.sum-sect-h:not(:first-child){margin-top:16px;}
+.sum-body.swipe-in-l{animation:swInL .22s ease-out;} .sum-body.swipe-in-r{animation:swInR .22s ease-out;}
