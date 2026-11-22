@@ -111,6 +111,8 @@ function switchMainTab(tab){
     renderNotesTab();
   } else if (tab==="stats") {
     switchStatsTab(activeStatsTab);
+  } else if (tab==="summary") {
+    if (typeof renderSummaryTab === "function") renderSummaryTab();
   }
   updateCheckButtonVisibility();
 }
