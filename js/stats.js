@@ -50,6 +50,7 @@ function updateStats(){
   renderGeneralTiles(s);
   renderPaneTiles("movies");
   renderPaneTiles("episodes");
+  if (typeof activeMain !== "undefined" && activeMain === "summary") renderSummaryTab();
 }
 
 // ============================================================
@@ -502,43 +503,33 @@ function openYearRecordsDialog(kind){
   document.addEventListener("keydown", onKey);
 }
 
-// Osobne okno Podsumowania (otwierane z menu, pod „Statystyki”).
-// mode: "tabs" — przełącznik Seriale/Filmy (także przesunięciem palca),
-//       "both" — obie części jedna pod drugą, "single" — tylko wybrana.
-function openSummaryDialog(kind, mode){
-  mode = mode || "tabs";
-  let cur = kind === "movies" ? "movies" : "episodes";
-  const sect = (k)=>`<div class="sum-sect-h">${k==="movies" ? "Filmy" : "Seriale"}</div>${buildYearRecordsHtml(k)}`;
-  const title = mode === "single" ? (cur==="movies" ? "Podsumowanie — Filmy" : "Podsumowanie — Seriale") : "Podsumowanie";
-  const overlay = openOverlay(`
-    <div class="modal-header">${escapeHtml(title)}</div>
-    ${mode === "tabs" ? `<div class="sum-switch"><button type="button" data-k="episodes">Seriale</button><button type="button" data-k="movies">Filmy</button></div>` : ""}
-    <div class="modal-body sum-body"></div>
-    <div class="modal-footer"><button class="btn" id="sum-close">Zamknij</button></div>
-  `);
-  overlay.classList.add("sum-overlay");
-  const body = overlay.querySelector(".sum-body");
-  const show = (k, dir)=>{
-    cur = k;
-    if (mode === "both") body.innerHTML = sect("episodes") + sect("movies");
-    else body.innerHTML = buildYearRecordsHtml(k);
-    overlay.querySelectorAll(".sum-switch button").forEach(b=>b.classList.toggle("on", b.dataset.k === k));
-    if (dir) { body.classList.remove("swipe-in-l","swipe-in-r"); void body.offsetWidth; body.classList.add(dir > 0 ? "swipe-in-l" : "swipe-in-r"); }
-  };
-  show(cur);
-  overlay.querySelectorAll(".sum-switch button").forEach(b=>b.addEventListener("click", ()=>show(b.dataset.k, b.dataset.k==="movies" ? 1 : -1)));
-  if (mode === "tabs") {
-    let x0 = 0, y0 = 0;
-    body.addEventListener("touchstart", e=>{ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
-    body.addEventListener("touchend", e=>{
-      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      if (dx < 0 && cur === "episodes") show("movies", 1);
-      else if (dx > 0 && cur === "movies") show("episodes", -1);
-    }, {passive:true});
-  }
-  overlay.querySelector("#sum-close").addEventListener("click", ()=>closeOverlay(overlay));
+// Karta „Podsumowanie” (z menu, pod „Statystyki”) — Seriale / Filmy,
+// przełączane przyciskami u góry albo przesunięciem palca.
+let activeSummaryKind = "episodes";
+function renderSummaryTab(dir){
+  const box = document.getElementById("summary-content");
+  if (!box) return;
+  box.innerHTML = buildYearRecordsHtml(activeSummaryKind);
+  document.querySelectorAll("#subtabs-summary .tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.sumTab === activeSummaryKind));
+  box.classList.remove("swipe-in-l","swipe-in-r");
+  if (dir) { void box.offsetWidth; box.classList.add(dir > 0 ? "swipe-in-l" : "swipe-in-r"); }
 }
+document.querySelectorAll("#subtabs-summary .tab-btn").forEach(b=>b.addEventListener("click", ()=>{
+  const k = b.dataset.sumTab; if (k === activeSummaryKind) return;
+  activeSummaryKind = k; renderSummaryTab(k === "movies" ? 1 : -1);
+}));
+(function(){
+  const area = document.getElementById("subcontent-summary");
+  if (!area) return;
+  let x0 = 0, y0 = 0, t0 = 0;
+  area.addEventListener("touchstart", e=>{ if (e.touches.length !== 1) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }, {passive:true});
+  area.addEventListener("touchend", e=>{
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - t0 > 800) return;
+    if (dx < 0 && activeSummaryKind === "episodes") { activeSummaryKind = "movies"; renderSummaryTab(1); }
+    else if (dx > 0 && activeSummaryKind === "movies") { activeSummaryKind = "episodes"; renderSummaryTab(-1); }
+  }, {passive:true});
+})();
 
 // Zlicza gatunki dla danego typu (film/serial) wśród pozycji uznanych za
 // oglądane/obejrzane (filmy: zakończone; seriale: oglądane/zakończone/wstrzymane).
