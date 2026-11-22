@@ -940,6 +940,7 @@ function renderAll(){
   renderNotesTab();
   updateStats();
   updateDbBadge();
+  if (activeMain === "home" && typeof renderHomeTab === "function") renderHomeTab();
 }
 
 function getCurrentKey(){

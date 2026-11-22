@@ -956,3 +956,27 @@ html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
 .menu-item.menu-sub .menu-dot{display:none;}
 /* Karta Podsumowanie */
 #summary-content.swipe-in-l{animation:swInL .22s ease-out;} #summary-content.swipe-in-r{animation:swInR .22s ease-out;}
+
+/* Strona główna */
+.home-wrap{padding:2px 0 16px;}
+.home-sh{display:flex;justify-content:space-between;align-items:baseline;margin:6px 2px 8px;}
+.home-sh:not(:first-child){margin-top:18px;}
+.home-sh b{font-size:16px;} .home-sh span{font-size:12.5px;color:var(--text-muted);}
+.home-big{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--bg-entry);cursor:pointer;}
+.home-bg{position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(24px) saturate(1.3);opacity:.7;}
+.home-in{position:relative;display:flex;gap:12px;padding:12px;align-items:center;background:linear-gradient(90deg,rgba(0,0,0,.5),rgba(0,0,0,.12));}
+.home-poster{width:100px;height:150px;flex:none;border-radius:10px;overflow:hidden;background:var(--bg-medium);box-shadow:0 6px 16px rgba(0,0,0,.4);}
+.home-poster.sm{width:42px;height:63px;border-radius:6px;box-shadow:none;}
+.home-poster img{width:100%;height:100%;object-fit:cover;display:block;}
+.home-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.home-txt small{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#e8edf3;opacity:.85;font-weight:700;}
+.home-big .home-txt b{font-size:19px;line-height:1.2;color:#fff;margin-bottom:6px;}
+.home-big .home-meta{color:#e8edf3;opacity:.9;}
+.home-meta{font-size:12.5px;color:var(--text-muted);display:block;}
+.home-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:8px;}
+.home-sm{display:flex;gap:9px;align-items:center;background:var(--bg-entry);border:1px solid var(--border);border-radius:12px;padding:8px;cursor:pointer;min-width:0;}
+.home-sm .home-txt b{font-size:13px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.home-sm .progress-cell{min-width:0;}
+.home-empty{padding:10px 4px;}
+html[data-theme="jasny"] .home-in{background:linear-gradient(90deg,rgba(255,255,255,.65),rgba(255,255,255,.25));}
+html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-txt small,html[data-theme="jasny"] .home-big .home-meta{color:var(--text-light);}

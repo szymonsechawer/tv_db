@@ -37,7 +37,7 @@ function initTabs(){
   initNotesAutosave();
   // Po uruchomieniu aplikacja otwiera się na Seriale → Oglądane.
   activeStatus[TYPE_SERIES] = STATUS_WATCHING;
-  switchMainTab(TYPE_SERIES);
+  switchMainTab("home");
 }
 
 let activeStatsTab = "general";
@@ -111,6 +111,8 @@ function switchMainTab(tab){
     renderNotesTab();
   } else if (tab==="stats") {
     switchStatsTab(activeStatsTab);
+  } else if (tab==="home") {
+    if (typeof renderHomeTab === "function") renderHomeTab();
   } else if (tab==="summary") {
     if (typeof renderSummaryTab === "function") renderSummaryTab();
   }
