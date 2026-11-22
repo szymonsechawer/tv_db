@@ -1,6 +1,6 @@
 // ============================================================
 // add-wizard.js — dodawanie filmów i seriali krok po kroku
-// 1) rodzaj + lista, 2) wyszukanie tytułu w TMDb, 3) tagi
+// 1) rodzaj + lista, 2) wyszukanie tytułu w TMDb, 3) podsumowanie
 // ============================================================
 
 const AW_ICON_FILM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>';
@@ -25,10 +25,10 @@ function openAddWizard(){
   let searchSeq = 0;
 
   const overlay = openOverlay(`<div class="aw" id="aw">
-    <div class="aw-hd"><button type="button" class="aw-back" id="aw-back">‹ Wstecz</button><span class="aw-sp"></span><button type="button" class="aw-cancel" id="aw-cancel">Anuluj</button></div>
+    <div class="aw-hd"><button type="button" class="aw-back" id="aw-back">‹ Wstecz</button><span class="aw-sp"></span></div>
     <div class="aw-steps"><i></i><i></i><i></i></div>
     <div class="aw-body" id="aw-body"></div>
-    <div class="aw-foot" id="aw-foot"></div>
+    <div class="aw-foot"><div id="aw-foot"></div><button type="button" class="btn secondary aw-main aw-cancel-btn" id="aw-cancel">Anuluj</button></div>
   </div>`);
   const modal = overlay.querySelector(".modal") || overlay.firstElementChild;
   if (modal) modal.classList.add("aw-modal");
@@ -124,20 +124,27 @@ function openAddWizard(){
 
   function renderStep3(){
     const year = String(hit.release_date || hit.first_air_date || "").slice(0,4);
-    const poster = hit.poster_path ? tmdbPosterUrl(hit.poster_path, "w185") : "";
-    const allTags = getAllTags();
-    body.innerHTML = `<div class="aw-pick">${poster ? `<img src="${poster}" alt="">` : `<span class="aw-ph big"></span>`}<div><b></b><small>${escapeHtml([year, type===TYPE_MOVIE?"Film":"Serial", STATUS_LABELS[status]].filter(Boolean).join(" · "))}</small></div></div>
-      <div class="aw-lbl">Tagi</div>
-      <div class="aw-tags" id="aw-tags">${allTags.map(t=>`<button type="button" class="aw-tag${tags.includes(t)?" on":""}" data-t="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}<button type="button" class="aw-tag aw-tag-new" id="aw-tag-new">+ nowy</button></div>
-      <button type="button" class="aw-more" id="aw-more">Więcej pól (opis, obsada, data…)<span>›</span></button>`;
-    body.querySelector(".aw-pick b").textContent = awHitTitle(hit);
-    body.querySelectorAll(".aw-tag[data-t]").forEach(b=>b.addEventListener("click", ()=>{ const t = b.dataset.t; tags = tags.includes(t) ? tags.filter(x=>x!==t) : [...tags, t]; b.classList.toggle("on"); }));
-    body.querySelector("#aw-tag-new").addEventListener("click", async ()=>{
-      const v = await askText({title:"Nowy tag", prompt:"Nazwa tagu:", initial:""});
-      const t = String(v||"").trim();
-      if (t && !tags.includes(t)) { tags.push(t); renderStep3(); const extra = body.querySelector(`.aw-tag[data-t="${CSS.escape(t)}"]`); if (!extra) { const b = document.createElement("button"); b.type="button"; b.className="aw-tag on"; b.textContent=t; body.querySelector("#aw-tags").insertBefore(b, body.querySelector("#aw-tag-new")); } }
-    });
-    body.querySelector("#aw-more").addEventListener("click", ()=>{ close(); openManual(hit, false); });
+    const poster = hit.poster_path ? tmdbPosterUrl(hit.poster_path, "w342") : "";
+    body.innerHTML = `<div class="aw-final">${poster ? `<img src="${poster}" alt="">` : `<span class="aw-ph big"></span>`}
+      <b class="aw-ft"></b><div class="aw-fy">${escapeHtml(year)}</div><div class="aw-fi" id="aw-fi">…</div></div>`;
+    body.querySelector(".aw-ft").textContent = awHitTitle(hit);
+    const fi = body.querySelector("#aw-fi");
+    const want = hit.id;
+    (async ()=>{
+      try {
+        if (type === TYPE_MOVIE) {
+          const d = await tmdbFetch("/movie/" + hit.id, {});
+          const m = d && d.runtime ? d.runtime : 0;
+          if (hit.id !== want || !fi.isConnected) return;
+          fi.textContent = m ? (m >= 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m} min`) : "";
+        } else {
+          const d = await tmdbFetch("/tv/" + hit.id, {});
+          if (hit.id !== want || !fi.isConnected) return;
+          const ns = d && d.number_of_seasons, ne = d && d.number_of_episodes;
+          fi.textContent = ns ? `${ns} ${polishPlural(ns,"sezon","sezony","sezonów")}${ne ? ` · ${ne} odc.` : ""}` : "";
+        }
+      } catch(e) { if (fi.isConnected) fi.textContent = ""; }
+    })();
     foot.innerHTML = `<button type="button" class="btn aw-main" id="aw-add">Dodaj do listy</button>`;
     foot.querySelector("#aw-add").addEventListener("click", ()=>{ close(); openManual(hit, true); });
   }
