@@ -56,7 +56,12 @@ function renderHomeTab(){
   const poster = (it, size)=> it.poster_path ? tmdbPosterUrl(it.poster_path, size||"w342") : "";
   const esc = escapeHtml;
   box.innerHTML = "";
-  const section = (title, sub)=>{ const h = document.createElement("div"); h.className = "home-sh"; h.innerHTML = `<b>${esc(title)}</b><span>${esc(sub)}</span>`; box.appendChild(h); };
+  let grp = box;
+  const section = (title, sub)=>{
+    grp = document.createElement("div"); grp.className = "home-group";
+    grp.innerHTML = `<div class="home-sh"><b>${esc(title)}</b><span>${esc(sub)}</span></div>`;
+    box.appendChild(grp);
+  };
   const bigCard = (it, kind, last, smaller)=>{
     const c = document.createElement("div");
     c.className = "home-big" + (smaller ? " home-mid" : "");
@@ -74,7 +79,7 @@ function renderHomeTab(){
     }
     else { const y = String(it.premiere_date||"").slice(0,4); slot.innerHTML = y ? `<span class="home-meta">${esc(y)}</span>` : ""; }
     addDoubleActivation(c, ()=>openViewDialog(it.id));
-    box.appendChild(c);
+    grp.appendChild(c);
   };
   const smallCards = (list, kind)=>{
     if (!list.length) return;
@@ -93,11 +98,11 @@ function renderHomeTab(){
   };
   const ser = homeRecentSeries(3), mov = homeRecentMovies(3);
   section("Seriale", "ostatnio oglądane");
-  if (ser.length) ser.forEach((x, i)=>bigCard(x.it, "s", x.last, i > 0));
-  else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych odcinków.</div>');
+  if (ser.length) ser.forEach(x=>bigCard(x.it, "s", x.last, true));
+  else grp.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych odcinków.</div>');
   section("Filmy", "ostatnio obejrzane");
-  if (mov.length) mov.forEach((x, i)=>bigCard(x.it, "m", x.last, i > 0));
-  else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych filmów.</div>');
+  if (mov.length) mov.forEach(x=>bigCard(x.it, "m", x.last, true));
+  else grp.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych filmów.</div>');
   requestAnimationFrame(homeFit);
   // ponowne dopasowanie po wczytaniu okładek i czcionek
   let t = null; const refit = ()=>{ clearTimeout(t); t = setTimeout(homeFit, 60); };
@@ -113,10 +118,13 @@ function homeFit(){
   // wszystkie przodki (łącznie z body i html) muszą zmieścić zawartość bez przewijania
   const chain = [];
   for (let el = box.parentElement; el; el = el.parentElement) chain.push(el);
-  const fits = ()=> chain.every(el=> el.scrollHeight <= el.clientHeight + 1 || getComputedStyle(el).overflowY === "visible" && el !== document.documentElement && el !== document.body);
+  const cards = ()=> [...box.querySelectorAll(".home-big")];
+  // wszystkie karty tej samej wysokości (seriale mają pasek postępu, filmy nie)
+  const equalize = ()=>{ const cs = cards(); cs.forEach(c=>c.style.minHeight = ""); const m = Math.max(0, ...cs.map(c=>c.offsetHeight)); cs.forEach(c=>c.style.minHeight = m + "px"); };
+  const fits = ()=>{ equalize(); return chain.every(el=> el.scrollHeight <= el.clientHeight + 1); };
   let hp = 120;
   box.style.setProperty("--hp", hp + "px");
   let guard = 40;
-  while (!fits() && hp > 54 && guard--) { hp -= 4; box.style.setProperty("--hp", hp + "px"); }
+  while (!fits() && hp > 44 && guard--) { hp -= 4; box.style.setProperty("--hp", hp + "px"); }
 }
 window.addEventListener("resize", ()=>{ if (typeof activeMain !== "undefined" && activeMain === "home") homeFit(); });

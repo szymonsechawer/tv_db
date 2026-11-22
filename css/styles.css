@@ -1001,3 +1001,22 @@ html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-tx
 .home-wrap .home-sh:not(:first-child){margin-top:12px;}
 .home-wrap .home-big + .home-big{margin-top:6px;}
 .home-meta.home-year{margin:-2px 0 4px;}
+/* Strona główna: Seriale i Filmy w osobnych ramkach, karty jednakowe */
+.home-group{border:1px solid rgba(255,255,255,.22);border-radius:16px;padding:8px 8px 8px;}
+.home-group + .home-group{margin-top:10px;}
+.home-group .home-sh{margin:0 4px 7px !important;}
+.home-wrap .home-group .home-mid .home-poster{height:var(--hp);width:calc(var(--hp) / 1.5);}
+html[data-theme="jasny"] .home-group{border-color:rgba(0,0,0,.14);}
+/* Strona główna: kompaktowy tekst w kartach */
+.home-group .home-in{padding:6px 10px;}
+.home-group .home-txt{gap:1px;}
+.home-group .home-txt b{font-size:14.5px;margin-bottom:1px;}
+.home-group .home-meta{font-size:12px;line-height:1.25;}
+.home-group .home-meta.home-year{margin:0 0 3px;}
+.home-group .progress-cell{padding:3px 8px;}
+.home-group .prog-toprow{font-size:11.5px;}
+.home-group .progress-bar-track{height:4px;margin-top:3px;}
+.home-group .progress-cell.prog-tappable{padding:3px 8px;}
+.home-group .home-txt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.home-group .home-in{padding:5px 10px;}
+.home-wrap .home-group .home-big + .home-big{margin-top:5px;}
