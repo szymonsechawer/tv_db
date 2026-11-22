@@ -4,7 +4,7 @@
 
 const APP_VERSION = "1.8";
 // Wersja aplikacji pokazywana w prawym dolnym rogu (taka sama jak w service-worker.js).
-const APP_BUILD = "2.9.90";
+const APP_BUILD = "2.9.91";
 const DEFAULT_DB_FILENAME = "tv_db.json";
 const STORAGE_KEY = "tv_db_data";
 const STORAGE_NAME_KEY = "tv_db_filename";

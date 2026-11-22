@@ -940,3 +940,13 @@ html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
 .pa-body .person-stat-row:first-child{border-top:none;}
 .pa-search{padding:10px 16px 6px;border-bottom:1px solid var(--border);}
 .pa-search input{width:100%;font-size:16px;}
+
+/* Ustawienia → Pamięć danych: limit przeglądarki */
+.storage-quota{margin-top:10px;}
+.sq-bar{height:10px;border-radius:5px;background:var(--bg-medium);overflow:hidden;margin-bottom:8px;}
+.sq-bar span{display:block;height:100%;background:var(--accent);border-radius:5px;}
+.sq-rows{display:flex;flex-direction:column;}
+.sq-rows div{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+.sq-rows div:last-child{border-bottom:none;}
+.sq-rows span{color:var(--text-muted);}
+.sq-note{font-size:11.5px;margin-top:6px;}

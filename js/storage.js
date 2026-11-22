@@ -288,6 +288,39 @@ function renderStorageInfo(){
   el.textContent = storageBackend === "indexedDB"
     ? `Dane zapisywane w IndexedDB (duży limit pamięci) · ok. ${mb} MB`
     : `Dane zapisywane w localStorage (limit ok. 5 MB) · ok. ${mb} MB`;
+  renderStorageQuota();
+}
+
+// Limit pamięci przeglądarki (IndexedDB): maksimum, użyte i wolne miejsce.
+function fmtBytes(b){
+  if (!isFinite(b) || b < 0) return "—";
+  const u = [["GB",1024**3],["MB",1024**2],["kB",1024]];
+  for (const [n, v] of u) if (b >= v) return (b / v).toFixed(b >= 10*v ? 0 : 1).replace(".", ",") + " " + n;
+  return Math.round(b) + " B";
+}
+async function renderStorageQuota(){
+  const el = document.getElementById("set-storage-quota");
+  if (!el) return;
+  if (!(navigator.storage && navigator.storage.estimate)) { el.innerHTML = '<div class="muted">Ta przeglądarka nie podaje limitu pamięci.</div>'; return; }
+  try {
+    const est = await navigator.storage.estimate();
+    const quota = est.quota || 0, usage = est.usage || 0;
+    const free = Math.max(quota - usage, 0);
+    const pct = quota ? usage / quota * 100 : 0;
+    let persisted = null;
+    try { if (navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch(e){}
+    el.innerHTML = `
+      <div class="sq-bar"><span style="width:${Math.max(pct, 0.5).toFixed(2)}%"></span></div>
+      <div class="sq-rows">
+        <div><span>Maksymalnie</span><b>${fmtBytes(quota)}</b></div>
+        <div><span>Używane</span><b>${fmtBytes(usage)}${pct >= 0.01 ? ` (${pct < 1 ? pct.toFixed(2) : pct.toFixed(1)}%)`.replace(".", ",") : ""}</b></div>
+        <div><span>Zostało</span><b>${fmtBytes(free)}</b></div>
+        ${persisted === null ? "" : `<div><span>Ochrona przed usunięciem</span><b>${persisted ? "włączona" : "wyłączona"}</b></div>`}
+      </div>
+      <div class="muted sq-note">Wartości podaje przeglądarka i są przybliżone. „Używane” obejmuje całą aplikację (baza, okładki i pliki aplikacji w pamięci podręcznej).</div>`;
+  } catch(err) {
+    el.innerHTML = '<div class="muted">Nie udało się odczytać limitu pamięci.</div>';
+  }
 }
 
 function setDirty(v){
