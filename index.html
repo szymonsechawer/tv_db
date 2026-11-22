@@ -207,54 +207,44 @@
       </div>
     </div>
     <div class="type-tab" id="tab-settings">
-      <div class="stats-section">
-        <h3>Wygląd</h3>
-        <div class="form-row"><label style="min-width:150px;">Motyw:</label>
-          <div id="theme-picker" style="flex:1;display:flex;"></div>
+          <div class="set-list">
+            <div class="set-lbl">Wygląd</div>
+            <div class="set-grp">
+              <label class="set-row"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg></span><span class="set-n">Motyw</span><span class="set-v" id="set-theme-val"></span><span class="set-chev">›</span><span id="theme-picker" class="set-overlay-sel"></span></label>
+            </div>
+            <div class="set-lbl">TMDb</div>
+            <div class="set-grp">
+              <button class="set-row" id="set-key-row" type="button"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></span><span class="set-n">Klucz API</span><span class="set-v" id="set-key-val"></span><span class="set-chev">›</span></button>
+              <div class="set-sub" id="set-key-panel" hidden>
+                <input class="entry" id="set-tmdb-key" type="text" placeholder="Wklej klucz API v3 lub token v4" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <div class="set-btns">
+                  <button class="btn small" id="set-tmdb-save" type="button">Zapisz</button>
+                  <button class="btn small secondary" id="set-tmdb-test" type="button">Sprawdź</button>
+                  <button class="btn small secondary" id="set-tmdb-clear" type="button">Wyczyść</button>
+                </div>
+                <div class="tmdb-status" id="set-tmdb-status"></div>
+              </div>
+              <label class="set-row"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="set-n">Pobieraj czasy automatycznie</span><input type="checkbox" id="set-tmdb-auto" class="set-switch"></label>
+              <button class="set-row" id="set-refresh-titles" type="button"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></span><span class="set-n">Sprawdź ponownie i zaktualizuj</span><span class="set-chev">›</span></button>
+            </div>
+            <div class="tmdb-status set-status" id="set-refresh-titles-status"></div>
+            <div class="set-foot">Uzupełnia nazwy odcinków, opisy, okładki, obsadę, wiek i zwiastuny dla wszystkich tytułów.</div>
+            <div class="set-lbl">Dane</div>
+            <div class="set-grp">
+              <button class="set-row" id="set-mem-row" type="button"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><span class="set-n">Pamięć<span class="set-bar"><i id="set-mem-bar"></i></span></span><span class="set-v" id="set-mem-val">—</span><span class="set-chev">›</span></button>
+              <div class="set-sub" id="set-mem-panel" hidden>
+                <div class="tmdb-status" id="set-storage-status"></div>
+                <div class="storage-quota" id="set-storage-quota"></div>
+              </div>
+              <div class="set-row"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span><span class="set-n">Ochrona przed usunięciem</span><span class="set-v" id="set-persist-val">—</span></div>
+            </div>
+            <div class="set-lbl">Aplikacja</div>
+            <div class="set-grp">
+              <button class="set-row" id="set-update-app" type="button"><span class="set-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span class="set-n">Aktualizacja</span><span class="set-v" id="set-ver-val"></span><span class="set-chev">›</span></button>
+            </div>
+            <div class="tmdb-status set-status" id="set-update-status"></div>
+          </div>
         </div>
-      </div>
-      <div class="stats-section">
-        <h3>TMDb (The Movie Database)</h3>
-        <div class="muted" style="margin-bottom:10px;">Klucz API do automatycznego pobierania czasu trwania filmów i odcinków.</div>
-        <div class="form-row"><label style="min-width:150px;">Aktualny klucz API:</label>
-          <input class="entry" id="set-tmdb-key" type="text" style="flex:1;" placeholder="Wklej klucz API v3 lub token v4">
-        </div>
-        <div class="form-row">
-          <label style="min-width:150px;"></label>
-          <button class="btn small" id="set-tmdb-save" type="button">Zapisz klucz</button>
-          <button class="btn small secondary" id="set-tmdb-test" type="button">Sprawdź połączenie</button>
-          <button class="btn small secondary" id="set-tmdb-clear" type="button">Wyczyść klucz</button>
-        </div>
-        <div class="form-row" style="margin-top:10px;">
-          <label style="min-width:150px;">Automatyka:</label>
-          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="set-tmdb-auto"> Pobieraj czasy trwania automatycznie</label>
-        </div>
-        <div class="tmdb-status" id="set-tmdb-status"></div>
-      </div>
-      <div class="stats-section">
-        <h3>Aktualizacja danych</h3>
-        <div class="muted" style="margin:0 0 10px;">Jednym kliknięciem pobiera z TMDb i aktualizuje (a przy braku danych — uzupełnia) dla wszystkich filmów i seriali: nazwy odcinków, główny opis, okładkę, gatunki, obsadę, twórców, kraj/język produkcji, kategorię wiekową oraz wytwórnię i zwiastun. Pobrane opisy są po polsku tylko wtedy, gdy TMDb ma taką wersję.</div>
-        <div class="form-row">
-          <label style="min-width:150px;"></label>
-          <button class="btn small secondary" id="set-refresh-titles" type="button">Sprawdź ponownie i zaktualizuj</button>
-        </div>
-        <div class="tmdb-status" id="set-refresh-titles-status"></div>
-      </div>
-      <div class="stats-section">
-        <h3>Pamięć danych</h3>
-        <div class="tmdb-status" id="set-storage-status"></div>
-        <div class="storage-quota" id="set-storage-quota"></div>
-      </div>
-      <div class="stats-section">
-        <h3>Aktualizacja aplikacji</h3>
-        <div class="muted" style="margin-bottom:10px;">Pobiera najnowszą wersję aplikacji z serwera.</div>
-        <div class="form-row">
-          <label style="min-width:150px;"></label>
-          <button class="btn small" id="set-update-app" type="button">Aktualizacja</button>
-        </div>
-        <div class="tmdb-status" id="set-update-status"></div>
-      </div>
-    </div>
   </div>
 
   <div id="button-bar-check-row" style="display:none;">

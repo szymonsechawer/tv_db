@@ -309,13 +309,15 @@ async function renderStorageQuota(){
     const pct = quota ? usage / quota * 100 : 0;
     let persisted = null;
     try { if (navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch(e){}
+    const mv = document.getElementById("set-mem-val"), mb = document.getElementById("set-mem-bar"), pv = document.getElementById("set-persist-val");
+    if (mv) mv.textContent = `${fmtBytes(usage)} / ${fmtBytes(quota)}`;
+    if (mb) mb.style.width = Math.max(pct, 1).toFixed(2) + "%";
+    if (pv) pv.textContent = persisted === null ? "—" : (persisted ? "włączona" : "wyłączona");
     el.innerHTML = `
-      <div class="sq-bar"><span style="width:${Math.max(pct, 0.5).toFixed(2)}%"></span></div>
       <div class="sq-rows">
         <div><span>Maksymalnie</span><b>${fmtBytes(quota)}</b></div>
         <div><span>Używane</span><b>${fmtBytes(usage)}${pct >= 0.01 ? ` (${pct < 1 ? pct.toFixed(2) : pct.toFixed(1)}%)`.replace(".", ",") : ""}</b></div>
         <div><span>Zostało</span><b>${fmtBytes(free)}</b></div>
-        ${persisted === null ? "" : `<div><span>Ochrona przed usunięciem</span><b>${persisted ? "włączona" : "wyłączona"}</b></div>`}
       </div>
       <div class="muted sq-note">Wartości podaje przeglądarka i są przybliżone. „Używane” obejmuje całą aplikację (baza, okładki i pliki aplikacji w pamięci podręcznej).</div>`;
   } catch(err) {

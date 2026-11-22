@@ -9,6 +9,26 @@ function renderSettingsTab(){
   const auto = document.getElementById("set-tmdb-auto");
   if (auto) auto.checked = !!(db.settings && db.settings.tmdb_auto);
   if (typeof renderThemePicker === "function") renderThemePicker();
+  renderSettingsSummary();
+}
+
+// Wartości po prawej stronie wierszy listy ustawień
+function renderSettingsSummary(){
+  const key = (db.settings && db.settings.tmdb_key) || "";
+  const kv = document.getElementById("set-key-val");
+  if (kv) { kv.textContent = key ? "● Zapisany" : "Brak"; kv.classList.toggle("ok", !!key); }
+  const ver = document.getElementById("set-ver-val");
+  if (ver && typeof APP_BUILD !== "undefined") ver.textContent = APP_BUILD;
+  const sel = document.getElementById("theme-select"), tv = document.getElementById("set-theme-val");
+  if (sel && tv) tv.textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : "";
+}
+// Etykieta przycisku-wiersza (nie niszczy ikony i strzałki)
+function setBtnLabel(btn, txt){ const n = btn && btn.querySelector(".set-n"); if (n) n.textContent = txt; else if (btn) btn.textContent = txt; }
+function getBtnLabel(btn){ const n = btn && btn.querySelector(".set-n"); return n ? n.textContent : (btn ? btn.textContent : ""); }
+function toggleSetPanel(rowId, panelId){
+  const row = document.getElementById(rowId), panel = document.getElementById(panelId);
+  if (!row || !panel) return;
+  row.addEventListener("click", ()=>{ panel.hidden = !panel.hidden; row.classList.toggle("open", !panel.hidden); });
 }
 
 
@@ -25,11 +45,14 @@ function initSettingsTab(){
     setStoredTmdbKey(input.value.trim());
     setSettingsStatus(input.value.trim() ? "Klucz API zapisany (baza JSON + przeglądarka)." : "Klucz API wyczyszczony.");
     setDirty(true);
+    renderSettingsSummary();
   });
   document.getElementById("set-tmdb-clear").addEventListener("click", ()=>{
     setStoredTmdbKey("");
     setSettingsStatus("Klucz API wyczyszczony.");
+    input.value = "";
     setDirty(true);
+    renderSettingsSummary();
   });
   document.getElementById("set-tmdb-test").addEventListener("click", async ()=>{
     setStoredTmdbKey(input.value.trim());
@@ -37,6 +60,8 @@ function initSettingsTab(){
     try {
       const res = await tmdbFetch("/configuration", {});
       setSettingsStatus(res ? "Połączenie z TMDb działa — klucz jest poprawny." : "Brak klucza API.", !res);
+      const kv = document.getElementById("set-key-val");
+      if (kv && res) { kv.textContent = "● Połączono"; kv.classList.add("ok"); }
     } catch(err) {
       setSettingsStatus(err.message || String(err), true);
     }
@@ -49,7 +74,11 @@ function initSettingsTab(){
   });
   document.getElementById("set-refresh-titles").addEventListener("click", refreshAllEpisodeTitles);
   document.getElementById("set-update-app").addEventListener("click", forceAppUpdate);
+  toggleSetPanel("set-key-row", "set-key-panel");
+  toggleSetPanel("set-mem-row", "set-mem-panel");
   renderSettingsTab();
+  const ts2 = document.getElementById("theme-select");
+  if (ts2) ts2.addEventListener("change", renderSettingsSummary);
 }
 
 async function forceAppUpdate(){
@@ -60,7 +89,7 @@ async function forceAppUpdate(){
     statusEl.textContent = msg || "";
     statusEl.classList.toggle("err", !!isErr);
   };
-  if (btn) { btn.disabled = true; btn.textContent = "Aktualizowanie…"; }
+  if (btn) { btn.disabled = true; setBtnLabel(btn, "Aktualizowanie…"); }
   setStatus("Czyszczenie pamięci podręcznej i pobieranie nowej wersji…");
   try {
     if ("caches" in window) {
@@ -84,7 +113,7 @@ async function forceAppUpdate(){
       window.location.replace(url.toString());
     }, 400);
   } catch(err) {
-    if (btn) { btn.disabled = false; btn.textContent = "Aktualizacja"; }
+    if (btn) { btn.disabled = false; setBtnLabel(btn, "Aktualizacja"); }
     setStatus(err.message || String(err), true);
   }
 }
@@ -104,16 +133,16 @@ async function refreshAllEpisodeTitles(){
   if (allItems.length===0) { setStatus("Brak pozycji w bazie."); return; }
 
   btn.disabled = true;
-  const oldLabel = btn.textContent;
+  const oldLabel = getBtnLabel(btn);
   let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, updatedAge = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
-  btn.textContent = `Sprawdzanie 0/${allItems.length}…`;
+  setBtnLabel(btn, `Sprawdzanie 0/${allItems.length}…`);
 
   for (const item of allItems) {
     done++;
-    btn.textContent = `Sprawdzanie ${done}/${allItems.length}…`;
+    setBtnLabel(btn, `Sprawdzanie ${done}/${allItems.length}…`);
     setStatus(`Trwa: „${item.title}” (${done}/${allItems.length})…`);
     try {
       let tid = item.tmdb_id;
@@ -242,7 +271,7 @@ async function refreshAllEpisodeTitles(){
   }
 
   btn.disabled = false;
-  btn.textContent = oldLabel;
+  setBtnLabel(btn, oldLabel);
   const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0 || updatedAge>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
