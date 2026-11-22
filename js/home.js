@@ -67,7 +67,11 @@ function renderHomeTab(){
         <div class="home-txt"><b>${esc(it.title)}</b><div class="home-slot"></div></div>
       </div>`;
     const slot = c.querySelector(".home-slot");
-    if (kind === "s") slot.appendChild(homeProgressCell(it));
+    if (kind === "s") {
+      const yr = String(it.premiere_date||"").slice(0,4);
+      if (yr) slot.insertAdjacentHTML("beforeend", `<span class="home-meta home-year">${esc(yr)}</span>`);
+      slot.appendChild(homeProgressCell(it));
+    }
     else { const y = String(it.premiere_date||"").slice(0,4); slot.innerHTML = y ? `<span class="home-meta">${esc(y)}</span>` : ""; }
     addDoubleActivation(c, ()=>openViewDialog(it.id));
     box.appendChild(c);

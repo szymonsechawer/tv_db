@@ -1000,3 +1000,4 @@ html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-tx
 .home-wrap .home-sh{margin-bottom:6px;}
 .home-wrap .home-sh:not(:first-child){margin-top:12px;}
 .home-wrap .home-big + .home-big{margin-top:6px;}
+.home-meta.home-year{margin:-2px 0 4px;}
