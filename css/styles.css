@@ -1045,3 +1045,6 @@ html[data-theme="jasny"] .home-group{border-color:rgba(0,0,0,.14);}
 .note-tile{display:flex;flex-direction:column;}
 .note-tile p{-webkit-line-clamp:3;max-height:calc(1.4em * 3);}
 .note-tile small{position:static;margin-top:auto;padding-top:4px;}
+.notes-grid-mode{display:flex;flex-direction:column;}
+.notes-grid{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;align-content:start;grid-auto-rows:150px;}
+.notes-edit-mode .notes-textarea{overflow-y:auto;-webkit-overflow-scrolling:touch;}
