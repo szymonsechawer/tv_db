@@ -64,11 +64,11 @@ function renderHomeTab(){
     c.innerHTML = `${p ? `<div class="home-bg" style="background-image:url('${p}')"></div>` : ""}
       <div class="home-in">
         <span class="home-poster">${p ? `<img src="${p}" alt="">` : ""}</span>
-        <div class="home-txt"><small>${kind === "s" ? "Ostatnio oglądany" : "Ostatnio obejrzany"} · ${homeDate(last)}</small><b>${esc(it.title)}</b><div class="home-slot"></div></div>
+        <div class="home-txt">${kind === "s" ? `<small>Ostatnio oglądany · ${homeDate(last)}</small>` : ""}<b>${esc(it.title)}</b><div class="home-slot"></div></div>
       </div>`;
     const slot = c.querySelector(".home-slot");
     if (kind === "s") slot.appendChild(homeProgressCell(it));
-    else slot.innerHTML = `<span class="home-meta">${esc(homeMovieMeta(it))}</span><span class="home-meta">${it.rating ? "ocena " + String(Number(it.rating).toFixed(1)).replace(".", ",") : "bez oceny"}</span>`;
+    else { const y = String(it.premiere_date||"").slice(0,4); slot.innerHTML = y ? `<span class="home-meta">${esc(y)}</span>` : ""; }
     addDoubleActivation(c, ()=>openViewDialog(it.id));
     box.appendChild(c);
   };
@@ -89,9 +89,9 @@ function renderHomeTab(){
   };
   const ser = homeRecentSeries(3), mov = homeRecentMovies(3);
   section("Seriale", "ostatnio oglądane");
-  if (ser.length) { bigCard(ser[0].it, "s", ser[0].last); smallCards(ser.slice(1), "s"); }
+  if (ser.length) ser.forEach(x=>bigCard(x.it, "s", x.last));
   else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych odcinków.</div>');
   section("Filmy", "ostatnio obejrzane");
-  if (mov.length) { bigCard(mov[0].it, "m", mov[0].last); smallCards(mov.slice(1), "m"); }
+  if (mov.length) mov.forEach(x=>bigCard(x.it, "m", x.last));
   else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych filmów.</div>');
 }

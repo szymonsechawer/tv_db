@@ -980,3 +980,4 @@ html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
 .home-empty{padding:10px 4px;}
 html[data-theme="jasny"] .home-in{background:linear-gradient(90deg,rgba(255,255,255,.65),rgba(255,255,255,.25));}
 html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-txt small,html[data-theme="jasny"] .home-big .home-meta{color:var(--text-light);}
+.home-big + .home-big{margin-top:8px;}
