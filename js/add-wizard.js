@@ -108,11 +108,11 @@ function openAddWizard(){
       const row = document.createElement("button");
       row.type = "button"; row.className = "aw-r";
       const img = r.poster_path ? `<img src="${tmdbPosterUrl(r.poster_path, "w92")}" alt="" loading="lazy">` : `<span class="aw-ph"></span>`;
-      row.innerHTML = `${img}<span class="aw-rt"><b></b><small></small></span>${have ? `<span class="aw-have">✓ Masz</span>` : `<span class="aw-plus">+</span>`}`;
+      row.innerHTML = `${img}<span class="aw-rt"><b></b><small></small></span>${have ? `<span class="aw-have">✓ Masz</span>` : ""}`;
       row.querySelector("b").textContent = awHitTitle(r);
       const orig = r.original_title || r.original_name || "";
       row.querySelector("small").textContent = [year, orig && orig !== awHitTitle(r) ? orig : ""].filter(Boolean).join(" · ");
-      row.addEventListener("click", async ()=>{
+      addDoubleActivation(row, async ()=>{
         if (have) {
           const ok = await showConfirm("Już masz ten tytuł", `„${have.title}” jest już w bazie (${STATUS_LABELS[have.status||STATUS_WATCHING]}). Dodać mimo to?`);
           if (!ok) return;
