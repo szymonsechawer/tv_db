@@ -94,4 +94,25 @@ function renderHomeTab(){
   section("Filmy", "ostatnio obejrzane");
   if (mov.length) mov.forEach((x, i)=>bigCard(x.it, "m", x.last, i > 0));
   else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych filmów.</div>');
+  requestAnimationFrame(homeFit);
+  // ponowne dopasowanie po wczytaniu okładek i czcionek
+  let t = null; const refit = ()=>{ clearTimeout(t); t = setTimeout(homeFit, 60); };
+  box.querySelectorAll("img").forEach(img=>{ if (!img.complete) img.addEventListener("load", refit, {once:true}); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
 }
+
+// Dopasuj wielkość kart tak, żeby cała strona główna zmieściła się na ekranie
+// bez przewijania (okładki zmniejszają się stopniowo, do rozsądnego minimum).
+function homeFit(){
+  const box = document.getElementById("home-content");
+  if (!box || activeMain !== "home" || !box.offsetParent) return;
+  // wszystkie przodki (łącznie z body i html) muszą zmieścić zawartość bez przewijania
+  const chain = [];
+  for (let el = box.parentElement; el; el = el.parentElement) chain.push(el);
+  const fits = ()=> chain.every(el=> el.scrollHeight <= el.clientHeight + 1 || getComputedStyle(el).overflowY === "visible" && el !== document.documentElement && el !== document.body);
+  let hp = 120;
+  box.style.setProperty("--hp", hp + "px");
+  let guard = 40;
+  while (!fits() && hp > 54 && guard--) { hp -= 4; box.style.setProperty("--hp", hp + "px"); }
+}
+window.addEventListener("resize", ()=>{ if (typeof activeMain !== "undefined" && activeMain === "home") homeFit(); });
