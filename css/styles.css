@@ -980,3 +980,23 @@ html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
 .home-empty{padding:10px 4px;}
 html[data-theme="jasny"] .home-in{background:linear-gradient(90deg,rgba(255,255,255,.65),rgba(255,255,255,.25));}
 html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-txt small,html[data-theme="jasny"] .home-big .home-meta{color:var(--text-light);}
+.home-big + .home-big{margin-top:8px;}
+.home-mid .home-in{padding:10px;gap:11px;}
+.home-mid .home-poster{width:70px;height:105px;}
+.home-mid .home-txt b{font-size:16px;margin-bottom:4px;}
+/* Strona główna: nieco mniejsze karty */
+.home-in{padding:10px;gap:11px;}
+.home-poster{width:80px;height:120px;}
+.home-big .home-txt b{font-size:17px;}
+.home-mid .home-in{padding:8px 10px;}
+.home-mid .home-poster{width:56px;height:84px;}
+.home-mid .home-txt b{font-size:14.5px;}
+.home-big + .home-big{margin-top:7px;}
+/* Strona główna: rozmiar liczony tak, by zmieścić się na ekranie (--hp = wysokość dużej okładki) */
+.home-wrap{--hp:120px;}
+.home-wrap .home-poster{height:var(--hp);width:calc(var(--hp) / 1.5);}
+.home-wrap .home-mid .home-poster{height:calc(var(--hp) * .7);width:calc(var(--hp) * .7 / 1.5);}
+.home-wrap .home-in{padding:calc(var(--hp) * .08) 10px;}
+.home-wrap .home-sh{margin-bottom:6px;}
+.home-wrap .home-sh:not(:first-child){margin-top:12px;}
+.home-wrap .home-big + .home-big{margin-top:6px;}
