@@ -3,6 +3,7 @@
 // ============================================================
 
 function initNotesAutosave(){
+  document.getElementById("btn-notes-back").addEventListener("click", ()=>{ notesView = "grid"; renderNotesTab(); });
   const ta = document.getElementById("note-content");
   const titleInput = document.getElementById("note-title");
 
@@ -45,6 +46,7 @@ function initNotesAutosave(){
     const note = makeNote(val.trim() || "Nowa notatka", "");
     db.notes.push(note);
     activeNoteId = note.id;
+    notesView = "edit";
     setDirty(true);
     renderNotesTab();
     document.getElementById("note-content").focus();
@@ -57,8 +59,40 @@ function initNotesAutosave(){
     if (!ok) return;
     db.notes = db.notes.filter(n=>n.id!==note.id);
     activeNoteId = db.notes.length ? db.notes[0].id : null;
+    notesView = "grid";
     setDirty(true);
     renderNotesTab();
+  });
+}
+
+// Widok notatek: "grid" — kafelki-karteczki, "edit" — otwarta notatka
+let notesView = "grid";
+const NOTE_COLORS = ["#3b8fd9","#e0a43c","#d9534f","#7b5cd6","#3ba55d","#17bebb","#f28482","#2e86ab","#c4492f"];
+const NOTE_MON = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
+function noteShortDate(ts){ if (!ts) return ""; const d = new Date(ts); return `${d.getDate()} ${NOTE_MON[d.getMonth()]}`; }
+function noteLines(note){ return (note.content||"").split("\n").filter(l=>l.trim()).length; }
+function notePosWord(n){ return n===1 ? "pozycja" : (n%10>=2 && n%10<=4 && !(n%100>=12 && n%100<=14)) ? "pozycje" : "pozycji"; }
+
+function renderNotesGrid(){
+  const grid = document.getElementById("notes-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  const add = document.createElement("button");
+  add.type = "button"; add.className = "note-tile note-add";
+  add.innerHTML = `<span class="na-plus">+</span><span>Nowa notatka</span>`;
+  add.addEventListener("click", ()=>document.getElementById("btn-new-note").click());
+  grid.appendChild(add);
+  db.notes.forEach((note, idx)=>{
+    const t = document.createElement("button");
+    t.type = "button"; t.className = "note-tile";
+    t.style.setProperty("--c", NOTE_COLORS[idx % NOTE_COLORS.length]);
+    const prev = (note.content||"").split("\n").map(l=>l.trim().replace(/^[-—•]\s*/, "")).filter(Boolean).slice(0, 6).join(" · ") || "Pusta notatka";
+    const n = noteLines(note);
+    t.innerHTML = `<b></b><p></p><small>${escapeHtml(noteShortDate(note.updated))} · ${n} ${notePosWord(n)}</small>`;
+    t.querySelector("b").textContent = note.title;
+    t.querySelector("p").textContent = prev;
+    t.addEventListener("click", ()=>{ activeNoteId = note.id; notesView = "edit"; renderNotesTab(); });
+    grid.appendChild(t);
   });
 }
 
@@ -85,6 +119,15 @@ function renderNotesTab(){
   if (!activeNoteId && db.notes.length) activeNoteId = db.notes[0].id;
   const note = findNote(activeNoteId);
   renderNotesList();
+  const layout = document.getElementById("notes-layout");
+  if (!note) notesView = "grid";
+  if (layout) {
+    layout.classList.toggle("notes-grid-mode", notesView === "grid");
+    layout.classList.toggle("notes-edit-mode", notesView === "edit");
+  }
+  if (notesView === "grid") { renderNotesGrid(); editor.style.display = "none"; empty.style.display = "none"; return; }
+  const dEl = document.getElementById("note-date");
+  if (dEl && note) dEl.textContent = note.updated ? "Zmieniono " + formatDateDMY(new Date(note.updated).toISOString().slice(0,10)) : "";
   if (!note) {
     editor.style.display = "none";
     empty.style.display = "flex";
