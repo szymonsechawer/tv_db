@@ -50,6 +50,7 @@ function updateStats(){
   renderGeneralTiles(s);
   renderPaneTiles("movies");
   renderPaneTiles("episodes");
+  if (typeof renderStatsExtra === "function") renderStatsExtra(s);
   if (typeof activeMain !== "undefined" && activeMain === "summary") renderSummaryTab();
 }
 
