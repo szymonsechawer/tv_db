@@ -941,6 +941,7 @@ function renderAll(){
   updateStats();
   updateDbBadge();
   if (activeMain === "home" && typeof renderHomeTab === "function") renderHomeTab();
+  if (typeof renderGlobalSearch === "function" && searchQuery.trim()) renderGlobalSearch();
 }
 
 function getCurrentKey(){
