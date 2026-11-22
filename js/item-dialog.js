@@ -1941,6 +1941,12 @@ function openItemDialog({item, itemType, prefillTmdb}){
         const trailerKey = await tmdbFetchTrailerKey(type, tid);
         if (trailerKey && trailerInput) trailerInput.value = trailerKey;
       } catch(err) { /* brak zwiastuna nie blokuje reszty */ }
+      try {
+        if (ageCertInput && !ageCertInput.value.trim()) {
+          const cert = await tmdbFetchCertification(type, tid);
+          if (cert) ageCertInput.value = cert;
+        }
+      } catch(err) { /* brak kategorii wiekowej nie blokuje reszty */ }
     }
 
     function finish(result){
