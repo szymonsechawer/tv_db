@@ -1021,3 +1021,27 @@ html[data-theme="jasny"] .home-group{border-color:rgba(0,0,0,.14);}
 .home-group .home-in{padding:5px 10px;}
 .home-wrap .home-group .home-big + .home-big{margin-top:5px;}
 .home-group .home-big{display:flex;} .home-group .home-big .home-in{flex:1;}
+
+/* Notatki: kafelki-karteczki */
+.notes-grid-mode .notes-sidebar,.notes-grid-mode .notes-editor,.notes-grid-mode .notes-empty{display:none !important;}
+.notes-edit-mode .notes-sidebar,.notes-edit-mode .notes-grid{display:none !important;}
+.notes-edit-mode{display:flex;flex-direction:column;}
+.notes-edit-mode .notes-editor{width:100%;flex:1;min-height:0;}
+.notes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:12px;}
+@media (min-width:700px){ .notes-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));} }
+.note-tile{position:relative;display:block;text-align:left;height:150px;overflow:hidden;border-radius:14px;padding:14px 12px 12px;background:var(--bg-entry);border:1px solid var(--border);color:var(--text-light);font:inherit;cursor:pointer;}
+.note-tile::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--c);}
+.note-tile:active{opacity:.75;}
+.note-tile b{display:block;font-size:14.5px;margin:2px 0 6px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.note-tile p{margin:0;font-size:12px;line-height:1.4;color:var(--text-muted);font-weight:500;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+.note-tile small{position:absolute;left:12px;bottom:9px;font-size:11px;color:var(--text-muted);}
+.note-add{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--accent);font-weight:700;font-size:13px;}
+.note-add::before{display:none;}
+.note-add .na-plus{font-size:32px;line-height:1;margin-bottom:4px;}
+.notes-backbar{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px;}
+.notes-back{background:none;border:none;color:var(--accent);font:inherit;font-size:15px;font-weight:700;padding:4px 2px;cursor:pointer;}
+.notes-date{font-size:12px;color:var(--text-muted);}
+.notes-grid-mode .notes-backbar{display:none;}
+.note-tile{display:flex;flex-direction:column;}
+.note-tile p{-webkit-line-clamp:3;max-height:calc(1.4em * 3);}
+.note-tile small{position:static;margin-top:auto;padding-top:4px;}

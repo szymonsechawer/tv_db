@@ -55,12 +55,14 @@
     <div class="type-tab" id="tab-notes">
       <div class="sub-content" id="subcontent-notes">
         <div class="status-pane active" id="pane-notes">
-          <div class="notes-layout">
+          <div class="notes-layout notes-grid-mode" id="notes-layout">
+            <div class="notes-grid" id="notes-grid"></div>
             <div class="notes-sidebar">
               <button class="btn small" id="btn-new-note" type="button">+ Nowa notatka</button>
               <div class="notes-list" id="notes-list"></div>
             </div>
             <div class="notes-editor" id="notes-editor">
+              <div class="notes-backbar"><button class="notes-back" id="btn-notes-back" type="button">‹ Notatki</button><span class="notes-date" id="note-date"></span></div>
               <div class="notes-editor-head">
                 <input class="entry" id="note-title" type="text" placeholder="Nazwa notatki">
                 <button class="btn small secondary" id="btn-rename-note" type="button">Zmień nazwę</button>
