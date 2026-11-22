@@ -131,3 +131,51 @@ function switchStatusTab(type, status){
   updateCheckButtonVisibility();
 }
 
+
+// ============================================================
+// Listy Seriale / Filmy: przesunięcie palcem w lewo/prawo przechodzi do
+// sąsiedniej zakładki (kolejność jak w menu: Seriale — Oglądane,
+// Zakończone, Nowości, Nadchodzące, Planowane; Filmy — Zakończone, Planowane).
+// ============================================================
+function listSwipeSteps(type){
+  const out = [];
+  for (const st of TYPE_STATUS_ORDER[type]) {
+    if (st === STATUS_UPCOMING) { out.push({st, mode:"seasons"}); out.push({st, mode:"episodes"}); }
+    else out.push({st});
+  }
+  return out;
+}
+function initListSwipe(){
+  for (const type of [TYPE_SERIES, TYPE_MOVIE]) {
+    const area = document.getElementById(`subcontent-${type}`);
+    if (!area) continue;
+    let x0 = 0, y0 = 0, t0 = 0, track = false;
+    area.addEventListener("touchstart", (e)=>{
+      track = false;
+      if (e.touches.length !== 1) return;
+      // pomiń elementy przewijane w poziomie i pola formularzy
+      for (let el = e.target; el && el !== area; el = el.parentElement) {
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+        if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return;
+      }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); track = true;
+    }, {passive:true, capture:true});
+    area.addEventListener("touchend", (e)=>{
+      if (!track) return; track = false;
+      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - t0 > 700) return;
+      const steps = listSwipeSteps(type);
+      const curSt = activeStatus[type];
+      const curMode = (typeof upcomingMode !== "undefined") ? upcomingMode : "seasons";
+      const i = steps.findIndex(s=>s.st === curSt && (!s.mode || s.mode === curMode));
+      const j = dx < 0 ? i + 1 : i - 1;
+      if (i < 0 || j < 0 || j >= steps.length) return;
+      const nx = steps[j];
+      if (nx.mode && typeof setUpcomingMode === "function") setUpcomingMode(nx.mode);
+      switchStatusTab(type, nx.st);
+      const pane = area.querySelector(".status-pane.active");
+      if (pane) { pane.classList.remove("swipe-in-l","swipe-in-r"); void pane.offsetWidth; pane.classList.add(dx < 0 ? "swipe-in-l" : "swipe-in-r"); }
+    }, {passive:true, capture:true});
+  }
+}
+initListSwipe();
