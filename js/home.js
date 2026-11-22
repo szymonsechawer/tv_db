@@ -122,9 +122,29 @@ function homeFit(){
   // wszystkie karty tej samej wysokości (seriale mają pasek postępu, filmy nie)
   const equalize = ()=>{ const cs = cards(); cs.forEach(c=>c.style.minHeight = ""); const m = Math.max(0, ...cs.map(c=>c.offsetHeight)); cs.forEach(c=>c.style.minHeight = m + "px"); };
   const fits = ()=>{ equalize(); return chain.every(el=> el.scrollHeight <= el.clientHeight + 1); };
-  let hp = 120;
-  box.style.setProperty("--hp", hp + "px");
-  let guard = 40;
-  while (!fits() && hp > 44 && guard--) { hp -= 4; box.style.setProperty("--hp", hp + "px"); }
+  // największa okładka, przy której wszystko się mieści (szukanie połówkowe)
+  const setHp = (v)=> box.style.setProperty("--hp", v + "px");
+  let lo = 40, hi = 300;
+  setHp(lo);
+  if (fits()) {
+    while (hi - lo > 2) { const mid = Math.floor((lo + hi) / 2); setHp(mid); if (fits()) lo = mid; else hi = mid; }
+  }
+  setHp(lo); fits();
+  // resztę wolnego miejsca rozdziel równo między karty, żeby strona wypełniała cały ekran
+  const cs = cards();
+  const host = document.getElementById("tab-home");
+  if (cs.length && host) {
+    const pb = parseFloat(getComputedStyle(host).paddingBottom) || 0;
+    let spare = host.getBoundingClientRect().bottom - pb - box.getBoundingClientRect().bottom - 2;
+    spare = Math.max(0, Math.floor(spare));
+    if (spare > 0) {
+      const add = Math.floor(spare / cs.length);
+      const base = cs[0].offsetHeight;
+      let mh = base + add;
+      const ok = ()=> chain.every(el=> el.scrollHeight <= el.clientHeight + 1) && box.getBoundingClientRect().bottom <= host.getBoundingClientRect().bottom - pb + 1;
+      cs.forEach(c=>c.style.minHeight = mh + "px");
+      while (!ok() && mh > base) { mh -= Math.max(1, Math.ceil((mh - base) / 8)); cs.forEach(c=>c.style.minHeight = Math.max(mh, base) + "px"); }
+    }
+  }
 }
 window.addEventListener("resize", ()=>{ if (typeof activeMain !== "undefined" && activeMain === "home") homeFit(); });
