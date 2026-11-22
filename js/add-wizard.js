@@ -25,10 +25,10 @@ function openAddWizard(){
   let searchSeq = 0;
 
   const overlay = openOverlay(`<div class="aw" id="aw">
-    <div class="aw-hd"><button type="button" class="aw-back" id="aw-back">‹ Wstecz</button><span class="aw-sp"></span></div>
+    <div class="aw-hd"><button type="button" class="aw-back" id="aw-back">‹ Wstecz</button><span class="aw-sp"></span><button type="button" class="aw-cancel" id="aw-cancel">Anuluj</button></div>
     <div class="aw-steps"><i></i><i></i><i></i></div>
     <div class="aw-body" id="aw-body"></div>
-    <div class="aw-foot"><div id="aw-foot"></div><button type="button" class="btn secondary aw-main aw-cancel-btn" id="aw-cancel">Anuluj</button></div>
+    <div class="aw-foot" id="aw-foot"></div>
   </div>`);
   const modal = overlay.querySelector(".modal") || overlay.firstElementChild;
   if (modal) modal.classList.add("aw-modal");
@@ -50,6 +50,7 @@ function openAddWizard(){
   status = defaultStatusFor(type);
 
   function render(){
+    body.classList.remove("aw-hero-mode");
     overlay.querySelectorAll(".aw-steps i").forEach((el, i)=>el.classList.toggle("on", i < step));
     backBtn.style.visibility = step > 1 ? "visible" : "hidden";
     if (step === 1) renderStep1();
@@ -125,9 +126,15 @@ function openAddWizard(){
   function renderStep3(){
     const year = String(hit.release_date || hit.first_air_date || "").slice(0,4);
     const poster = hit.poster_path ? tmdbPosterUrl(hit.poster_path, "w342") : "";
-    body.innerHTML = `<div class="aw-final">${poster ? `<img src="${poster}" alt="">` : `<span class="aw-ph big"></span>`}
-      <b class="aw-ft"></b><div class="aw-fy">${escapeHtml(year)}</div><div class="aw-fi" id="aw-fi">…</div></div>`;
-    body.querySelector(".aw-ft").textContent = awHitTitle(hit);
+    const bg = hit.poster_path ? tmdbPosterUrl(hit.poster_path, "w185") : "";
+    body.classList.add("aw-hero-mode");
+    body.innerHTML = `<div class="vd-page-hero aw-hero"><div class="vd-hero"><div class="vd-top${bg ? " has-bg" : ""}">
+        ${bg ? `<div class="vd-bg" style="background-image:url('${bg}')"></div>` : ""}
+        <div class="vd-top-in">
+          <div class="vd-poster">${poster ? `<img src="${poster}" alt="Okładka">` : `<span></span>`}</div>
+          <div class="vd-info"><div class="vd-title"></div><div class="vd-meta"><span>${escapeHtml(year)}</span><span id="aw-fi"></span></div></div>
+        </div></div></div></div>`;
+    body.querySelector(".vd-title").textContent = awHitTitle(hit);
     const fi = body.querySelector("#aw-fi");
     const want = hit.id;
     (async ()=>{
@@ -136,12 +143,12 @@ function openAddWizard(){
           const d = await tmdbFetch("/movie/" + hit.id, {});
           const m = d && d.runtime ? d.runtime : 0;
           if (hit.id !== want || !fi.isConnected) return;
-          fi.textContent = m ? (m >= 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m} min`) : "";
+          fi.textContent = m ? (year ? " · " : "") + (m >= 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m} min`) : "";
         } else {
           const d = await tmdbFetch("/tv/" + hit.id, {});
           if (hit.id !== want || !fi.isConnected) return;
           const ns = d && d.number_of_seasons, ne = d && d.number_of_episodes;
-          fi.textContent = ns ? `${ns} ${polishPlural(ns,"sezon","sezony","sezonów")}${ne ? ` · ${ne} odc.` : ""}` : "";
+          fi.textContent = ns ? (year ? " · " : "") + `${ns} ${polishPlural(ns,"sezon","sezony","sezonów")}${ne ? ` · ${ne} odc.` : ""}` : "";
         }
       } catch(e) { if (fi.isConnected) fi.textContent = ""; }
     })();

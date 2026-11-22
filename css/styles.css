@@ -1179,3 +1179,6 @@ html[data-theme="jasny"] .aw-tag{border-color:rgba(0,0,0,.18);}
 .aw-ft{font-size:21px;line-height:1.25;}
 .aw-fy{color:var(--text-muted);font-size:15px;margin-top:6px;}
 .aw-fi{color:var(--text-light);font-size:15px;font-weight:600;margin-top:4px;min-height:1.3em;}
+.aw-body.aw-hero-mode{display:flex;flex-direction:column;}
+.aw-hero{flex:1;min-height:0;}
+.aw-hero .vd-top{border-radius:16px;}
