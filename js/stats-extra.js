@@ -1,7 +1,7 @@
 // ============================================================
 // stats-extra.js — dodatkowe kafelki pod istniejącymi statystykami
-// Ogólne: kamienie milowe, kalendarz, ulubiony dzień, seria dni
-// Seriale/Filmy: najwięcej czasu, dekady, odcinki/rekordy, oceny
+// Ogólne: ulubiony dzień, seria dni
+// Seriale/Filmy: dekady, odcinki/rekordy, oceny
 // ============================================================
 
 const SX_MONTHS = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
@@ -68,49 +68,12 @@ function sxRenderGeneral(s){
   if (!el) return;
   let html = "";
 
-  // Kamienie milowe
-  const totalHours = Math.floor(((s.moviesMinutes||0) + (s.episodesMinutes||0)) / 60);
-  const ms = [
-    {name:"filmów", cur: s.moviesCount||0},
-    {name:"odcinków", cur: s.episodesWatched||0},
-    {name:"godzin", cur: totalHours},
-  ].map(m=>{
-    const goal = sxNextMilestone(m.cur);
-    return `<div class="sx-ms"><div class="sx-ms-r"><b>${sxNum(goal)} ${m.name}</b><span>${sxNum(m.cur)} / ${sxNum(goal)} · zostało ${sxNum(goal-m.cur)}</span></div><div class="sx-bar"><i style="width:${Math.min(100, m.cur/goal*100).toFixed(1)}%"></i></div></div>`;
-  }).join("");
-  html += sxCard("Kamienie milowe", ms);
-
   // Wpisy z datą obejrzenia (filmy + odcinki)
   const entries = [...collectWatchedEntries("movies"), ...collectWatchedEntries("episodes")];
   const perDay = new Map();
   for (const e of entries) { const k = dayKeyLocal(e.ts); perDay.set(k, (perDay.get(k)||0) + 1); }
 
-  // Kalendarz: ostatnie 17 tygodni, kolumny = tygodnie (Pn–Nd)
-  const WEEKS = 17;
   const today = new Date(); today.setHours(0,0,0,0);
-  const dow = (today.getDay()+6)%7; // 0 = poniedziałek
-  const start = new Date(today); start.setDate(start.getDate() - dow - (WEEKS-1)*7);
-  const vals = [...perDay.values()].sort((a,b)=>a-b);
-  const q = (p)=> vals.length ? vals[Math.min(vals.length-1, Math.floor(p*(vals.length-1)))] : 1;
-  const t1 = q(.25), t2 = q(.5), t3 = q(.8);
-  let cells = "", monthsRow = "", lastMonth = -1;
-  for (let w = 0; w < WEEKS; w++) {
-    const wkStart = new Date(start); wkStart.setDate(start.getDate() + w*7);
-    const m = wkStart.getMonth();
-    monthsRow += `<span>${m !== lastMonth && wkStart.getDate() <= 7 ? SX_MONTHS[m].slice(0,3) : (w===0 ? SX_MONTHS[m].slice(0,3) : "")}</span>`;
-    if (m !== lastMonth) lastMonth = m;
-    for (let d = 0; d < 7; d++) {
-      const day = new Date(wkStart); day.setDate(wkStart.getDate() + d);
-      if (day > today) { cells += `<i class="fut"></i>`; continue; }
-      const n = perDay.get(dayKeyLocal(day.getTime())) || 0;
-      const lvl = !n ? 0 : n <= t1 ? 1 : n <= t2 ? 2 : n <= t3 ? 3 : 4;
-      cells += `<i class="l${lvl}" title="${day.getDate()} ${SX_MONTHS_GEN[day.getMonth()]}: ${n}"></i>`;
-    }
-  }
-  html += sxCard("Kalendarz oglądania", entries.length
-    ? `<div class="sx-hm-m">${monthsRow}</div><div class="sx-hm">${cells}</div><div class="sx-hm-leg"><span>mniej</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>więcej</span></div>`
-    : sxEmpty("Brak dat obejrzenia — kalendarz wypełni się, gdy będziesz odhaczać odcinki i filmy."));
-
   // Ulubiony dzień tygodnia
   const wd = [0,0,0,0,0,0,0];
   for (const e of entries) wd[(new Date(e.ts).getDay()+6)%7]++;
@@ -147,8 +110,6 @@ function sxRenderSeries(){
     for (const s of it.seasons||[]) for (const e of s.episodes||[]) if (e.watched) { min += (e.duration||0); n++; }
     return {it, min, n};
   });
-  const topTime = time.filter(x=>x.min>0).sort((a,b)=>b.min-a.min).slice(0,5);
-  html += sxCard("Najwięcej czasu", topTime.length ? sxHBars(topTime.map(x=>({label:x.it.title, value:x.min, text:`${Math.round(x.min/60)} h`}))) : sxEmpty("Brak obejrzanych odcinków."));
   const dec = sxDecades(series);
   html += sxCard("Seriale wg dekady premiery", dec ? sxVBars(dec) : sxEmpty("Brak dat premiery."));
   const durs = [];
@@ -167,7 +128,6 @@ function sxRenderMovies(){
   const movies = db.items.filter(i=>i.type===TYPE_MOVIE && i.status===STATUS_WATCHED);
   const withDur = movies.filter(m=>m.duration > 0).sort((a,b)=>b.duration-a.duration);
   let html = "";
-  html += sxCard("Najwięcej czasu", withDur.length ? sxHBars(withDur.slice(0,5).map(m=>({label:m.title, value:m.duration, text:sxHm(m.duration)}))) : sxEmpty("Brak czasu trwania filmów."));
   const dec = sxDecades(movies);
   html += sxCard("Filmy wg dekady premiery", dec ? sxVBars(dec) : sxEmpty("Brak dat premiery."));
   if (withDur.length) {
