@@ -75,13 +75,7 @@
     section("Więcej");
     item({label:"Notatki", active: activeMain==="notes", onClick:()=>switchMainTab("notes")});
     item({label:"Statystyki", icon:ICONS.stats, active: activeMain==="stats", onClick:()=>switchMainTab("stats")});
-    const sv = window.SUMMARY_MENU_VARIANT || "A";
-    if (sv === "B") {
-      item({label:"Podsumowanie seriali", sub:true, onClick:()=>openSummaryDialog("episodes", "single")});
-      item({label:"Podsumowanie filmów", sub:true, onClick:()=>openSummaryDialog("movies", "single")});
-    } else {
-      item({label:"Podsumowanie", sub:true, onClick:()=>openSummaryDialog("episodes", sv === "C" ? "both" : "tabs")});
-    }
+    item({label:"Podsumowanie", icon:"icons/podsumowanie.svg", onClick:()=>openSummaryDialog("episodes", "tabs")});
     item({label:"Ustawienia", icon:ICONS.settings, active: activeMain==="settings", onClick:()=>switchMainTab("settings")});
     section("Baza danych");
     item({label:"Zapisz do pliku", icon:ICONS.save, onClick:()=>clickBtn("btn-save")});

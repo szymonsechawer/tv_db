@@ -35,6 +35,7 @@ const SHELL_FILES = [
   "./icons/sortuj.png",
   "./icons/sprawdz-doc.png",
   "./icons/widok.svg",
+  "./icons/podsumowanie.svg",
   "./icons/filtr.svg"
 ];
 
