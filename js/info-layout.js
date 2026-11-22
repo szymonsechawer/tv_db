@@ -125,6 +125,7 @@ function applyNewInfoLayout(overlay, ctx){
     if (pc.length) det += row(pc.length > 1 ? "Kraje produkcji" : "Kraj produkcji", esc(pc.join(", ")));
     if (oc.length && oc.join(",") !== pc.join(",")) det += row("Kraj pochodzenia", esc(oc.join(", ")));
     if (c.original_language) det += row("Język", esc(c.original_language));
+    if (c.age_certification && String(c.age_certification).trim()) det += row("Wiek", esc(formatAgeCertification(c.age_certification)));
     const comp = (c.production_companies||[]).filter(Boolean);
     if (comp.length) {
       det += row(comp.length > 1 ? "Wytwórnie" : "Wytwórnia", esc(comp.join(", ")));
