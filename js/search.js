@@ -94,7 +94,7 @@ function renderGlobalSearch(){
     tr.innerHTML = `<td class="col-title"><span class="gs-t"></span>${year ? `<span class="gs-y">${escapeHtml(year)}</span>` : ""}</td>
       <td class="col-gs"><span class="gs-kind">${isSeries ? "Serial" : "Film"}</span><span class="gs-st gs-${escapeHtml(st)}">${escapeHtml(GS_STATUS[st] || STATUS_LABELS[st] || "")}</span></td>`;
     tr.querySelector(".gs-t").textContent = it.title || "";
-    addDoubleActivation(tr, ()=>openViewDialog(it.id));
+    tr.addEventListener("click", ()=>goToItemInList(it));
     body.appendChild(tr);
   }
 }
@@ -216,3 +216,31 @@ function renderGlobalSearch(){
   searchInput.addEventListener("blur", ()=>{ setTimeout(closeSuggest, 150); });
 })();
 
+
+// Przejście z wyników do miejsca, w którym rekord jest na liście
+function goToItemInList(it){
+  const input = document.getElementById("search-input");
+  if (input) input.value = "";
+  searchQuery = ""; searchMode = getSearchMode("");
+  updateSearchClearBtn();
+  document.body.classList.remove("search-open");
+  if (input) input.blur();
+  const type = it.type, status = it.status || STATUS_WATCHING;
+  switchMainTab(type);
+  switchStatusTab(type, status);
+  if (typeof selectedId === "object") selectedId[`${type}:${status}`] = it.id;
+  runSearchFilter();
+  requestAnimationFrame(()=>{
+    const pane = document.getElementById(`pane-${type}-${status}`);
+    const row = pane && pane.querySelector(`tr[data-id="${CSS.escape(String(it.id))}"]`);
+    if (!row) return;
+    let sc = row.parentElement;
+    while (sc && sc !== document.body) { const cs = getComputedStyle(sc); if (/(auto|scroll)/.test(cs.overflowY) && sc.scrollHeight > sc.clientHeight) break; sc = sc.parentElement; }
+    if (sc && sc !== document.body) {
+      const r = row.getBoundingClientRect(), c = sc.getBoundingClientRect();
+      sc.scrollTop += (r.top - c.top) - (c.height - r.height) / 2;
+    }
+    row.classList.add("gs-flash");
+    setTimeout(()=>row.classList.remove("gs-flash"), 1600);
+  });
+}

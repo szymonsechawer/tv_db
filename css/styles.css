@@ -1110,3 +1110,6 @@ body.gsearch-on #button-bar-sort-row,body.gsearch-on #button-bar-check-row{displ
 .gs-st.gs-watched{color:#3ba55d;}
 .gs-st.gs-planned{color:#e0a43c;}
 .gs-st.gs-paused{color:#9aa5b1;}
+.gs-table tbody tr{cursor:pointer;}
+tr.gs-flash > td{animation:gsFlash 1.6s ease-out;}
+@keyframes gsFlash{0%,35%{background:rgba(59,143,217,.35);}100%{background:transparent;}}
