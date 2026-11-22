@@ -1,6 +1,6 @@
 // ============================================================
 // add-wizard.js — dodawanie filmów i seriali krok po kroku
-// 1) rodzaj + lista, 2) wyszukanie tytułu w TMDb, 3) ocena i tagi
+// 1) rodzaj + lista, 2) wyszukanie tytułu w TMDb, 3) tagi
 // ============================================================
 
 const AW_ICON_FILM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>';
@@ -127,13 +127,10 @@ function openAddWizard(){
     const poster = hit.poster_path ? tmdbPosterUrl(hit.poster_path, "w185") : "";
     const allTags = getAllTags();
     body.innerHTML = `<div class="aw-pick">${poster ? `<img src="${poster}" alt="">` : `<span class="aw-ph big"></span>`}<div><b></b><small>${escapeHtml([year, type===TYPE_MOVIE?"Film":"Serial", STATUS_LABELS[status]].filter(Boolean).join(" · "))}</small></div></div>
-      <div class="aw-lbl">Ocena</div>
-      <div class="aw-stars" id="aw-stars">${Array.from({length:10},(_,i)=>`<button type="button" data-v="${i+1}" class="${i < rating ? "on" : ""}">★</button>`).join("")}</div>
       <div class="aw-lbl">Tagi</div>
       <div class="aw-tags" id="aw-tags">${allTags.map(t=>`<button type="button" class="aw-tag${tags.includes(t)?" on":""}" data-t="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}<button type="button" class="aw-tag aw-tag-new" id="aw-tag-new">+ nowy</button></div>
       <button type="button" class="aw-more" id="aw-more">Więcej pól (opis, obsada, data…)<span>›</span></button>`;
     body.querySelector(".aw-pick b").textContent = awHitTitle(hit);
-    body.querySelectorAll("#aw-stars button").forEach(b=>b.addEventListener("click", ()=>{ const v = +b.dataset.v; rating = (rating === v) ? 0 : v; renderStep3(); }));
     body.querySelectorAll(".aw-tag[data-t]").forEach(b=>b.addEventListener("click", ()=>{ const t = b.dataset.t; tags = tags.includes(t) ? tags.filter(x=>x!==t) : [...tags, t]; b.classList.toggle("on"); }));
     body.querySelector("#aw-tag-new").addEventListener("click", async ()=>{
       const v = await askText({title:"Nowy tag", prompt:"Nazwa tagu:", initial:""});
