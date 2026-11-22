@@ -1228,3 +1228,4 @@ html[data-theme="jasny"] .sx-card{border-color:rgba(0,0,0,.14);}
 html[data-theme="jasny"] .sx-hm .l1,html[data-theme="jasny"] .sx-hm-leg .l1{background:#bcdaf3;}
 html[data-theme="jasny"] .sx-hm .l2,html[data-theme="jasny"] .sx-hm-leg .l2{background:#7fb6e6;}
 html[data-theme="jasny"] .sx-hm .l4,html[data-theme="jasny"] .sx-hm-leg .l4{background:#1f5f99;}
+#pane-stats-movies .sx-list,#pane-stats-series .sx-list{margin-top:0;}
