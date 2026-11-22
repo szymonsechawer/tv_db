@@ -265,13 +265,6 @@ function applyNewInfoLayout(overlay, ctx){
     const year = String(c.premiere_date||"").slice(0,4);
     const meta = [];
     if (year) meta.push(year);
-    if (type === TYPE_MOVIE) { const d = vdFmtMinutes(c.duration); if (d) meta.push(d); }
-    else {
-      const ss = (c.seasons||[]).filter(s=>(s.number||0)>0);
-      const n = ss.length;
-      const eps = ss.reduce((a, se)=>a + ((se.episodes||[]).length), 0);
-      if (n) meta.push(`${n} ${plural(n,"sezon","sezony","sezonów")}` + (eps ? ` (${eps} odc.)` : ""));
-    }
     const r = normalizeRating(c.rating);
     let statusTxt = STATUS_LABELS[c.status] || "";
     if (preview) statusTxt = "";
