@@ -152,7 +152,8 @@ function openAddWizard(){
         }
       } catch(e) { if (fi.isConnected) fi.textContent = ""; }
     })();
-    foot.innerHTML = `<button type="button" class="btn aw-main" id="aw-add">Dodaj do listy</button>`;
+    foot.innerHTML = `<div class="aw-two"><button type="button" class="btn secondary aw-main" id="aw-undo">‹ Cofnij</button><button type="button" class="btn aw-main" id="aw-add">✓ Potwierdź</button></div>`;
+    foot.querySelector("#aw-undo").addEventListener("click", ()=>{ step = 2; render(); });
     foot.querySelector("#aw-add").addEventListener("click", ()=>{ close(); openManual(hit, true); });
   }
 
