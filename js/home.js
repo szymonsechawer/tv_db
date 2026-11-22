@@ -64,7 +64,7 @@ function renderHomeTab(){
     c.innerHTML = `${p ? `<div class="home-bg" style="background-image:url('${p}')"></div>` : ""}
       <div class="home-in">
         <span class="home-poster">${p ? `<img src="${p}" alt="">` : ""}</span>
-        <div class="home-txt">${kind === "s" ? `<small>Ostatnio oglądany · ${homeDate(last)}</small>` : ""}<b>${esc(it.title)}</b><div class="home-slot"></div></div>
+        <div class="home-txt"><b>${esc(it.title)}</b><div class="home-slot"></div></div>
       </div>`;
     const slot = c.querySelector(".home-slot");
     if (kind === "s") slot.appendChild(homeProgressCell(it));

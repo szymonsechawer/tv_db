@@ -984,3 +984,11 @@ html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-tx
 .home-mid .home-in{padding:10px;gap:11px;}
 .home-mid .home-poster{width:70px;height:105px;}
 .home-mid .home-txt b{font-size:16px;margin-bottom:4px;}
+/* Strona główna: nieco mniejsze karty */
+.home-in{padding:10px;gap:11px;}
+.home-poster{width:80px;height:120px;}
+.home-big .home-txt b{font-size:17px;}
+.home-mid .home-in{padding:8px 10px;}
+.home-mid .home-poster{width:56px;height:84px;}
+.home-mid .home-txt b{font-size:14.5px;}
+.home-big + .home-big{margin-top:7px;}
