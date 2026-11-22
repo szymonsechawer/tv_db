@@ -502,8 +502,43 @@ function openYearRecordsDialog(kind){
   document.addEventListener("keydown", onKey);
 }
 
-document.getElementById("btn-year-records-movies")?.addEventListener("click", ()=>openYearRecordsDialog("movies"));
-document.getElementById("btn-year-records-episodes")?.addEventListener("click", ()=>openYearRecordsDialog("episodes"));
+// Osobne okno Podsumowania (otwierane z menu, pod „Statystyki”).
+// mode: "tabs" — przełącznik Seriale/Filmy (także przesunięciem palca),
+//       "both" — obie części jedna pod drugą, "single" — tylko wybrana.
+function openSummaryDialog(kind, mode){
+  mode = mode || "tabs";
+  let cur = kind === "movies" ? "movies" : "episodes";
+  const sect = (k)=>`<div class="sum-sect-h">${k==="movies" ? "Filmy" : "Seriale"}</div>${buildYearRecordsHtml(k)}`;
+  const title = mode === "single" ? (cur==="movies" ? "Podsumowanie — Filmy" : "Podsumowanie — Seriale") : "Podsumowanie";
+  const overlay = openOverlay(`
+    <div class="modal-header">${escapeHtml(title)}</div>
+    ${mode === "tabs" ? `<div class="sum-switch"><button type="button" data-k="episodes">Seriale</button><button type="button" data-k="movies">Filmy</button></div>` : ""}
+    <div class="modal-body sum-body"></div>
+    <div class="modal-footer"><button class="btn" id="sum-close">Zamknij</button></div>
+  `);
+  overlay.classList.add("sum-overlay");
+  const body = overlay.querySelector(".sum-body");
+  const show = (k, dir)=>{
+    cur = k;
+    if (mode === "both") body.innerHTML = sect("episodes") + sect("movies");
+    else body.innerHTML = buildYearRecordsHtml(k);
+    overlay.querySelectorAll(".sum-switch button").forEach(b=>b.classList.toggle("on", b.dataset.k === k));
+    if (dir) { body.classList.remove("swipe-in-l","swipe-in-r"); void body.offsetWidth; body.classList.add(dir > 0 ? "swipe-in-l" : "swipe-in-r"); }
+  };
+  show(cur);
+  overlay.querySelectorAll(".sum-switch button").forEach(b=>b.addEventListener("click", ()=>show(b.dataset.k, b.dataset.k==="movies" ? 1 : -1)));
+  if (mode === "tabs") {
+    let x0 = 0, y0 = 0;
+    body.addEventListener("touchstart", e=>{ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+    body.addEventListener("touchend", e=>{
+      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (dx < 0 && cur === "episodes") show("movies", 1);
+      else if (dx > 0 && cur === "movies") show("episodes", -1);
+    }, {passive:true});
+  }
+  overlay.querySelector("#sum-close").addEventListener("click", ()=>closeOverlay(overlay));
+}
 
 // Zlicza gatunki dla danego typu (film/serial) wśród pozycji uznanych za
 // oglądane/obejrzane (filmy: zakończone; seriale: oglądane/zakończone/wstrzymane).

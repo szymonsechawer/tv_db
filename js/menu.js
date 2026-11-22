@@ -37,10 +37,10 @@
   function section(label){
     const h = document.createElement("div"); h.className = "menu-section"; h.textContent = label; itemsEl.appendChild(h);
   }
-  function item({label, icon, count, active, onClick, disabled}){
+  function item({label, icon, count, active, onClick, disabled, sub}){
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "menu-item" + (active ? " active" : "");
+    b.className = "menu-item" + (active ? " active" : "") + (sub ? " menu-sub" : "");
     if (disabled) b.disabled = true;
     b.innerHTML = `${icon ? `<img src="${icon}" alt="">` : `<span class="menu-dot"></span>`}<span class="menu-label"></span>${count!=null ? `<span class="menu-count">${count}</span>` : ""}`;
     b.querySelector(".menu-label").textContent = label;
@@ -75,6 +75,7 @@
     section("Więcej");
     item({label:"Notatki", active: activeMain==="notes", onClick:()=>switchMainTab("notes")});
     item({label:"Statystyki", icon:ICONS.stats, active: activeMain==="stats", onClick:()=>switchMainTab("stats")});
+    item({label:"Podsumowanie", icon:"icons/podsumowanie.svg", onClick:()=>openSummaryDialog("episodes", "tabs")});
     item({label:"Ustawienia", icon:ICONS.settings, active: activeMain==="settings", onClick:()=>switchMainTab("settings")});
     section("Baza danych");
     item({label:"Zapisz do pliku", icon:ICONS.save, onClick:()=>clickBtn("btn-save")});
