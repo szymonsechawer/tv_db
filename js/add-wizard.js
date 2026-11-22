@@ -108,7 +108,7 @@ function openAddWizard(){
       const row = document.createElement("button");
       row.type = "button"; row.className = "aw-r";
       const img = r.poster_path ? `<img src="${tmdbPosterUrl(r.poster_path, "w92")}" alt="" loading="lazy">` : `<span class="aw-ph"></span>`;
-      row.innerHTML = `${img}<span class="aw-rt"><b></b><small></small></span>${have ? `<span class="aw-have">✓ Masz</span>` : ""}`;
+      row.innerHTML = `${img}<span class="aw-rt"><b></b><small></small></span>${have ? `<span class="aw-have gs-st gs-${escapeHtml(have.status||STATUS_WATCHING)}">${escapeHtml((typeof GS_STATUS !== "undefined" && GS_STATUS[have.status||STATUS_WATCHING]) || STATUS_LABELS[have.status||STATUS_WATCHING] || "")}</span>` : ""}`;
       row.querySelector("b").textContent = awHitTitle(r);
       const orig = r.original_title || r.original_name || "";
       row.querySelector("small").textContent = [year, orig && orig !== awHitTitle(r) ? orig : ""].filter(Boolean).join(" · ");

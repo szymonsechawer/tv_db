@@ -1185,3 +1185,4 @@ html[data-theme="jasny"] .aw-tag{border-color:rgba(0,0,0,.18);}
 /* Kreator: okno mieści się między paskiem stanu a dołem ekranu */
 .modal.aw-modal{height:min(760px,100%);max-height:100%;}
 .modal.aw-modal{margin-top:24px;height:min(760px,calc(100% - 24px));max-height:calc(100% - 24px);}
+.aw-have.gs-st{display:inline-block;margin-top:0;font-size:12.5px;font-weight:700;white-space:nowrap;}
