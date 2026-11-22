@@ -119,7 +119,8 @@ function applyNewInfoLayout(overlay, ctx){
     if (type === TYPE_MOVIE && c.duration) det += row("Czas trwania", esc(c.duration >= 60 ? `${Math.floor(c.duration/60)} h ${c.duration%60} min` : `${c.duration} min`));
     if (type === TYPE_SERIES && Array.isArray(c.seasons) && c.seasons.length) {
       const eps = c.seasons.reduce((a, se)=>a + ((se.episodes||[]).length), 0);
-      det += row("Sezony", esc(`${c.seasons.length} · ${eps} odc.`));
+      det += row("Sezony", esc(String(c.seasons.length)));
+      det += row("Odcinki", esc(String(eps)));
     }
     const pc = c.production_countries||[], oc = c.origin_country||[];
     if (pc.length) det += row(pc.length > 1 ? "Kraje produkcji" : "Kraj produkcji", esc(pc.join(", ")));
