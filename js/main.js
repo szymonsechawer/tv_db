@@ -4,9 +4,7 @@
 // ============================================================
 
 document.getElementById("btn-add").addEventListener("click", async ()=>{
-  const choice = await askAddType();
-  if (!choice) return;
-  addItem(choice.type);
+  openAddWizard();
 });
 
 async function addItem(type){

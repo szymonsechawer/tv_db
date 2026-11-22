@@ -934,7 +934,7 @@ function openViewDialog(idOrItem, opts){
   });
 }
 
-function openItemDialog({item, itemType, prefillTmdb}){
+function openItemDialog({item, itemType, prefillTmdb, preset}){
   return new Promise(resolve=>{
     const isNew = item==null;
     const type = isNew ? itemType : item.type;
@@ -1957,11 +1957,32 @@ function openItemDialog({item, itemType, prefillTmdb}){
     function onKey(e){ if (!isTopOverlay(overlay)) return; if (e.key==="Escape") finish(null); }
     document.addEventListener("keydown", onKey);
 
+    let prefillDone = null;
     if (isNew && prefillTmdb) {
-      applySuggestion(prefillTmdb);
+      prefillDone = applySuggestion(prefillTmdb);
+    }
+    // Ustawienia z kreatora dodawania (lista, ocena, tagi)
+    if (isNew && preset) {
+      if (preset.status && STATUS_LABELS[preset.status]) { statusSelect.value = STATUS_LABELS[preset.status]; statusSelect.dispatchEvent(new Event("change")); }
+      if (preset.rating) ratingSelect.value = String(preset.rating);
+      if (Array.isArray(preset.tags) && preset.tags.length) { tags = [...preset.tags]; renderTagChips(); }
     }
 
     overlay.querySelector("#cancel-item-btn").addEventListener("click", ()=>finish(null));
+
+    // Kreator: zapis automatyczny po pobraniu danych z TMDb (okno ukryte)
+    if (isNew && preset && preset.autoSave && prefillDone) {
+      overlay.classList.add("aw-busy");
+      const note = document.createElement("div");
+      note.className = "aw-saving"; note.textContent = "Dodawanie i pobieranie danych z TMDb…";
+      document.body.appendChild(note);
+      prefillDone.finally(()=>{
+        note.remove();
+        overlay.querySelector("#save-item-btn").click();
+        // Jeśli zapis się nie udał (np. brak danych) — pokaż formularz
+        setTimeout(()=>{ if (overlay.isConnected) overlay.classList.remove("aw-busy"); }, 600);
+      });
+    }
 
     overlay.querySelector("#save-item-btn").addEventListener("click", async ()=>{
       dupError.textContent = "";
