@@ -57,9 +57,9 @@ function renderHomeTab(){
   const esc = escapeHtml;
   box.innerHTML = "";
   const section = (title, sub)=>{ const h = document.createElement("div"); h.className = "home-sh"; h.innerHTML = `<b>${esc(title)}</b><span>${esc(sub)}</span>`; box.appendChild(h); };
-  const bigCard = (it, kind, last)=>{
+  const bigCard = (it, kind, last, smaller)=>{
     const c = document.createElement("div");
-    c.className = "home-big";
+    c.className = "home-big" + (smaller ? " home-mid" : "");
     const p = poster(it);
     c.innerHTML = `${p ? `<div class="home-bg" style="background-image:url('${p}')"></div>` : ""}
       <div class="home-in">
@@ -89,9 +89,9 @@ function renderHomeTab(){
   };
   const ser = homeRecentSeries(3), mov = homeRecentMovies(3);
   section("Seriale", "ostatnio oglądane");
-  if (ser.length) ser.forEach(x=>bigCard(x.it, "s", x.last));
+  if (ser.length) ser.forEach((x, i)=>bigCard(x.it, "s", x.last, i > 0));
   else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych odcinków.</div>');
   section("Filmy", "ostatnio obejrzane");
-  if (mov.length) mov.forEach(x=>bigCard(x.it, "m", x.last));
+  if (mov.length) mov.forEach((x, i)=>bigCard(x.it, "m", x.last, i > 0));
   else box.insertAdjacentHTML("beforeend", '<div class="muted home-empty">Brak obejrzanych filmów.</div>');
 }

@@ -981,3 +981,6 @@ html[data-theme="jasny"] .vd-page-title{border-color:rgba(0,0,0,.14);}
 html[data-theme="jasny"] .home-in{background:linear-gradient(90deg,rgba(255,255,255,.65),rgba(255,255,255,.25));}
 html[data-theme="jasny"] .home-big .home-txt b,html[data-theme="jasny"] .home-txt small,html[data-theme="jasny"] .home-big .home-meta{color:var(--text-light);}
 .home-big + .home-big{margin-top:8px;}
+.home-mid .home-in{padding:10px;gap:11px;}
+.home-mid .home-poster{width:70px;height:105px;}
+.home-mid .home-txt b{font-size:16px;margin-bottom:4px;}
