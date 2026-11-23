@@ -584,9 +584,52 @@ function renderGenreStatsInto(listId, emptyId, type){
   `).join("");
 }
 
+// Lista z paskami i procentami (gatunki, kraje): top 10 + „Pokaż wszystkie”
+// w osobnym oknie z wyszukiwaniem; dwukrotne dotknięcie pokazuje tytuły.
+function renderShareListInto(listId, emptyId, type, field){
+  const list = document.getElementById(listId);
+  const empty = document.getElementById(emptyId);
+  if (!list) return;
+  const all = computePersonStats(type, field, null);
+  const moreBtnOld = list.nextElementSibling && list.nextElementSibling.classList.contains("person-more") ? list.nextElementSibling : null;
+  if (!all.length) {
+    list.innerHTML = "";
+    if (moreBtnOld) moreBtnOld.remove();
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  const total = all.reduce((a,x)=>a+x.count, 0);
+  const rowsHtml = (arr)=>arr.map(c=>{
+    const pct = total ? (c.count/total*100) : 0;
+    return `<button type="button" class="genre-stat-row share-row person-link" data-name="${escapeHtml(c.name)}">
+        <div class="genre-stat-name">${escapeHtml(c.name)}</div>
+        <div class="genre-bar-track"><div class="genre-bar-fill" style="width:${pct.toFixed(1)}%;"></div></div>
+        <div class="genre-stat-pct">${formatGenrePct(pct)}</div>
+      </button>`;
+  }).join("");
+  const top = all.slice(0, 10);
+  list.innerHTML = rowsHtml(top);
+  const rawLabel = (list.closest(".stats-section")?.querySelector("h3")?.textContent || "").trim();
+  const label = rawLabel ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase() : "";
+  list._personOpen = (name)=>openPersonTitlesDialog(type, field, null, name, label);
+  if (!list.dataset.dblInit) { list.dataset.dblInit = "1"; personRowsDoubleTap(list, (name)=>list._personOpen(name)); }
+  if (all.length > top.length) {
+    let btn = moreBtnOld;
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button"; btn.className = "person-more";
+      btn.addEventListener("click", ()=>btn._open && btn._open());
+      list.after(btn);
+    }
+    btn.textContent = `Pokaż wszystkie (${fmtNum(all.length)}) ›`;
+    btn._open = ()=>openPersonAllDialog(all, label, rowsHtml, list._personOpen);
+  } else if (moreBtnOld) moreBtnOld.remove();
+}
+
 function renderGenreStats(){
-  renderGenreStatsInto("stat-genres-movies-list", "stat-genres-movies-empty", TYPE_MOVIE);
-  renderGenreStatsInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES);
+  renderShareListInto("stat-genres-movies-list", "stat-genres-movies-empty", TYPE_MOVIE, "genres");
+  renderShareListInto("stat-genres-series-list", "stat-genres-series-empty", TYPE_SERIES, "genres");
   renderCountryStats();
   renderExtraStats();
 }
@@ -637,8 +680,8 @@ function renderCountryListInto(listId, emptyId, type, field){
 }
 
 function renderCountryStats(){
-  renderCountryListInto("stat-countries-movies-list", "stat-countries-movies-empty", TYPE_MOVIE, "production_countries");
-  renderCountryListInto("stat-countries-series-list", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
+  renderShareListInto("stat-countries-movies-list", "stat-countries-movies-empty", TYPE_MOVIE, "production_countries");
+  renderShareListInto("stat-countries-series-list", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
 }
 
 // ============================================================
