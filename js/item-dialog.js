@@ -92,10 +92,11 @@ async function markNextEpisodeWatched(id, opts){
         db.items = db.items.filter(i=>i.id!==id);
         const allWatched = seasons.every(s=>(s.episodes||[]).every(e=>e.watched));
         if (allWatched) {
-          if (item.status !== STATUS_WATCHED && normalizeRating(item.rating) === 0) {
-            const r = await showRatingPrompt(item.title, false);
+          if (item.status !== STATUS_WATCHED && (normalizeRating(item.rating) === 0 || item.rerate)) {
+            const r = await showRatingPrompt(item.title, !!item.rerate, normalizeRating(item.rating));
             if (r > 0) item.rating = r;
           }
+          delete item.rerate;
           if (item.status !== STATUS_WATCHED && !item.finished_date) item.finished_date = todayISODate();
           item.status = STATUS_WATCHED;
           db.items.push(item);
@@ -2063,11 +2064,13 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
       }
 
       // Przenoszenie do Zakończonych bez oceny - zapytaj o ocenę.
-      if (statusKey === STATUS_WATCHED && !wasWatched && normalizeRating(ratingSelect.value) === 0) {
-        const r = await showRatingPrompt(title, true);
-        if (r === null) return;
+      const rerate = !isNew && item && item.rerate;
+      if (statusKey === STATUS_WATCHED && !wasWatched && (normalizeRating(ratingSelect.value) === 0 || rerate)) {
+        const r = await showRatingPrompt(title, true, normalizeRating(ratingSelect.value));
+        if (r === null && !rerate) return;
         if (r > 0) ratingSelect.value = String(r);
       }
+      if (statusKey === STATUS_WATCHED && !isNew && item) delete item.rerate;
 
       const resultItem = isNew ? {id: uuidv4(), type, addedAt: Date.now()} : item;
       resultItem.title = title;
