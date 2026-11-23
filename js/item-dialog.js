@@ -1205,6 +1205,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
             }
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
+          fillMissingEpisodeDurations(fetched, tvTypicalRuntime(details));
           if (fetched.length) {
             seasons = fetched;
             renderSeasonsList();
@@ -1910,6 +1911,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
             fetched.push({number: sn, episodes, air_date: eps.season_air_date||""});
           }
           fetched.sort((a,b)=>(a.number||0)-(b.number||0));
+          fillMissingEpisodeDurations(fetched, tvTypicalRuntime(details));
           seasons = fetched;
           renderSeasonsList();
           setTmdbStatus("Pobrano " + seasons.length + " sezonów z TMDb.", false);

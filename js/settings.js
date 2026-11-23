@@ -134,7 +134,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = true;
   const oldLabel = getBtnLabel(btn);
-  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, updatedAge = 0, errors = 0;
+  let done = 0, updatedEpisodes = 0, updatedSeries = 0, updatedDesc = 0, updatedPosters = 0, updatedGenres = 0, updatedCast = 0, updatedCreators = 0, updatedOrigin = 0, updatedExtras = 0, updatedCollections = 0, updatedAge = 0, updatedDurations = 0, errors = 0;
   const noMatchTitles = [];   // nie znaleziono powiązania z TMDb
   const noDescTitles = [];    // znaleziono powiązanie, ale brak opisu w TMDb
   const errorTitles = [];     // błąd podczas komunikacji z TMDb
@@ -247,12 +247,20 @@ async function refreshAllEpisodeTitles(){
           for (const ep of (season.episodes||[])) {
             const match = (eps||[]).find(e=>e.episode_number===ep.number);
             if (match && match.name && match.name !== ep.title) { ep.title = match.name; itemUpdated++; }
+            if (match && match.runtime > 0 && (!(ep.duration > 0) || (ep.duration_est && ep.duration !== match.runtime))) {
+              ep.duration = match.runtime; delete ep.duration_est; updatedDurations++;
+            }
           }
           if (eps) {
             if (eps.season_air_date && eps.season_air_date !== (season.air_date||"")) season.air_date = eps.season_air_date;
           }
           // krótka przerwa między kolejnymi sezonami (limit zapytań TMDb)
           await new Promise(r => setTimeout(r, 400));
+        }
+        // odcinki, dla których TMDb nie podaje czasu — szacunek z sezonu/serialu
+        if (item.seasons.some(s=>(s.episodes||[]).some(e=>!(e.duration > 0)))) {
+          const typical = await tmdbTvTypicalRuntime(tid);
+          updatedDurations += fillMissingEpisodeDurations(item.seasons, typical);
         }
         if (itemUpdated>0) { updatedEpisodes += itemUpdated; updatedSeries++; }
       }
@@ -272,7 +280,7 @@ async function refreshAllEpisodeTitles(){
 
   btn.disabled = false;
   setBtnLabel(btn, oldLabel);
-  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0 || updatedAge>0;
+  const anyChange = updatedEpisodes>0 || updatedDesc>0 || updatedPosters>0 || updatedGenres>0 || updatedCast>0 || updatedCreators>0 || updatedOrigin>0 || updatedExtras>0 || updatedCollections>0 || updatedAge>0 || updatedDurations>0;
   if (anyChange) { saveToLocalStorage(); setDirty(true); renderAll(); }
 
   if (anyChange) {
@@ -285,6 +293,7 @@ async function refreshAllEpisodeTitles(){
     if (updatedCreators>0) parts.push(`${updatedCreators} ${updatedCreators===1?"listę twórców":"list twórców"}`);
     if (updatedOrigin>0) parts.push(`${updatedOrigin} ${updatedOrigin===1?"kraj/język produkcji":"kraje/języki produkcji"}`);
     if (updatedExtras>0) parts.push(`${updatedExtras} ${updatedExtras===1?"komplet dodatkowych informacji":"kompletów dodatkowych informacji"} (wytwórnia, zwiastun)`);
+    if (updatedDurations>0) parts.push(`${updatedDurations} ${updatedDurations===1?"czas odcinka":(updatedDurations%10>=2&&updatedDurations%10<=4&&!(updatedDurations%100>=12&&updatedDurations%100<=14)?"czasy odcinków":"czasów odcinków")}`);
     if (updatedAge>0) parts.push(`${updatedAge} ${updatedAge===1?"kategorię wiekową":(updatedAge%10>=2&&updatedAge%10<=4&&!(updatedAge%100>=12&&updatedAge%100<=14)?"kategorie wiekowe":"kategorii wiekowych")}`);
     if (updatedCollections>0) parts.push(`${updatedCollections} ${updatedCollections===1?"kolekcję":"kolekcji"} (nowe części)`);
     setStatus(`Gotowe: zaktualizowano ${parts.join(" oraz ")}` + (errors>0 ? ` (${errors} pozycji pominięto).` : "."));
@@ -336,7 +345,7 @@ async function refreshCurrentSeasonEpisodes(item, tid, details){
       }
       if (te.air_date && ep.air_date !== te.air_date) ep.air_date = te.air_date;
       if (te.name && !ep.title) ep.title = te.name;
-      if (te.runtime && !ep.duration) ep.duration = te.runtime;
+      if (te.runtime > 0 && (!(ep.duration > 0) || ep.duration_est)) { ep.duration = te.runtime; delete ep.duration_est; }
     }
     season.episodes.sort((a,b)=>(a.number||0)-(b.number||0));
   }

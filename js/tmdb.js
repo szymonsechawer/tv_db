@@ -511,3 +511,39 @@ async function tmdbSeasonEpisodes(seriesId, seasonNumber, forceRefresh){
   return eps;
 }
 
+
+
+// Typowa długość odcinka serialu z danych TMDb (gdy odcinek nie ma własnej)
+function tvTypicalRuntime(details){
+  if (!details) return 0;
+  const ert = Array.isArray(details.episode_run_time) ? details.episode_run_time.filter(n=>n>0) : [];
+  if (ert.length) return ert[0];
+  for (const k of ["last_episode_to_air", "next_episode_to_air"]) {
+    const e = details[k];
+    if (e && e.runtime > 0) return e.runtime;
+  }
+  return 0;
+}
+// Uzupełnia brakujące czasy odcinków: średnia z sezonu → średnia z serialu →
+// typowa długość z TMDb. Takie czasy są oznaczone jako szacunkowe
+// (duration_est) i zostaną zastąpione prawdziwymi, gdy TMDb je poda.
+function fillMissingEpisodeDurations(seasons, typical){
+  let filled = 0;
+  const all = [];
+  for (const s of seasons||[]) for (const e of s.episodes||[]) if (e.duration > 0 && !e.duration_est) all.push(e.duration);
+  const overall = all.length ? all.reduce((a,b)=>a+b,0)/all.length : 0;
+  for (const s of seasons||[]) {
+    const known = (s.episodes||[]).filter(e=>e.duration > 0 && !e.duration_est).map(e=>e.duration);
+    const sAvg = known.length ? known.reduce((a,b)=>a+b,0)/known.length : 0;
+    const d = Math.round(sAvg || overall || typical || 0);
+    if (!d) continue;
+    for (const e of s.episodes||[]) {
+      if (!(e.duration > 0)) { e.duration = d; e.duration_est = true; filled++; }
+    }
+  }
+  return filled;
+}
+// Pobiera szczegóły serialu tylko po typową długość odcinka
+async function tmdbTvTypicalRuntime(tid){
+  try { const d = await tmdbFetch(`/tv/${tid}`, {}); return tvTypicalRuntime(d); } catch(e) { return 0; }
+}
