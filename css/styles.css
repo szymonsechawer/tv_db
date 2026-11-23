@@ -1263,3 +1263,5 @@ button.share-row{width:100%;background:none;border:none;padding:0;margin:0;font:
 .fl-row small{color:var(--text-muted);white-space:nowrap;font-size:12px;}
 html[data-theme="jasny"] .fl-e{opacity:.4;}
 html[data-theme="jasny"] .fl,html[data-theme="jasny"] .fl-sum{border-color:rgba(0,0,0,.14);}
+.fl-regs{display:block;}
+.fl-sel{width:100%;box-sizing:border-box;font-size:16px;font-weight:600;}
