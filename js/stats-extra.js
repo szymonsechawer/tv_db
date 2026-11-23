@@ -58,6 +58,23 @@ function sxRatings(items){
   return rows;
 }
 
+
+// Grupy wiekowe: polskie (7/12/16/18) i amerykańskie oznaczenia sprowadzone do wspólnych progów
+const SX_AGE_MAP = {"0":"0+","AL":"0+","U":"0+","G":"0+","TV-Y":"0+","TV-G":"0+","7":"7+","TV-Y7":"7+","PG":"7+","TV-PG":"7+","12":"12+","PG-13":"12+","13":"12+","14":"16+","TV-14":"16+","15":"16+","16":"16+","R":"18+","17":"18+","18":"18+","NC-17":"18+","TV-MA":"18+"};
+const SX_AGE_ORDER = ["0+","7+","12+","16+","18+"];
+function sxAgeGroups(items){
+  const c = {};
+  for (const it of items) {
+    const raw = String(it.age_certification||"").trim().toUpperCase().replace(/\s+/g, "").replace(/\+$/, "");
+    const g = SX_AGE_MAP[raw];
+    if (g) c[g] = (c[g]||0) + 1;
+  }
+  const present = SX_AGE_ORDER.filter(k=>c[k]);
+  if (!present.length) return null;
+  const lo = SX_AGE_ORDER.indexOf(present[0]), hi = SX_AGE_ORDER.indexOf(present[present.length-1]);
+  return SX_AGE_ORDER.slice(lo, hi+1).map(k=>({label: k === "0+" ? "bez ogr." : k, value: c[k]||0}));
+}
+
 function sxCountedSeries(){
   const counted = [STATUS_WATCHED, STATUS_WATCHING, STATUS_PAUSED];
   return db.items.filter(i=>i.type===TYPE_SERIES && counted.includes(i.status));
@@ -119,6 +136,8 @@ function sxRenderSeries(){
   html += sxCard("Odcinki", `<div class="sx-two"><div class="sx-mini"><b>${avg ? sxHmLong(avg) : "—"}</b><small>średnia długość odcinka</small></div><div class="sx-mini"><b>${most && most.n ? sxNum(most.n) : "—"}</b><small>najwięcej obejrzanych odcinków${most && most.n ? `<br>${escapeHtml(most.it.title)}` : ""}</small></div></div>`);
   const rat = sxRatings(series);
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych seriali."));
+  const ageS = sxAgeGroups(series);
+  html += sxCard("Grupy wiekowe", ageS ? sxVBars(ageS) : sxEmpty("Brak danych o wieku — użyj „Sprawdź ponownie i zaktualizuj” w Ustawieniach."));
   el.innerHTML = html;
 }
 
@@ -136,6 +155,8 @@ function sxRenderMovies(){
   } else html += sxCard("Rekordy długości", sxEmpty("Brak czasu trwania filmów."));
   const rat = sxRatings(movies);
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych filmów."));
+  const ageM = sxAgeGroups(movies);
+  html += sxCard("Grupy wiekowe", ageM ? sxVBars(ageM) : sxEmpty("Brak danych o wieku — użyj „Sprawdź ponownie i zaktualizuj” w Ustawieniach."));
   el.innerHTML = html;
 }
 
