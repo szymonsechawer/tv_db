@@ -230,6 +230,8 @@ async function addUpcomingSeason(row){
   item.seasons.sort((a,b)=>(a.number||0)-(b.number||0));
   item.status = STATUS_WATCHING;
   delete item.finished_date;
+  // po obejrzeniu nowego sezonu zapytaj ponownie o ocenę (nawet jeśli już jest)
+  item.rerate = true;
   db.items = db.items.filter(i=>i.id!==item.id);
   db.items.unshift(item);
   const uk = upcomingKeyOf(row);
