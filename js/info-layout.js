@@ -216,6 +216,7 @@ function applyNewInfoLayout(overlay, ctx){
   // Strona 1 zawsze mieści się bez przewijania: okładka dopasowuje swoją
   // wysokość do miejsca, które zostaje po tekście, postępie i przyciskach.
   function fitHero(){
+    vdFitProgRow(page1);
     const poster = page1.querySelector(".vd-poster");
     if (!poster || !page1.clientHeight) return;
     const wide = window.matchMedia("(min-width:700px)").matches;
@@ -359,4 +360,16 @@ function applyNewInfoLayout(overlay, ctx){
     if (el) mo.observe(el, {childList:true, subtree:true, characterData:true, attributes:true});
   }
   ctx.rerender = render;
+}
+
+
+// Wiersz „Postęp … · zostało …” zawsze w jednej linii: zmniejsza czcionkę, aż się zmieści
+function vdFitProgRow(root){
+  if (!root) return;
+  root.querySelectorAll(".vd-prog-row").forEach(row=>{
+    row.style.fontSize = "";
+    let fs = parseFloat(getComputedStyle(row).fontSize) || 12.5;
+    let guard = 40;
+    while (row.scrollWidth > row.clientWidth + 1 && fs > 8 && guard--) { fs -= 0.5; row.style.fontSize = fs + "px"; }
+  });
 }

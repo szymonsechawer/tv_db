@@ -1285,3 +1285,6 @@ html[data-theme="jasny"] .fl-dd-btn,html[data-theme="jasny"] .fl-dd-list{border-
 html[data-theme="jasny"] .fl-dd-opt{border-top-color:rgba(0,0,0,.08);}
 html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 .rating-pick.current{border:2px solid #3b8fd9 !important;color:#5aa6ea;}
+.vd-prog-row{flex-wrap:nowrap;align-items:baseline;}
+.vd-prog-row b,.vd-prog-row span{white-space:nowrap;}
+.vd-prog-row span{min-width:0;}
