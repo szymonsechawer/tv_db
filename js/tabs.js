@@ -113,6 +113,8 @@ function switchMainTab(tab){
     switchStatsTab(activeStatsTab);
   } else if (tab==="summary") {
     if (typeof renderSummaryTab === "function") renderSummaryTab();
+  } else if (tab==="flags") {
+    if (typeof renderFlagsTab === "function") renderFlagsTab();
   }
   updateCheckButtonVisibility();
 }

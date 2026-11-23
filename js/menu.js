@@ -32,7 +32,7 @@
   function locationTitle(){
     if (activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING && upcomingMode==="episodes") return "Seriale · Nadchodzące";
     if (activeMain===TYPE_MOVIE || activeMain===TYPE_SERIES) return `${TYPE_LABELS[activeMain]} · ${STATUS_LABELS[activeStatus[activeMain]]}`;
-    return ({notes:"Notatki", stats:"Statystyki", summary:"Podsumowanie", settings:"Ustawienia"})[activeMain] || "";
+    return ({notes:"Notatki", stats:"Statystyki", summary:"Podsumowanie", flags:"Flagi świata", settings:"Ustawienia"})[activeMain] || "";
   }
   function section(label){
     const h = document.createElement("div"); h.className = "menu-section"; h.textContent = label; itemsEl.appendChild(h);
@@ -76,6 +76,7 @@
     item({label:"Notatki", active: activeMain==="notes", onClick:()=>switchMainTab("notes")});
     item({label:"Statystyki", icon:ICONS.stats, active: activeMain==="stats", onClick:()=>switchMainTab("stats")});
     item({label:"Podsumowanie", icon:"icons/podsumowanie.svg", active: activeMain==="summary", onClick:()=>switchMainTab("summary")});
+    item({label:"Flagi świata", icon:"icons/flagi.svg", active: activeMain==="flags", onClick:()=>switchMainTab("flags")});
     item({label:"Ustawienia", icon:ICONS.settings, active: activeMain==="settings", onClick:()=>switchMainTab("settings")});
     section("Baza danych");
     item({label:"Zapisz do pliku", icon:ICONS.save, onClick:()=>clickBtn("btn-save")});
