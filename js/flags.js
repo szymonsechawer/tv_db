@@ -16,11 +16,12 @@ const FLAG_ALIASES = {
   "zea":"AE", "zjednoczone emiraty arabskie":"AE", "timor wschodni":"TL", "brunei":"BN", "turcja":"TR", "turkiye":"TR",
 };
 const FLAG_REGION = { "EU":["AL","AD","AT","BY","BE","BA","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT","LV","LI","LT","LU","MT","MD","MC","ME","NL","MK","NO","PL","PT","RO","RU","SM","RS","SK","SI","ES","SE","CH","UA","GB","VA","XK"],
-  "AM":["AG","AR","BS","BB","BZ","BO","BR","CA","CL","CO","CR","CU","DM","DO","EC","SV","GD","GT","GY","HT","HN","JM","MX","NI","PA","PY","PE","KN","LC","VC","SR","TT","US","UY","VE"],
+  "NA":["AG","BS","BB","BZ","CA","CR","CU","DM","DO","SV","GD","GT","HT","HN","JM","MX","NI","PA","KN","LC","VC","TT","US"],
+  "SA":["AR","BO","BR","CL","CO","EC","GY","PY","PE","SR","UY","VE"],
   "AS":["AF","AM","AZ","BH","BD","BT","BN","KH","CN","GE","IN","ID","IR","IQ","IL","JP","JO","KZ","KW","KG","LA","LB","MY","MV","MN","MM","NP","KP","KR","OM","PK","PS","PH","QA","SA","SG","LK","SY","TJ","TH","TL","TR","TM","AE","UZ","VN","YE","TW","HK"],
   "AF":["DZ","AO","BJ","BW","BF","BI","CV","CM","CF","TD","KM","CG","CD","CI","DJ","EG","GQ","ER","SZ","ET","GA","GM","GH","GN","GW","KE","LS","LR","LY","MG","MW","ML","MR","MU","MA","MZ","NA","NE","NG","RW","ST","SN","SC","SL","SO","ZA","SS","SD","TZ","TG","TN","UG","ZM","ZW"],
   "OC":["AU","FJ","KI","MH","FM","NR","NZ","PW","PG","WS","SB","TO","TV","VU"] };
-const FLAG_REGION_NAMES = {EU:"Europa", AM:"Ameryki", AS:"Azja", AF:"Afryka", OC:"Oceania"};
+const FLAG_REGION_NAMES = {EU:"Europa", AS:"Azja", AF:"Afryka", NA:"Ameryka Północna", SA:"Ameryka Południowa", OC:"Australia i Oceania"};
 let activeFlagRegion = "all";
 
 function flagNorm(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/\s+/g, " ").trim(); }
@@ -81,9 +82,9 @@ function renderFlagsTab(){
     <div class="fl-sum"><div class="fl-big">${totalHave}<span> / ${FLAG_CODES.length}</span></div><div class="fl-sub">odkrytych krajów</div><div class="fl-bar"><i style="width:${(totalHave/FLAG_CODES.length*100).toFixed(1)}%"></i></div></div>
     <div class="fl-regs">${regions.map(([k,l])=>{ const cs = k==="all" ? FLAG_CODES : FLAG_REGION[k]; const n = cs.filter(c=>data[c]).length; return `<button type="button" class="fl-reg${k===activeFlagRegion?" on":""}" data-r="${k}">${escapeHtml(l)} <small>${n}/${cs.length}</small></button>`; }).join("")}</div>
     <div class="fl-grid">${sorted.map(c=>{ const d = data[c]; return `<button type="button" class="fl${d?" on":""}" data-c="${c}" title="${escapeHtml(names[c])}"><span class="fl-e">${flagEmoji(c)}</span><span class="fl-n">${escapeHtml(names[c])}</span>${d ? `<span class="fl-c">${d.items.length}</span>` : ""}</button>`; }).join("")}</div>
-    <div class="fl-note">Flaga zapala się, gdy obejrzysz film lub serial pochodzący z tego kraju. Dotknij flagi, aby zobaczyć tytuły.</div>`;
+    <div class="fl-note">Flaga zapala się, gdy obejrzysz film lub serial pochodzący z tego kraju. Dotknij dwukrotnie flagi, aby zobaczyć tytuły.</div>`;
   box.querySelectorAll(".fl-reg").forEach(b=>b.addEventListener("click", ()=>{ activeFlagRegion = b.dataset.r; renderFlagsTab(); }));
-  box.querySelectorAll(".fl").forEach(b=>b.addEventListener("click", ()=>openFlagDialog(b.dataset.c, data[b.dataset.c])));
+  box.querySelectorAll(".fl").forEach(b=>addDoubleActivation(b, ()=>openFlagDialog(b.dataset.c, data[b.dataset.c])));
 }
 
 function openFlagDialog(code, d){
