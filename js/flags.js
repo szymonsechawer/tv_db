@@ -80,10 +80,10 @@ function renderFlagsTab(){
   const regions = [["all","Wszystkie"], ...Object.entries(FLAG_REGION_NAMES)];
   box.innerHTML = `
     <div class="fl-sum"><div class="fl-big">${totalHave}<span> / ${FLAG_CODES.length}</span></div><div class="fl-sub">odkrytych krajów</div><div class="fl-bar"><i style="width:${(totalHave/FLAG_CODES.length*100).toFixed(1)}%"></i></div></div>
-    <div class="fl-regs">${regions.map(([k,l])=>{ const cs = k==="all" ? FLAG_CODES : FLAG_REGION[k]; const n = cs.filter(c=>data[c]).length; return `<button type="button" class="fl-reg${k===activeFlagRegion?" on":""}" data-r="${k}">${escapeHtml(l)} <small>${n}/${cs.length}</small></button>`; }).join("")}</div>
+    <div class="fl-regs"><select class="entry fl-sel" id="fl-sel">${regions.map(([k,l])=>{ const cs = k==="all" ? FLAG_CODES : FLAG_REGION[k]; const n = cs.filter(c=>data[c]).length; return `<option value="${k}"${k===activeFlagRegion?" selected":""}>${escapeHtml(l)} (${n}/${cs.length})</option>`; }).join("")}</select></div>
     <div class="fl-grid">${sorted.map(c=>{ const d = data[c]; return `<button type="button" class="fl${d?" on":""}" data-c="${c}" title="${escapeHtml(names[c])}"><span class="fl-e">${flagEmoji(c)}</span><span class="fl-n">${escapeHtml(names[c])}</span>${d ? `<span class="fl-c">${d.items.length}</span>` : ""}</button>`; }).join("")}</div>
     <div class="fl-note">Flaga zapala się, gdy obejrzysz film lub serial pochodzący z tego kraju. Dotknij dwukrotnie flagi, aby zobaczyć tytuły.</div>`;
-  box.querySelectorAll(".fl-reg").forEach(b=>b.addEventListener("click", ()=>{ activeFlagRegion = b.dataset.r; renderFlagsTab(); }));
+  box.querySelector("#fl-sel").addEventListener("change", (e)=>{ activeFlagRegion = e.target.value; renderFlagsTab(); });
   box.querySelectorAll(".fl").forEach(b=>addDoubleActivation(b, ()=>openFlagDialog(b.dataset.c, data[b.dataset.c])));
 }
 
