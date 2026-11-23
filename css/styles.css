@@ -1229,3 +1229,9 @@ html[data-theme="jasny"] .sx-hm .l1,html[data-theme="jasny"] .sx-hm-leg .l1{back
 html[data-theme="jasny"] .sx-hm .l2,html[data-theme="jasny"] .sx-hm-leg .l2{background:#7fb6e6;}
 html[data-theme="jasny"] .sx-hm .l4,html[data-theme="jasny"] .sx-hm-leg .l4{background:#1f5f99;}
 #pane-stats-movies .sx-list,#pane-stats-series .sx-list{margin-top:0;}
+button.share-row{width:100%;background:none;border:none;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.pa-body .share-row{display:grid;grid-template-columns:1fr auto;grid-template-areas:"n p" "b b";gap:4px 10px;align-items:baseline;padding:8px 2px;border-top:1px solid var(--border);}
+.pa-body .share-row:first-child{border-top:none;}
+.pa-body .share-row .genre-stat-name{grid-area:n;width:auto;}
+.pa-body .share-row .genre-stat-pct{grid-area:p;width:auto;margin:0;color:var(--text-muted);font-weight:700;}
+.pa-body .share-row .genre-bar-track{grid-area:b;height:7px;margin:0;}
