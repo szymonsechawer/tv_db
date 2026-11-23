@@ -1245,7 +1245,7 @@ button.share-row{width:100%;background:none;border:none;padding:0;margin:0;font:
 .fl-sub{color:var(--text-muted);font-size:13px;margin-top:4px;}
 .fl-bar{height:8px;border-radius:4px;background:rgba(127,127,127,.22);overflow:hidden;margin-top:10px;}
 .fl-bar i{display:block;height:100%;background:#3ba55d;border-radius:4px;}
-.fl-regs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:10px;scrollbar-width:none;}
+.fl-regs{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:10px;}
 .fl-regs::-webkit-scrollbar{display:none;}
 .fl-reg{flex-shrink:0;padding:7px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg-entry);color:var(--text-light);font:inherit;font-size:13px;font-weight:700;cursor:pointer;}
 .fl-reg small{color:var(--text-muted);font-weight:600;margin-left:3px;}
