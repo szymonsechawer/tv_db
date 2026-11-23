@@ -682,6 +682,8 @@ function renderCountryListInto(listId, emptyId, type, field){
 function renderCountryStats(){
   renderShareListInto("stat-countries-movies-list", "stat-countries-movies-empty", TYPE_MOVIE, "production_countries");
   renderShareListInto("stat-countries-series-list", "stat-countries-series-empty", TYPE_SERIES, "production_countries");
+  renderShareListInto("stat-origin-movies-list", "stat-origin-movies-empty", TYPE_MOVIE, "origin_country");
+  renderShareListInto("stat-origin-series-list", "stat-origin-series-empty", TYPE_SERIES, "origin_country");
 }
 
 // ============================================================
