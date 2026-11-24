@@ -76,7 +76,7 @@ function renderMovieNewTable(){
   wrap.innerHTML = `<table class="data mn-table"><thead><tr><th class="col-title">Tytuł (${rows.length})</th><th class="col-mn">Gdzie</th></tr></thead><tbody></tbody></table>
     <div class="mn-foot"><button type="button" class="btn small secondary" id="mn-check">Sprawdź teraz</button><span>${last ? "Sprawdzono " + escapeHtml(formatDateDMY(last)) + " · " : ""}Dane: TMDb / JustWatch</span></div>`;
   const tbody = wrap.querySelector("tbody");
-  if (!rows.length) tbody.innerHTML = `<tr class="empty-row"><td colspan="2">Brak nowości. Gdy planowany film pojawi się na platformie lub w wypożyczalni online, zobaczysz go tutaj.</td></tr>`;
+  if (!rows.length) tbody.innerHTML = `<tr class="empty-row"><td colspan="2">Brak nowości.</td></tr>`;
   for (const r of rows) {
     const it = r.item;
     const tr = document.createElement("tr");
