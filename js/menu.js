@@ -27,6 +27,7 @@
 
   function countFor(type, status){
     if (status === STATUS_UPCOMING) return (db.upcoming||[]).filter(e=>daysUntil(e.air_date)!==null).length;
+    if (status === STATUS_AVAILABLE) return (typeof movieNewRows === "function") ? movieNewRows().length : 0;
     return db.items.filter(i=>i.type===type && (i.status||STATUS_WATCHING)===status).length;
   }
   function locationTitle(){

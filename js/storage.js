@@ -22,7 +22,7 @@ function migrateItems(items){
     if (item.type !== TYPE_MOVIE && item.type !== TYPE_SERIES) {
       item.type = item.seasons ? TYPE_SERIES : TYPE_MOVIE;
     }
-    if (!(item.status in STATUS_LABELS)) item.status = STATUS_WATCHING;
+    if (!(item.status in STATUS_LABELS) || item.status === STATUS_AVAILABLE) item.status = item.type === TYPE_MOVIE ? STATUS_PLANNED : STATUS_WATCHING;
     if (item.type === TYPE_MOVIE && item.status !== STATUS_PLANNED && !TYPE_STATUS_ORDER[TYPE_MOVIE].includes(item.status)) {
       item.status = STATUS_WATCHED;
     }
@@ -163,7 +163,7 @@ async function idbPut(key, value){
 }
 
 function buildPersistJson(){
-  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
+  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || [], movie_new: db.movie_new || [], movie_new_state: db.movie_new_state || {}};
   return JSON.stringify(data);
 }
 
@@ -215,7 +215,7 @@ function onSaveError(err){
 }
 
 function applyLoadedData(data){
-  db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
+  db = {version: data.version || APP_VERSION, items: migrateItems(data.items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned), movie_new: Array.isArray(data.movie_new) ? data.movie_new : [], movie_new_state: (data.movie_new_state && typeof data.movie_new_state === "object") ? data.movie_new_state : {}};
   if (!db.settings.tmdb_key) {
     try { db.settings.tmdb_key = localStorage.getItem(TMDB_KEY_STORAGE) || ""; } catch(e){}
   }
@@ -373,7 +373,7 @@ async function loadDbFromFile(file){
     const items = data.items;
     if (!Array.isArray(items)) throw new Error("Pole 'items' w pliku bazy nie jest listą.");
     const prevKey = (db.settings && db.settings.tmdb_key) || "";
-    db = {version: data.version || APP_VERSION, items: migrateItems(items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned)};
+    db = {version: data.version || APP_VERSION, items: migrateItems(items), settings: normalizeSettings(data.settings), notes: normalizeNotes(data.notes), upcoming: normalizeUpcoming(data.upcoming), upcoming_ignored: Array.isArray(data.upcoming_ignored) ? data.upcoming_ignored.map(String) : [], year_stats: normalizeYearStats(data.year_stats), planned: normalizePlanned(data.planned), movie_new: Array.isArray(data.movie_new) ? data.movie_new : [], movie_new_state: (data.movie_new_state && typeof data.movie_new_state === "object") ? data.movie_new_state : {}};
     if (!db.settings.tmdb_key) db.settings.tmdb_key = prevKey;
     renderSettingsTab();
     currentDbName = file.name || DEFAULT_DB_FILENAME;
@@ -390,7 +390,7 @@ document.getElementById("btn-save").addEventListener("click", ()=>{ saveDb(); })
 
 async function saveDb(){
   if (typeof saveRemReset === "function") saveRemReset();
-  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || []};
+  const data = {version: APP_VERSION, items: db.items, settings: db.settings, notes: db.notes, upcoming: db.upcoming || [], upcoming_ignored: db.upcoming_ignored || [], year_stats: db.year_stats || {movies:{}, episodes:{}}, planned: db.planned || [], movie_new: db.movie_new || [], movie_new_state: db.movie_new_state || {}};
   const json = JSON.stringify(data, null, 2);
 
   saveToLocalStorage();
