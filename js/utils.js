@@ -161,7 +161,7 @@ function normalizeRating(value){
   const n = parseFloat(String(value).replace(",", "."));
   if (!Number.isFinite(n) || n < 0) return 0;
   const clamped = Math.min(n, 10);
-  return Math.round(clamped * 2) / 2;
+  return Math.round(clamped * 10) / 10;
 }
 
 // Formatuje ocenę do wyświetlenia: zawsze z jedną cyfrą po przecinku
@@ -358,3 +358,29 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 }
 
+
+
+// ---- Oceny sezonów ----
+// Ocena serialu = średnia ocen sezonów (gdy jakikolwiek sezon ma ocenę).
+// Seriale bez ocen sezonów zachowują jedną, główną ocenę.
+function seasonRatingsAvg(seasons){
+  const r = (seasons||[]).map(s=>normalizeRating(s.rating)).filter(v=>v>0);
+  if (!r.length) return 0;
+  return Math.round(r.reduce((a,b)=>a+b,0) / r.length * 10) / 10;
+}
+function hasSeasonRatings(item){ return (item && item.seasons || []).some(s=>normalizeRating(s.rating) > 0); }
+// Pierwsza ocena sezonu w serialu z dotychczasową główną oceną: wcześniej
+// ukończone sezony (bez własnej oceny) dziedziczą główną ocenę, żeby średnia
+// jej nie zgubiła.
+function inheritMainRatingToSeasons(item, exceptSeason){
+  const main = normalizeRating(item.rating);
+  if (!main || hasSeasonRatings(item)) return;
+  for (const s of item.seasons||[]) {
+    if (s === exceptSeason) continue;
+    const eps = s.episodes||[];
+    if (eps.length && eps.every(e=>e.watched)) s.rating = main;
+  }
+}
+function applySeasonRatingsToItem(item){
+  if (hasSeasonRatings(item)) item.rating = seasonRatingsAvg(item.seasons);
+}

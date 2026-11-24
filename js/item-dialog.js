@@ -88,12 +88,26 @@ async function markNextEpisodeWatched(id, opts){
         if (isEpisodeUnaired(ep)) {
           return {season: season.number, episode: ep.number, notAiredYet: true, air_date: ep.air_date};
         }
+        const seasonWasDone = (season.episodes||[]).every(e=>e.watched);
         markEpisodeWatched(ep, true);
         db.items = db.items.filter(i=>i.id!==id);
         const allWatched = seasons.every(s=>(s.episodes||[]).every(e=>e.watched));
+        // Koniec sezonu: zapytaj o ocenę sezonu
+        let seasonRated = false;
+        if (!seasonWasDone && (season.episodes||[]).every(e=>e.watched)) {
+          const curS = normalizeRating(season.rating);
+          const r = await showRatingPrompt(`${item.title} – sezon ${season.number}`, true, curS, {season: true});
+          if (r > 0) {
+            inheritMainRatingToSeasons(item, season);
+            season.rating = r;
+            applySeasonRatingsToItem(item);
+            seasonRated = true;
+          }
+        }
         if (allWatched) {
-          // Zakończenie serialu: zawsze pytaj o ocenę; gdy już jest – „Oceń ponownie”
-          if (item.status !== STATUS_WATCHED) {
+          // Zakończenie serialu: pytaj o ocenę całości tylko, gdy nie ma ocen sezonów
+          // (wtedy ocena serialu = średnia z sezonów)
+          if (item.status !== STATUS_WATCHED && !seasonRated && !hasSeasonRatings(item)) {
             const cur = normalizeRating(item.rating);
             const r = await showRatingPrompt(item.title, cur > 0, cur);
             if (r > 0) item.rating = r;
@@ -683,6 +697,7 @@ function openViewDialog(idOrItem, opts){
             <div class="season-title season-title-toggle">
               <span class="season-toggle-arrow">${isCollapsed ? "▶" : "▼"}</span>
               <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
+              ${normalizeRating(season.rating) > 0 ? `<span class="season-rating">★ ${escapeHtml(formatRating(season.rating))}</span>` : ""}
               <span class="season-pct">${pct}%</span>
             </div>
             ${seasonYear ? `<div class="title-date" style="margin:0 0 6px 20px;">${seasonYear}</div>` : ""}
@@ -1075,6 +1090,20 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
     const ageCertInput = overlay.querySelector("#f-age-cert");
     const statusSelect = overlay.querySelector("#f-status");
     const ratingSelect = overlay.querySelector("#f-rating");
+    // Gdy sezony mają oceny, ocena serialu jest ich średnią (pole tylko do odczytu)
+    function updateMainRatingLock(){
+      if (type !== TYPE_SERIES || typeof seasons === "undefined") return;
+      const avg = seasonRatingsAvg(seasons);
+      let note = overlay.querySelector("#f-rating-note");
+      if (avg > 0) {
+        ratingSelect.value = String(avg); ratingSelect.readOnly = true; ratingSelect.classList.add("rating-locked");
+        if (!note) { note = document.createElement("span"); note.id = "f-rating-note"; note.className = "muted rating-note"; ratingSelect.after(note); }
+        note.textContent = "średnia z sezonów";
+      } else {
+        ratingSelect.readOnly = false; ratingSelect.classList.remove("rating-locked");
+        if (note) note.remove();
+      }
+    }
     const priorityRow = overlay.querySelector("#f-priority-row");
     const prioritySelect = overlay.querySelector("#f-priority");
 
@@ -1761,6 +1790,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
     }
 
     function renderSeasonsList(){
+      setTimeout(()=>{ try { updateMainRatingLock(); } catch(e){} }, 0);
       const list = overlay.querySelector("#seasons-list");
       if (!list) return;
       list.innerHTML = "";
@@ -1789,6 +1819,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
       const seasonYear = season.air_date ? escapeHtml(String(season.air_date).slice(0,4)) : "";
       box.innerHTML = `
         <div class="season-title">Sezon ${season.number}  (${watchedCount}/${total} obejrzane, ${escapeHtml(formatDuration(seasonMinutes))} obejrzane)</div>
+        <div class="season-rate-row"><label>Ocena sezonu:</label><input class="entry season-rate-input" type="number" min="0" max="10" step="0.5" value="${normalizeRating(season.rating) > 0 ? normalizeRating(season.rating) : ""}" placeholder="—"></div>
         ${seasonYear ? `<div class="title-date" style="margin:-2px 0 6px 0;">${seasonYear}</div>` : ""}
         <div class="season-actions">
           <button class="btn small" data-act="check-all">Zaznacz cały</button>
@@ -1808,6 +1839,11 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
         for (const ep of sortedEps) epsList.appendChild(buildEpisodeRow(season, ep));
       }
 
+      box.querySelector(".season-rate-input").addEventListener("input", (e)=>{
+        const v = normalizeRating(e.target.value);
+        if (v > 0) season.rating = v; else delete season.rating;
+        if (typeof updateMainRatingLock === "function") updateMainRatingLock();
+      });
       box.querySelector('[data-act="check-all"]').addEventListener("click", async ()=>{
         for (const e of season.episodes) markEpisodeWatched(e, true);
         renderSeasonsList();
@@ -2067,7 +2103,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
 
       // Przenoszenie do Zakończonych bez oceny - zapytaj o ocenę.
       const rerate = !isNew && item && type === TYPE_SERIES && normalizeRating(ratingSelect.value) > 0;
-      if (statusKey === STATUS_WATCHED && !wasWatched && (normalizeRating(ratingSelect.value) === 0 || rerate)) {
+      if (statusKey === STATUS_WATCHED && !wasWatched && !(type === TYPE_SERIES && seasonRatingsAvg(seasons) > 0) && (normalizeRating(ratingSelect.value) === 0 || rerate)) {
         const r = await showRatingPrompt(title, true, normalizeRating(ratingSelect.value));
         if (r === null && !rerate) return;
         if (r > 0) ratingSelect.value = String(r);
@@ -2087,6 +2123,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
       if (finishedDate) resultItem.finished_date = finishedDate;
       else delete resultItem.finished_date;
       resultItem.rating = normalizeRating(ratingSelect.value);
+      if (type === TYPE_SERIES && seasonRatingsAvg(seasons) > 0) resultItem.rating = seasonRatingsAvg(seasons);
       if (statusKey === STATUS_PLANNED && prioritySelect) {
         const prVal = Math.min(3, Math.max(0, parseInt(prioritySelect.value, 10) || 0));
         if (prVal > 0) resultItem.priority = prVal;
