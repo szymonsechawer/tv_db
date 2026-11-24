@@ -76,6 +76,12 @@ function renderPaneTiles(kind){
     const durs = db.items.filter(i=>i.type===TYPE_MOVIE && i.status===STATUS_WATCHED && i.duration>0).map(i=>i.duration);
     const avg = durs.length ? Math.round(durs.reduce((a,b)=>a+b,0)/durs.length) : 0;
     fourth = `<div class="st-t"><small>Średni czas</small><b>${avg ? escapeHtml(fmtSpanShort(avg)) : "—"}</b><div class="st-l">${lines(["na film"])}</div></div>`;
+    const r30 = computeRecentPerDay("movies", 30);
+    const r30min = Math.round(r30.minPerDay * 30);
+    const am = computeAverageStats("movies");
+    const perMonth = am.hasData ? am.perMonth : 0;
+    fourth += `<div class="st-t st-avg"><small>Ostatnie 30 dni</small><b>${fmtNum(r30.count)}</b><div class="st-l">${lines([polishPlural(r30.count,"film","filmy","filmów"), r30min ? `ok. ${escapeHtml(fmtSpanShort(r30min))}` : ""])}</div></div>`
+      + `<div class="st-t st-avg"><small>Średnio miesięcznie</small><b>${am.hasData ? escapeHtml(String(formatAvgNumber(perMonth)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["filmu na miesiąc", "za cały okres"])}</div></div>`;
   } else {
     const a = computeAverageStats("episodes"), m = computeAverageMinutesPerDay("episodes");
     fourth = `<div class="st-t st-avg"><small>Dziennie · cały okres</small><b>${a.hasData ? escapeHtml(String(formatAvgNumber(a.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", m.hasData ? `ok. ${escapeHtml(fmtSpanShort(m.perDay))}` : ""])}</div></div>`;
