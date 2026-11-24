@@ -1330,3 +1330,5 @@ table.data tbody tr:not(.empty-row) > td{height:66px;box-sizing:border-box;verti
 table.data tbody td.col-title .title-main{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 table.data tbody tr:not(.empty-row) > td{height:56px;}
 table.data tbody td.col-title .title-block .title-main{-webkit-line-clamp:1;}
+table.data th.col-year,table.data td.col-year{text-align:right;white-space:nowrap;width:1%;padding-left:6px;padding-right:10px;}
+table.data td.col-year{color:var(--text-muted);font-size:12px;font-weight:500;}

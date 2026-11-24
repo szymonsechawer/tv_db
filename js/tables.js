@@ -4,13 +4,13 @@
 
 function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days"];
-  if (status === STATUS_PLANNED) return ["title"];
+  if (status === STATUS_PLANNED) return ["title","year"];
   if (type === TYPE_SERIES) {
-    if (status === STATUS_WATCHING) return ["title"];
-    if (status === STATUS_WATCHED) return ["title","rating"];
+    if (status === STATUS_WATCHING) return ["title","year"];
+    if (status === STATUS_WATCHED) return ["title","year","rating"];
     return ["title","date","progress","rating"];
   }
-  return ["title","rating"];
+  return ["title","year","rating"];
 }
 
 function formatProgress(item){
@@ -68,7 +68,7 @@ function dateSortKey(item){
 
 function sortKey(item, column, type){
   if (column === "title") return item.title ? item.title.toLowerCase() : "";
-  if (column === "date") return dateSortKey(item);
+  if (column === "date" || column === "year") return dateSortKey(item);
   if (column === "added") return item.addedAt || 0;
   if (column === "time") {
     if (type === TYPE_MOVIE) return item.duration || 0;
@@ -471,16 +471,7 @@ function renderTable(type, status){
         } else if (col === "title") {
           if (!showPosterInList()) {
             // tytuł (+ oryginalny) po lewej, rok po prawej
-            const flex = document.createElement("div");
-            flex.className = "title-flex";
-            flex.appendChild(buildTitleLine(item, status));
-            if (item.premiere_date) {
-              const dateLine = document.createElement("div");
-              dateLine.className = "title-date title-year-r";
-              dateLine.textContent = String(item.premiere_date).slice(0,4);
-              flex.appendChild(dateLine);
-            }
-            td.appendChild(flex);
+            td.appendChild(buildTitleLine(item, status));
           } else {
             const wrap = document.createElement("div");
             wrap.className = "title-row-wrap";
@@ -530,6 +521,7 @@ function renderTable(type, status){
     if (col === "lp") return lpMap.get(item.id) ?? "";
     if (col === "title") return item.title || "";
     if (col === "date") return item.premiere_date || "";
+    if (col === "year") return String(item.premiere_date||"").slice(0,4);
     if (col === "time") {
       if (itemType === TYPE_MOVIE) return item.duration ? String(item.duration) : "—";
       let sum = 0;
