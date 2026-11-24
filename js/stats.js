@@ -307,6 +307,31 @@ function renderWeekChart(elId, kind, totalElId){
     const totalEl = document.getElementById(totalElId);
     if (totalEl) totalEl.textContent = days.reduce((acc,d)=>acc+d.count, 0);
   }
+  renderWeekRecord(el, kind);
+}
+
+// Rekordowy tydzień (pon–niedz): najwięcej odcinków / filmów w jednym tygodniu
+const WR_MON = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
+function renderWeekRecord(chartEl, kind){
+  let rec = chartEl.parentElement.querySelector(".week-record");
+  if (!rec) { rec = document.createElement("div"); rec.className = "week-record"; chartEl.after(rec); }
+  const weeks = new Map();
+  for (const e of collectWatchedEntries(kind)) {
+    const d = new Date(startOfDayLocal(e.ts));
+    d.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const k = d.getTime();
+    weeks.set(k, (weeks.get(k)||0) + 1);
+  }
+  if (!weeks.size) { rec.style.display = "none"; return; }
+  let bestK = 0, best = 0;
+  for (const [k,v] of weeks) if (v > best || (v === best && k > bestK)) { best = v; bestK = k; }
+  const a = new Date(bestK), b = new Date(bestK); b.setDate(b.getDate()+6);
+  const range = a.getMonth() === b.getMonth()
+    ? `${a.getDate()}–${b.getDate()} ${WR_MON[b.getMonth()]} ${b.getFullYear()}`
+    : `${a.getDate()} ${WR_MON[a.getMonth()]} – ${b.getDate()} ${WR_MON[b.getMonth()]} ${b.getFullYear()}`;
+  const unit = kind === "movies" ? polishPlural(best,"film","filmy","filmów") : polishPlural(best,"odcinek","odcinki","odcinków");
+  rec.style.display = "";
+  rec.innerHTML = `<span>Rekordowy tydzień</span><b>${best} ${unit}</b><small>${range}</small>`;
 }
 
 // Liczy średni dzienny czas oglądania (w minutach) na podstawie zapisanych
