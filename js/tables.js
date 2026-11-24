@@ -174,6 +174,7 @@ function renderUpcomingTable(){
       titleLine.className = "title-main";
       titleLine.textContent = row.title || "";
       tdTitle.appendChild(titleLine);
+      { const li = row.item_id ? findItem(row.item_id) : null; const o = li && buildOrigTitleEl(li); if (o) tdTitle.appendChild(o); }
       if (row.air_date) {
         const dateLine = document.createElement("div");
         dateLine.className = "title-date";
@@ -191,6 +192,7 @@ function renderUpcomingTable(){
       titleLine.className = "title-main";
       titleLine.textContent = row.title || "";
       textCol.appendChild(titleLine);
+      { const o = linkedItem && buildOrigTitleEl(linkedItem); if (o) textCol.appendChild(o); }
       if (row.air_date) {
         const dateLine = document.createElement("div");
         dateLine.className = "title-date";
@@ -565,7 +567,18 @@ function buildTitleLine(item, status){
   const titleLine = document.createElement("div");
   titleLine.className = "title-main";
   titleLine.textContent = item.title || "";
+  const orig = buildOrigTitleEl(item);
+  if (orig) { const w = document.createElement("div"); w.className = "title-block"; w.append(titleLine, orig); return w; }
   return titleLine;
+}
+// Tytuł oryginalny pod polskim (tylko gdy się różni)
+function buildOrigTitleEl(item){
+  const o = String(item && item.original_title || "").trim();
+  if (!o || o.toLowerCase() === String(item.title||"").trim().toLowerCase()) return null;
+  const el = document.createElement("div");
+  el.className = "title-orig";
+  el.textContent = o;
+  return el;
 }
 function buildPlannedSinceEl(item){
   const since = plannedSinceShort(item.addedAt);
