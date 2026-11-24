@@ -441,5 +441,15 @@ async function checkUpcomingSeasons(){
   }
 }
 
-document.getElementById("btn-check").addEventListener("click", ()=>{ checkUpcomingSeasons(); });
+document.getElementById("btn-check").addEventListener("click", async ()=>{
+  if (activeMain === TYPE_MOVIE && activeStatus[TYPE_MOVIE] === STATUS_AVAILABLE) {
+    const btn = document.getElementById("btn-check");
+    const lbl = btn.querySelector(".btn-label");
+    btn.disabled = true; if (lbl) lbl.textContent = "Sprawdzam…";
+    try { await checkMovieNew({manual:true}); }
+    finally { btn.disabled = false; if (lbl) lbl.textContent = "Sprawdź nowości"; }
+    return;
+  }
+  checkUpcomingSeasons();
+});
 

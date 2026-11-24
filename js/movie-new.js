@@ -74,7 +74,7 @@ function renderMovieNewTable(){
   let last = "";
   try { last = localStorage.getItem("tv_db_movie_new_checked") || ""; } catch(e) {}
   wrap.innerHTML = `<table class="data mn-table"><thead><tr><th class="col-title">Tytuł (${rows.length})</th><th class="col-mn">Gdzie</th></tr></thead><tbody></tbody></table>
-    <div class="mn-foot"><button type="button" class="btn small secondary" id="mn-check">Sprawdź teraz</button><span>${last ? "Sprawdzono " + escapeHtml(formatDateDMY(last)) + " · " : ""}Dane: TMDb / JustWatch</span></div>`;
+    <div class="mn-foot"><span>${last ? "Sprawdzono " + escapeHtml(formatDateDMY(last)) + " · " : ""}Dane: TMDb / JustWatch</span></div>`;
   const tbody = wrap.querySelector("tbody");
   if (!rows.length) tbody.innerHTML = `<tr class="empty-row"><td colspan="2">Brak nowości.</td></tr>`;
   for (const r of rows) {
@@ -88,10 +88,6 @@ function renderMovieNewTable(){
     addDoubleActivation(tr, ()=>openMovieNewDialog(it));
     tbody.appendChild(tr);
   }
-  wrap.querySelector("#mn-check").addEventListener("click", async (e)=>{
-    const b = e.currentTarget; b.disabled = true; b.textContent = "Sprawdzam…";
-    try { await checkMovieNew({manual:true}); } finally { renderMovieNewTable(); }
-  });
 }
 
 function openMovieNewDialog(it){

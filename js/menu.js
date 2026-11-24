@@ -93,7 +93,8 @@
   function refreshTitle(){
     const t = document.getElementById("menu-title"); if (t) t.textContent = locationTitle();
     const onUp = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
-    document.body.classList.toggle("on-upcoming", onUp);
+    const onMovieNew = activeMain===TYPE_MOVIE && activeStatus[TYPE_MOVIE]===STATUS_AVAILABLE;
+    document.body.classList.toggle("on-upcoming", onUp || onMovieNew);
     document.body.classList.toggle("on-upcoming-seasons", onUp && upcomingMode!=="episodes");
     const chkBtn = document.getElementById("btn-check");
     if (chkBtn && !chkBtn.disabled) {
