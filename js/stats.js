@@ -64,6 +64,7 @@ function renderPaneTiles(kind){
   if (!box) return;
   const lines = (arr)=>arr.filter(Boolean).map(t=>`<span>${t}</span>`).join("");
   const week = computeWeekChartData(kind).days.reduce((a,d)=>a+d.count, 0);
+  const weekRec = computeWeekRecord(kind);
   const {months} = computeMonthChartData(kind);
   const yearTotal = months.reduce((a,m)=>a+m.count, 0);
   let best = -1; months.forEach((m,i)=>{ if (m.count > 0 && (best < 0 || m.count > months[best].count)) best = i; });
@@ -80,7 +81,7 @@ function renderPaneTiles(kind){
     fourth = `<div class="st-t"><small>Dziennie</small><b>${a.hasData ? escapeHtml(String(formatAvgNumber(a.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", m.hasData ? `ok. ${escapeHtml(fmtSpanShort(m.perDay))}` : ""])}</div></div>`;
   }
   box.innerHTML = `
-    <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week)])}</div></div>
+    <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week), weekRec > 0 ? `najwięcej w tygodniu (${fmtNum(weekRec)})` : ""])}</div></div>
     <div class="st-t ${cls}"><small>Ten rok</small><b>${fmtNum(yearTotal)}</b><div class="st-l">${lines([unit(yearTotal), best >= 0 ? `najwięcej w ${MONTH_NAMES_LOC_PL[best]} (${fmtNum(months[best].count)})` : ""])}</div></div>
     <div class="st-t"><small>Średnia ocena</small><b>${r ? r.avg.toFixed(1).replace(".", ",") : "—"}</b><div class="st-l">${lines([r ? `z ${fmtNum(r.count)} ${r.count===1?"oceny":"ocen"}` : "brak ocen"])}</div></div>
     ${fourth}`;
@@ -307,6 +308,20 @@ function renderWeekChart(elId, kind, totalElId){
     const totalEl = document.getElementById(totalElId);
     if (totalEl) totalEl.textContent = days.reduce((acc,d)=>acc+d.count, 0);
   }
+}
+
+// Rekordowy tydzień (pon–niedz): najwięcej odcinków / filmów w jednym tygodniu
+function computeWeekRecord(kind){
+  const weeks = new Map();
+  for (const e of collectWatchedEntries(kind)) {
+    const d = new Date(startOfDayLocal(e.ts));
+    d.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const k = d.getTime();
+    weeks.set(k, (weeks.get(k)||0) + 1);
+  }
+  let best = 0;
+  for (const v of weeks.values()) if (v > best) best = v;
+  return best;
 }
 
 // Liczy średni dzienny czas oglądania (w minutach) na podstawie zapisanych
