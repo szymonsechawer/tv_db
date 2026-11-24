@@ -92,8 +92,10 @@ async function markNextEpisodeWatched(id, opts){
         db.items = db.items.filter(i=>i.id!==id);
         const allWatched = seasons.every(s=>(s.episodes||[]).every(e=>e.watched));
         if (allWatched) {
-          if (item.status !== STATUS_WATCHED && (normalizeRating(item.rating) === 0 || item.rerate)) {
-            const r = await showRatingPrompt(item.title, !!item.rerate, normalizeRating(item.rating));
+          // Zakończenie serialu: zawsze pytaj o ocenę; gdy już jest – „Oceń ponownie”
+          if (item.status !== STATUS_WATCHED) {
+            const cur = normalizeRating(item.rating);
+            const r = await showRatingPrompt(item.title, cur > 0, cur);
             if (r > 0) item.rating = r;
           }
           delete item.rerate;
@@ -2064,7 +2066,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
       }
 
       // Przenoszenie do Zakończonych bez oceny - zapytaj o ocenę.
-      const rerate = !isNew && item && item.rerate;
+      const rerate = !isNew && item && type === TYPE_SERIES && normalizeRating(ratingSelect.value) > 0;
       if (statusKey === STATUS_WATCHED && !wasWatched && (normalizeRating(ratingSelect.value) === 0 || rerate)) {
         const r = await showRatingPrompt(title, true, normalizeRating(ratingSelect.value));
         if (r === null && !rerate) return;
