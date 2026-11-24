@@ -1304,3 +1304,16 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 .season-rate-row .entry{width:72px;flex:none;}
 .rating-locked{opacity:.7;}
 .rating-note{font-size:12px;margin-left:8px;}
+
+/* Ogólne: aktorzy i gatunki łącznie */
+#pane-stats-general .sx-all .stats-section{background:var(--bg-entry);border:1px solid var(--border);border-radius:14px;padding:12px;margin:0 0 8px;}
+#pane-stats-general .sx-all .stats-section h3{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin:0 0 10px;padding:0;border:none;}
+#pane-stats-general .sx-all .genre-stats-list{background:none;border:none;padding:0;gap:9px;}
+#pane-stats-general .sx-all .genre-stat-row:not(.person-stat-row){display:grid;grid-template-columns:1fr auto;grid-template-areas:"n p" "b b";gap:4px 10px;align-items:baseline;}
+#pane-stats-general .sx-all .genre-stat-row:not(.person-stat-row) .genre-stat-name{grid-area:n;width:auto;}
+#pane-stats-general .sx-all .genre-stat-row:not(.person-stat-row) .genre-stat-pct{grid-area:p;width:auto;margin:0;color:var(--text-muted);font-weight:700;}
+#pane-stats-general .sx-all .genre-stat-row:not(.person-stat-row) .genre-bar-track{grid-area:b;height:7px;margin:0;}
+#pane-stats-general .sx-all .genre-bar-fill{background:var(--st-c);}
+#pane-stats-general .sx-all .person-stat-row{border-top:1px solid var(--border);padding-top:8px;}
+#pane-stats-general .sx-all .person-stat-row:first-child{border-top:none;padding-top:0;}
+#pane-stats-general .sx-all{--st-c:#3ba55d;}

@@ -693,7 +693,9 @@ function renderCountryStats(){
 // Pozycje uznane za "oglądane/obejrzane" dla danego typu — ta sama reguła,
 // co w computeGenreStats/computeCountryStats (filmy: zakończone; seriale:
 // oglądane/zakończone/wstrzymane).
+const TYPE_ALL = "all";
 function relevantWatchedItems(type){
+  if (type === TYPE_ALL) return [...relevantWatchedItems(TYPE_MOVIE), ...relevantWatchedItems(TYPE_SERIES)];
   return db.items.filter(i=>{
     if (i.type !== type) return false;
     if (type === TYPE_MOVIE) return i.status === STATUS_WATCHED;
@@ -842,10 +844,16 @@ function openPersonTitlesDialog(type, field, extractFn, name, label){
     return {it, role};
   }).filter(Boolean).sort((a,b)=>String(b.it.premiere_date||"").localeCompare(String(a.it.premiere_date||"")) || a.it.title.localeCompare(b.it.title));
   const n = items.length;
-  const unit = isMov ? polishPlural(n,"film","filmy","filmów") : polishPlural(n,"serial","seriale","seriali");
-  const rows = items.map(({it})=>`<div class="pt-row">${escapeHtml(it.title)}</div>`).join("");
+  let unit;
+  if (type === TYPE_ALL) {
+    const nm = items.filter(x=>x.it.type===TYPE_MOVIE).length, ns = n - nm;
+    unit = [nm ? `${nm} ${polishPlural(nm,"film","filmy","filmów")}` : "", ns ? `${ns} ${polishPlural(ns,"serial","seriale","seriali")}` : ""].filter(Boolean).join(" · ");
+  } else unit = `${n} ${isMov ? polishPlural(n,"film","filmy","filmów") : polishPlural(n,"serial","seriale","seriali")}`;
+  const rows = items.map(({it})=> type === TYPE_ALL
+    ? `<div class="pt-row fl-row"><span>${escapeHtml(it.title)}</span><small>${it.type===TYPE_MOVIE ? "Film" : "Serial"}</small></div>`
+    : `<div class="pt-row">${escapeHtml(it.title)}</div>`).join("");
   const overlay = openOverlay(`
-    <div class="modal-header pt-head"><div>${escapeHtml(name)}</div><small>${escapeHtml(label)} · ${n} ${unit}</small></div>
+    <div class="modal-header pt-head"><div>${escapeHtml(name)}</div><small>${escapeHtml(label)} · ${unit}</small></div>
     <div class="modal-body pt-body">${rows || '<div class="muted">Brak tytułów.</div>'}</div>
     <div class="modal-footer"><button class="btn" id="pt-close">Zamknij</button></div>
   `);
@@ -861,6 +869,8 @@ function renderPersonStats(){
   renderPersonListInto("stat-creators-series-list", "stat-creators-series-empty", TYPE_SERIES, "creators", null, 10);
   renderPersonListInto("stat-cast-series-list", "stat-cast-series-empty", TYPE_SERIES, "cast", stripCastCharacter, 10);
   renderPersonListInto("stat-companies-series-list", "stat-companies-series-empty", TYPE_SERIES, "production_companies", null, 10);
+  renderPersonListInto("stat-cast-all-list", "stat-cast-all-empty", TYPE_ALL, "cast", stripCastCharacter, 10);
+  renderShareListInto("stat-genres-all-list", "stat-genres-all-empty", TYPE_ALL, "genres");
 }
 
 function renderExtraStats(){
