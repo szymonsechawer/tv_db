@@ -82,7 +82,7 @@ function switchStatsTab(tab, dir){
 function updateCheckButtonVisibility(){
   const row = document.getElementById("button-bar-check-row");
   if (row) {
-    const show = activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING;
+    const show = (activeMain===TYPE_SERIES && activeStatus[TYPE_SERIES]===STATUS_UPCOMING) || (activeMain===TYPE_MOVIE && activeStatus[TYPE_MOVIE]===STATUS_AVAILABLE);
     row.style.display = show ? "" : "none";
   }
   const sortRow = document.getElementById("button-bar-sort-row");
