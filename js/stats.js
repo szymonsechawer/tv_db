@@ -78,7 +78,9 @@ function renderPaneTiles(kind){
     fourth = `<div class="st-t"><small>Średni czas</small><b>${avg ? escapeHtml(fmtSpanShort(avg)) : "—"}</b><div class="st-l">${lines(["na film"])}</div></div>`;
   } else {
     const a = computeAverageStats("episodes"), m = computeAverageMinutesPerDay("episodes");
-    fourth = `<div class="st-t"><small>Dziennie</small><b>${a.hasData ? escapeHtml(String(formatAvgNumber(a.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", m.hasData ? `ok. ${escapeHtml(fmtSpanShort(m.perDay))}` : ""])}</div></div>`;
+    fourth = `<div class="st-t st-avg"><small>Dziennie · cały okres</small><b>${a.hasData ? escapeHtml(String(formatAvgNumber(a.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", m.hasData ? `ok. ${escapeHtml(fmtSpanShort(m.perDay))}` : ""])}</div></div>`;
+    const tile = (lbl, r)=>`<div class="st-t st-avg"><small>${lbl}</small><b>${r.count ? escapeHtml(String(formatAvgNumber(r.perDay)).replace(".", ",")) : "0"}</b><div class="st-l">${lines(["odcinka dziennie", r.count ? `ok. ${escapeHtml(fmtSpanShort(r.minPerDay))}` : "", `${fmtNum(r.count)} ${polishPlural(r.count,"odcinek","odcinki","odcinków")} łącznie`])}</div></div>`;
+    fourth += tile("Średnio · 7 dni", computeRecentPerDay("episodes", 7)) + tile("Średnio · 30 dni", computeRecentPerDay("episodes", 30));
   }
   box.innerHTML = `
     <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week), weekRec > 0 ? `najwięcej w tygodniu (${fmtNum(weekRec)})` : ""])}</div></div>
@@ -335,6 +337,14 @@ function computeAverageMinutesPerDay(kind){
   const days = Math.max(1, Math.round((startOfDayLocal(Date.now()) - startOfDayLocal(earliest)) / 86400000) + 1);
   const totalMinutes = entries.reduce((acc,e)=>acc+(e.duration||0), 0);
   return {perDay: totalMinutes / days, hasData: true, totalMinutes, days};
+}
+
+// Średnia dzienna z ostatnich N dni (włącznie z dzisiejszym)
+function computeRecentPerDay(kind, days){
+  const from = startOfDayLocal(Date.now()) - (days-1)*86400000;
+  const recent = collectWatchedEntries(kind).filter(e=>e.ts >= from);
+  const minutes = recent.reduce((a,e)=>a+(e.duration||0), 0);
+  return {count: recent.length, perDay: recent.length/days, minPerDay: minutes/days};
 }
 
 function updateAverageStats(){

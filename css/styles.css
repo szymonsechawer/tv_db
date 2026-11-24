@@ -1317,3 +1317,5 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 #pane-stats-general .sx-all .person-stat-row{border-top:1px solid var(--border);padding-top:8px;}
 #pane-stats-general .sx-all .person-stat-row:first-child{border-top:none;padding-top:0;}
 #pane-stats-general .sx-all{--st-c:#3ba55d;}
+.st-t.st-avg b{color:#4cc06e;}
+html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
