@@ -82,14 +82,14 @@ function showConfirm(title, message){
 
 // Pyta o ocenę przy przenoszeniu do Zakończonych. Zwraca liczbę 1-10,
 // 0 gdy wybrano "Bez oceny" albo null gdy anulowano.
-function showRatingPrompt(title, allowCancel, current){
+function showRatingPrompt(title, allowCancel, current, opts){
   return new Promise(resolve=>{
     const values = [];
     for (let v = 1; v <= 10; v += 0.5) values.push(v);
     const cur = Number(current) || 0;
     const buttons = values.map(v=>`<button class="btn secondary rating-pick${Number.isInteger(v) ? "" : " half"}${cur && Math.abs(cur - v) < 0.01 ? " current" : ""}" data-r="${v}">${Number.isInteger(v) ? v : String(v).replace(".", ",")}</button>`).join("");
     const overlay = openOverlay(`
-      <div class="modal-header">${cur ? "Oceń ponownie" : "Oceń przed dodaniem"}</div>
+      <div class="modal-header">${opts && opts.season ? "Oceń sezon" : (cur ? "Oceń ponownie" : "Oceń przed dodaniem")}</div>
       <div class="modal-body">
         <div class="msg-text" style="margin-bottom:12px;">Jak oceniasz „${escapeHtml(title||"")}”?${cur ? `<br><small class="muted">Obecna ocena: ${String(cur).replace(".", ",")}</small>` : ""}</div>
         <div class="rating-grid">${buttons}</div>

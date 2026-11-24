@@ -1296,3 +1296,11 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 .mn-dlg .vl-row:first-child{border-top:none;}
 .mn-dlg .vl-k{color:var(--text-muted);}
 .mn-dlg .vl-v{text-align:right;font-weight:600;}
+/* Oceny sezonów */
+.season-rating{margin-left:auto;margin-right:8px;color:#4cc06e;font-weight:800;font-size:13px;white-space:nowrap;}
+.season-title-toggle .season-rating + .season-pct{margin-left:0;}
+.season-rate-row{display:flex;align-items:center;gap:8px;margin:2px 0 8px;font-size:13px;color:var(--text-muted);}
+.season-rate-row .entry{width:72px;flex:none;}
+.rating-locked{opacity:.7;}
+.rating-note{font-size:12px;margin-left:8px;}
+html[data-theme="jasny"] .season-rating{color:#23863f;}
