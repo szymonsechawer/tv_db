@@ -1325,3 +1325,6 @@ html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
 .title-flex > .title-main,.title-flex > .title-block{flex:1;min-width:0;}
 .title-year-r{flex:none;margin:0 !important;text-align:right;}
 table.data td.col-title{max-width:0;width:100%;}
+/* Jednakowa wysokość rekordów (największa: 2 linie tytułu + tytuł oryginalny) */
+table.data tbody tr:not(.empty-row) > td{height:66px;box-sizing:border-box;vertical-align:middle;}
+table.data tbody td.col-title .title-main{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}

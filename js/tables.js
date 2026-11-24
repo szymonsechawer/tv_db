@@ -4,7 +4,7 @@
 
 function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days"];
-  if (status === STATUS_PLANNED) return ["title","priority"];
+  if (status === STATUS_PLANNED) return ["title"];
   if (type === TYPE_SERIES) {
     if (status === STATUS_WATCHING) return ["title"];
     if (status === STATUS_WATCHED) return ["title","rating"];
@@ -175,12 +175,7 @@ function renderUpcomingTable(){
       titleLine.textContent = row.title || "";
       tdTitle.appendChild(titleLine);
       { const li = row.item_id ? findItem(row.item_id) : null; const o = li && buildOrigTitleEl(li); if (o) tdTitle.appendChild(o); }
-      if (row.air_date) {
-        const dateLine = document.createElement("div");
-        dateLine.className = "title-date";
-        dateLine.textContent = formatDateDMY(row.air_date);
-        tdTitle.appendChild(dateLine);
-      }
+
     } else {
       const linkedItem = row.item_id ? findItem(row.item_id) : null;
       const wrapTitle = document.createElement("div");
@@ -193,12 +188,7 @@ function renderUpcomingTable(){
       titleLine.textContent = row.title || "";
       textCol.appendChild(titleLine);
       { const o = linkedItem && buildOrigTitleEl(linkedItem); if (o) textCol.appendChild(o); }
-      if (row.air_date) {
-        const dateLine = document.createElement("div");
-        dateLine.className = "title-date";
-        dateLine.textContent = formatDateDMY(row.air_date);
-        textCol.appendChild(dateLine);
-      }
+
       wrapTitle.appendChild(textCol);
       tdTitle.appendChild(wrapTitle);
     }
