@@ -81,8 +81,8 @@ function renderPaneTiles(kind){
     fourth = `<div class="st-t"><small>Dziennie</small><b>${a.hasData ? escapeHtml(String(formatAvgNumber(a.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", m.hasData ? `ok. ${escapeHtml(fmtSpanShort(m.perDay))}` : ""])}</div></div>`;
   }
   box.innerHTML = `
-    <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week), weekRec > 0 ? `najwięcej w tygodniu (${fmtNum(weekRec)}${isMov ? "" : " odc."})` : ""])}</div></div>
-    <div class="st-t ${cls}"><small>Ten rok</small><b>${fmtNum(yearTotal)}</b><div class="st-l">${lines([unit(yearTotal), best >= 0 ? `najwięcej w ${MONTH_NAMES_LOC_PL[best]} (${fmtNum(months[best].count)}${isMov ? "" : " odc."})` : ""])}</div></div>
+    <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week), weekRec > 0 ? `najwięcej w tygodniu (${fmtNum(weekRec)})` : ""])}</div></div>
+    <div class="st-t ${cls}"><small>Ten rok</small><b>${fmtNum(yearTotal)}</b><div class="st-l">${lines([unit(yearTotal), best >= 0 ? `najwięcej w ${MONTH_NAMES_LOC_PL[best]} (${fmtNum(months[best].count)})` : ""])}</div></div>
     <div class="st-t"><small>Średnia ocena</small><b>${r ? r.avg.toFixed(1).replace(".", ",") : "—"}</b><div class="st-l">${lines([r ? `z ${fmtNum(r.count)} ${r.count===1?"oceny":"ocen"}` : "brak ocen"])}</div></div>
     ${fourth}`;
   // paski list (gatunki, kraje) względem największej pozycji na liście
