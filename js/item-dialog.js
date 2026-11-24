@@ -697,10 +697,9 @@ function openViewDialog(idOrItem, opts){
             <div class="season-title season-title-toggle">
               <span class="season-toggle-arrow">${isCollapsed ? "▶" : "▼"}</span>
               <span>Sezon ${season.number} (${watched}/${total} odc.)</span>
-              ${normalizeRating(season.rating) > 0 ? `<span class="season-rating">${escapeHtml(formatRating(season.rating))}</span>` : ""}
               <span class="season-pct">${pct}%</span>
             </div>
-            ${seasonYear ? `<div class="title-date" style="margin:0 0 6px 20px;">${seasonYear}</div>` : ""}
+            ${(seasonYear || normalizeRating(season.rating) > 0) ? `<div class="title-date season-sub" style="margin:0 0 6px 20px;"><span>${seasonYear}</span>${normalizeRating(season.rating) > 0 ? `<span class="season-rating">Ocena (${escapeHtml(formatRating(season.rating))})</span>` : ""}</div>` : ""}
             <div class="episodes-list" style="${isCollapsed ? "display:none;" : ""}"></div>
           `;
           box.querySelector(".season-title-toggle").addEventListener("click", ()=>{
