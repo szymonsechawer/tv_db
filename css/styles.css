@@ -1329,3 +1329,9 @@ table.data tbody td.col-title .title-main{display:-webkit-box;-webkit-line-clamp
 table.data tbody td.col-title .title-block .title-main{-webkit-line-clamp:1;}
 table.data tbody tr:not(.empty-row) > td{height:64px;}
 .gs-t,.mn-t{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+/* Długie tytuły: zawijanie zamiast skracania (rekord rośnie tylko wtedy, gdy trzeba) */
+table.data tbody td.col-title .title-main,table.data tbody td.col-title .title-block .title-main{display:block;-webkit-line-clamp:unset;overflow:visible;line-height:1.25;overflow-wrap:anywhere;}
+.title-orig{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25;margin-top:2px;overflow-wrap:anywhere;}
+.gs-t,.mn-t{display:block;-webkit-line-clamp:unset;overflow:visible;line-height:1.25;}
+table.data tbody td.col-title .title-date{margin-top:2px;}
+table.data tbody tr:not(.empty-row) > td{height:68px;}
