@@ -1304,3 +1304,7 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 .season-rate-row .entry{width:72px;flex:none;}
 .rating-locked{opacity:.7;}
 .rating-note{font-size:12px;margin-left:8px;}
+/* Rekordy na listach: większe, jednakowej wysokości we wszystkich zakładkach */
+table.data tbody td{height:70px;box-sizing:border-box;vertical-align:middle;}
+table.data tbody tr.empty-row td{height:auto;}
+table.data tbody td.col-title .title-main{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
