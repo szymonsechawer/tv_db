@@ -6,7 +6,7 @@ function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days"];
   if (status === STATUS_PLANNED) return ["title","priority"];
   if (type === TYPE_SERIES) {
-    if (status === STATUS_WATCHING) return ["title","progress"];
+    if (status === STATUS_WATCHING) return ["title"];
     if (status === STATUS_WATCHED) return ["title","rating"];
     return ["title","date","progress","rating"];
   }
@@ -480,14 +480,17 @@ function renderTable(type, status){
           }
         } else if (col === "title") {
           if (!showPosterInList()) {
-            const titleLine = buildTitleLine(item, status);
-            td.appendChild(titleLine);
+            // tytuł (+ oryginalny) po lewej, rok po prawej
+            const flex = document.createElement("div");
+            flex.className = "title-flex";
+            flex.appendChild(buildTitleLine(item, status));
             if (item.premiere_date) {
               const dateLine = document.createElement("div");
-              dateLine.className = "title-date";
-              dateLine.textContent = item.premiere_date;
-              td.appendChild(dateLine);
+              dateLine.className = "title-date title-year-r";
+              dateLine.textContent = String(item.premiere_date).slice(0,4);
+              flex.appendChild(dateLine);
             }
+            td.appendChild(flex);
           } else {
             const wrap = document.createElement("div");
             wrap.className = "title-row-wrap";
@@ -508,7 +511,7 @@ function renderTable(type, status){
         } else if (col === "priority") {
           const sinceEl = status === STATUS_PLANNED ? buildPlannedSinceEl(item) : null;
           if (sinceEl) { td.appendChild(sinceEl); td.classList.add("has-since"); }
-          const pr = Math.min(3, Math.max(0, Number(item.priority)||0));
+          const pr = 0; // priorytety wyłączone
           if (pr > 0) {
             const mark = document.createElement("span");
             mark.className = "priority-mark";

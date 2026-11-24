@@ -224,8 +224,7 @@ function openSortMenu({title, current, includeRating=true, includeAdded=true, in
       options.push({col:"rating", reverse:true,  label:"Ocena ↓"});
     }
     if (includePriority) {
-      options.push({col:"priority", reverse:true,  label:"Priorytet (najwyższy → najniższy)"});
-      options.push({col:"priority", reverse:false, label:"Priorytet (najniższy → najwyższy)"});
+
     }
     if (includeAdded) {
       options.push({col:"added", reverse:false, label:"Dodano ↑"});

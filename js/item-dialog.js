@@ -1111,7 +1111,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
     const wasWatched = !isNew && item.status === STATUS_WATCHED;
     function refreshPriorityRowVisibility(){
       const isPlanned = LABEL_TO_STATUS[statusSelect.value] === STATUS_PLANNED;
-      if (priorityRow) priorityRow.style.display = isPlanned ? "" : "none";
+      if (priorityRow) priorityRow.style.display = "none";
       const isWatched = LABEL_TO_STATUS[statusSelect.value] === STATUS_WATCHED;
       if (finishedRow) finishedRow.style.display = isWatched ? "" : "none";
       if (isWatched && finishedInput && !finishedInput.value.trim() && !wasWatched) {
@@ -2123,7 +2123,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
       else delete resultItem.finished_date;
       resultItem.rating = normalizeRating(ratingSelect.value);
       if (type === TYPE_SERIES && seasonRatingsAvg(seasons) > 0) resultItem.rating = seasonRatingsAvg(seasons);
-      if (statusKey === STATUS_PLANNED && prioritySelect) {
+      if (false && statusKey === STATUS_PLANNED && prioritySelect) {
         const prVal = Math.min(3, Math.max(0, parseInt(prioritySelect.value, 10) || 0));
         if (prVal > 0) resultItem.priority = prVal;
         else delete resultItem.priority;

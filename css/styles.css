@@ -1321,3 +1321,7 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
 .title-orig{font-size:12px;color:var(--text-muted);font-weight:500;line-height:1.25;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
 .title-block{min-width:0;}
+.title-flex{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;}
+.title-flex > .title-main,.title-flex > .title-block{flex:1;min-width:0;}
+.title-year-r{flex:none;margin:0 !important;text-align:right;}
+table.data td.col-title{max-width:0;width:100%;}
