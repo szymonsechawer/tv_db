@@ -310,6 +310,7 @@ function openUpcomingViewDialog(row){
 
 function renderTable(type, status){
   if (status === STATUS_UPCOMING) { renderUpcomingTable(); return; }
+  if (status === STATUS_AVAILABLE) { if (typeof renderMovieNewTable === "function") renderMovieNewTable(); return; }
   const pane = document.getElementById(`pane-${type}-${status}`);
   const thead = pane.querySelector("thead");
   const tbody = pane.querySelector("tbody");
@@ -924,7 +925,7 @@ async function openFilterForCurrentTab(){
   if (activeMain !== TYPE_MOVIE && activeMain !== TYPE_SERIES) return;
   const type = activeMain;
   const status = activeStatus[type];
-  if (status === STATUS_UPCOMING) return;
+  if (status === STATUS_UPCOMING || status === STATUS_AVAILABLE) return;
   const key = `${type}:${status}`;
   const items = db.items.filter(i => i.type===type && (i.status||STATUS_WATCHING)===status);
   const result = await openFilterDialog(`Filtruj — ${TYPE_LABELS[type]} / ${STATUS_LABELS[status]}`, items, filterState[key]);
@@ -978,6 +979,7 @@ document.getElementById("btn-sort").addEventListener("click", async ()=>{
   const status = activeStatus[type];
   const key = `${type}:${status}`;
   const isUpcoming = status === STATUS_UPCOMING;
+  if (status === STATUS_AVAILABLE) return;
   const isPlanned = status === STATUS_PLANNED;
   const current = sortState[key] || ["lp", false];
   const choice = await openSortMenu({

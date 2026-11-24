@@ -4,7 +4,7 @@
 
 const APP_VERSION = "1.8";
 // Wersja aplikacji pokazywana w prawym dolnym rogu (taka sama jak w service-worker.js).
-const APP_BUILD = "2.9.128";
+const APP_BUILD = "2.9.129";
 const DEFAULT_DB_FILENAME = "tv_db.json";
 const STORAGE_KEY = "tv_db_data";
 const STORAGE_NAME_KEY = "tv_db_filename";
@@ -28,8 +28,12 @@ const TYPE_MOVIE = "movie";
 const TYPE_SERIES = "series";
 const TYPE_LABELS = {[TYPE_MOVIE]:"Filmy", [TYPE_SERIES]:"Seriale"};
 
+// Filmy · Nowości: planowane filmy, które pojawiły się na platformie lub w
+// wypożyczalni online (pseudo-status – żaden film nie ma go zapisanego)
+const STATUS_AVAILABLE = "available";
+STATUS_LABELS[STATUS_AVAILABLE] = "Nowości";
 const TYPE_STATUS_ORDER = {
-  [TYPE_MOVIE]: [STATUS_WATCHED, STATUS_PLANNED],
+  [TYPE_MOVIE]: [STATUS_WATCHED, STATUS_AVAILABLE, STATUS_PLANNED],
   [TYPE_SERIES]: [STATUS_WATCHING, STATUS_WATCHED, STATUS_UPCOMING, STATUS_PLANNED],
 };
 
@@ -41,7 +45,7 @@ const MIN_PER_YEAR = MIN_PER_DAY*365;
 const COL_LABELS = {lp:"Lp", title:"Tytuł", date:"Data", time:"Czas", progress:"Postęp", rating:"Ocena", days:"Do premiery", del:"", priority:""};
 
 const DEFAULT_SETTINGS = {tmdb_key: "", tmdb_auto: true, ui_version: "v2"};
-let db = {version: APP_VERSION, items: [], settings: {...DEFAULT_SETTINGS}, notes: [], upcoming: [], upcoming_ignored: [], year_stats: {movies: {}, episodes: {}}, planned: []};
+let db = {version: APP_VERSION, items: [], settings: {...DEFAULT_SETTINGS}, notes: [], upcoming: [], upcoming_ignored: [], movie_new: [], movie_new_state: {}, year_stats: {movies: {}, episodes: {}}, planned: []};
 
 let currentDbName = DEFAULT_DB_FILENAME;
 let dirty = false;

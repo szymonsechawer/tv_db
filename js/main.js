@@ -89,4 +89,5 @@ initSettingsTab();
   renderAll();
   renderStorageInfo();
   if (typeof saveRemCheckSoon === "function") saveRemCheckSoon();
+  if (typeof maybeAutoCheckMovieNew === "function") maybeAutoCheckMovieNew();
 })();

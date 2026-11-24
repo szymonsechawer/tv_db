@@ -942,7 +942,7 @@ function openItemDialog({item, itemType, prefillTmdb, preset}){
     let seasons = isNew ? [] : JSON.parse(JSON.stringify(item.seasons||[]));
     let innerTab = "basic";
 
-    const statusChoices = [...TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_PLANNED && s!==STATUS_UPCOMING), STATUS_PLANNED];
+    const statusChoices = [...TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_PLANNED && s!==STATUS_UPCOMING && s!==STATUS_AVAILABLE), STATUS_PLANNED];
     const statusOptions = statusChoices.map(s=>STATUS_LABELS[s]);
     const defaultStatus = STATUS_LABELS[statusChoices[0]];
 

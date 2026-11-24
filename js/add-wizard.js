@@ -12,7 +12,7 @@ const AW_STATUS_INFO = {
 };
 
 function awStatusChoices(type){
-  return TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_UPCOMING);
+  return TYPE_STATUS_ORDER[type].filter(s=>s!==STATUS_UPCOMING && s!==STATUS_AVAILABLE);
 }
 
 function openAddWizard(){
