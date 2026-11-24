@@ -421,14 +421,15 @@ function renderTable(type, status){
             if (p.next && p.next !== "✓" && status !== STATUS_WATCHED) {
               wrap.classList.add("prog-tappable");
               wrap.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
-              wrap.addEventListener("click", async (e)=>{
-                e.stopPropagation();
+              // Odhaczanie podwójnym dotknięciem (pojedyncze nic nie robi)
+              wrap.addEventListener("click", (e)=>e.stopPropagation());
+              wrap.addEventListener("dblclick", (e)=>e.stopPropagation());
+              addDoubleActivation(wrap, async ()=>{
                 if (wrap.classList.contains("prog-busy")) return;
                 wrap.classList.add("prog-busy");
                 try { await markNextFromList(item.id, wrap); }
                 finally { wrap.classList.remove("prog-busy"); }
               });
-              wrap.addEventListener("dblclick", (e)=>e.stopPropagation());
               // Nie przekazuj dotknięć do wiersza (podwójne dotknięcie
               // wiersza otwiera okno informacji).
               wrap.addEventListener("touchend", (e)=>e.stopPropagation());
@@ -451,8 +452,11 @@ function renderTable(type, status){
             btn.appendChild(countsEl);
             if (canMark) {
               btn.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
-              btn.addEventListener("click", async (e)=>{
-                e.stopPropagation();
+              btn.addEventListener("click", (e)=>e.stopPropagation());
+              btn.addEventListener("dblclick", (e)=>e.stopPropagation());
+              btn.addEventListener("touchend", (e)=>e.stopPropagation());
+              addDoubleActivation(btn, async ()=>{
+                if (btn.disabled) return;
                 btn.disabled = true;
                 try {
                   await markNextFromList(item.id);
