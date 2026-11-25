@@ -151,7 +151,7 @@ function renderGeneralTiles(s){
     <div class="st-t st-ser"><small>Seriale</small><b>${fmtNum(s.seriesTotalCount)}</b><div class="st-l">${lines([`${fmtNum(s.seriesCount)} zakończonych`, `${fmtNum(s.seriesWatchingCount)} oglądanych`])}</div></div>
     <div class="st-t st-mov"><small>Filmy</small><b>${fmtNum(s.moviesCount)}</b><div class="st-l">${lines(["obejrzanych"])}</div></div>
     <div class="st-t st-ser"><small>Odcinki</small><b>${fmtNum(s.episodesWatched)}</b><div class="st-l">${lines(["obejrzanych", `${fmtNum(s.episodesRemaining)} pozostało`])}</div></div>
-    <div class="st-t"><small>Dziennie</small><b>${epAvg.hasData ? esc(String(formatAvgNumber(epAvg.perDay)).replace(".", ",")) : "—"}</b><div class="st-l">${lines(["odcinka średnio", epMin.hasData ? `ok. ${esc(fmtSpanShort(epMin.perDay))}` : ""])}</div></div>
+    <div class="st-t st-mov"><small>Czas na filmy</small><b>${fmtNum(Math.round(s.moviesMinutes/60))} h</b><div class="st-l">${lines(["łącznie", s.moviesMinutes >= MIN_PER_DAY ? `ok. ${fmtNum(Math.floor(s.moviesMinutes/MIN_PER_DAY))} ${Math.floor(s.moviesMinutes/MIN_PER_DAY)===1?"dzień":"dni"}` : ""])}</div></div>
     <div class="st-t st-w"><small>Łączny czas przed ekranem</small><b>${totalDays >= 1 ? `${fmtNum(totalDays)} ${totalDays===1?"dzień":"dni"}` : esc(fmtSpanShort(total))}</b>
       <div class="st-bar"><span class="st-bs" style="width:${serPct}%"></span><span class="st-bm" style="width:${100-serPct}%"></span></div>
       <div class="st-l">${lines([`<i class="st-dot st-ds"></i>Seriale: ${esc(fmtSpanShort(s.episodesMinutes))}`, `<i class="st-dot st-dm"></i>Filmy: ${esc(fmtSpanShort(s.moviesMinutes))}`])}</div></div>
