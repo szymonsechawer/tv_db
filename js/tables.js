@@ -352,6 +352,10 @@ function renderTable(type, status){
     });
   }
 
+  if (type === TYPE_SERIES && status === STATUS_WATCHING && typeof renderRecentWatching === "function") {
+    renderRecentWatching(pane, !search && !(activeFilter && filterIsActive(activeFilter)));
+  }
+
   const table = pane.querySelector("table.data");
   const grid = pane.querySelector(".poster-grid");
   if (isGridView() && grid) {
