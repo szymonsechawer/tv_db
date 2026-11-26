@@ -337,14 +337,14 @@ function sxRenderSeries(){
   for (const it of series) for (const s of it.seasons||[]) for (const e of s.episodes||[]) if (e.watched && e.duration > 0) durs.push(e.duration);
   const avg = durs.length ? Math.round(durs.reduce((a,b)=>a+b,0)/durs.length) : 0;
   const most = time.slice().sort((a,b)=>b.n-a.n)[0];
-  html += sxCard("Odcinki", `<div class="sx-two"><div class="sx-mini"><b>${avg ? sxHmLong(avg) : "—"}</b><small>średnia długość odcinka</small></div><div class="sx-mini"><b>${most && most.n ? sxNum(most.n) : "—"}</b><small>najwięcej obejrzanych odcinków${most && most.n ? `<br>${escapeHtml(most.it.title)}` : ""}</small></div></div>`);
   const rat = sxRatings(series);
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych seriali."));
+  html += sxSeasonCountCard(series);
   const ageS = sxAgeGroups(series);
   html += sxCard("Grupy wiekowe", ageS ? sxVBars(ageS) : sxEmpty("Brak danych o wieku — użyj „Sprawdź ponownie i zaktualizuj” w Ustawieniach."));
+  html += sxCard("Odcinki", `<div class="sx-two"><div class="sx-mini"><b>${avg ? sxHmLong(avg) : "—"}</b><small>średnia długość odcinka</small></div><div class="sx-mini"><b>${most && most.n ? sxNum(most.n) : "—"}</b><small>najwięcej obejrzanych odcinków${most && most.n ? `<br>${escapeHtml(most.it.title)}` : ""}</small></div></div>`);
   html += sxFinishedVsStaleCard();
   html += sxAvgFinishCard();
-  html += sxSeasonCountCard(series);
   el.innerHTML = html;
 }
 
