@@ -1,6 +1,6 @@
 // ============================================================
 // recent-watching.js — Seriale · Oglądane: sekcja "Kontynuuj" nad listą
-// z 3 ostatnio oglądanymi serialami (duży kafel + 2 mniejsze). Cały kafel
+// z ostatnio oglądanym serialem. Cały kafel
 // działa jak komórka postępu: podwójne dotknięcie odhacza kolejny odcinek.
 // ============================================================
 
@@ -62,7 +62,7 @@ function buildRecentCard(item, big){
 
 function renderRecentWatching(pane, show){
   let box = pane.querySelector(".rw-box");
-  const items = show ? recentWatchingItems(3) : [];
+  const items = show ? recentWatchingItems(1) : [];
   if (!items.length) { if (box) box.remove(); return; }
   if (!box) {
     box = document.createElement("div");

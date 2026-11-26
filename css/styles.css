@@ -1328,7 +1328,7 @@ html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
 .wp-bar i{display:block;height:100%;background:#3b8fd9;border-radius:5px;}
 .st-tiles-one:empty{display:none;}
 .st-tiles-one{margin-bottom:8px;}
-/* Seriale · Oglądane: sekcja "Kontynuuj" (3 ostatnio oglądane) */
+/* Seriale · Oglądane: sekcja "Kontynuuj" (ostatnio oglądany) */
 .rw-box{flex:none;margin:0 0 8px;}
 .rw-head{font-size:12.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:2px 4px 6px;}
 .rw-card.progress-cell{min-width:0;gap:0;padding:10px 12px;background:var(--bg-entry);border:1px solid var(--border);border-radius:12px;user-select:none;-webkit-user-select:none;}
