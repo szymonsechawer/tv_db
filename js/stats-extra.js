@@ -1,7 +1,7 @@
 // ============================================================
 // stats-extra.js — dodatkowe kafelki pod istniejącymi statystykami
 // Ogólne: ulubiony dzień, seria dni, pora dnia, miesiąc do miesiąca, rekordy
-// Seriale/Filmy: dekady, odcinki/rekordy, oceny
+// Seriale/Filmy: dekady, odcinki/rekordy, oceny, sezony, porzucone, długość filmów
 // ============================================================
 
 const SX_MONTHS = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
@@ -90,6 +90,7 @@ const SX_IC = {
   marathon:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M10 9l4 2-4 2z" fill="currentColor"/>',
   fast:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
   long:'<path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   movies:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>',
 };
 function sxIc(k){ return `<span class="sx-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SX_IC[k]||""}</svg></span>`; }
@@ -247,6 +248,79 @@ function sxRenderGeneral(s){
   el.innerHTML = html;
 }
 
+function sxAgo(ts){
+  const d = Math.floor((Date.now() - ts)/864e5);
+  if (d < 1) return "dziś";
+  if (d < 2) return "wczoraj";
+  if (d < 14) return `${d} dni temu`;
+  if (d < 60) return `${Math.round(d/7)} tyg. temu`;
+  if (d < 365) return `${Math.round(d/30)} mies. temu`;
+  const y = Math.round(d/365);
+  return `${y} ${polishPlural(y, "rok", "lata", "lat")} temu`;
+}
+function sxLastWatched(it){
+  let last = 0;
+  for (const se of it.seasons||[]) for (const e of se.episodes||[]) if (e.watched && (e.watchedAt||0) > last) last = e.watchedAt;
+  return last;
+}
+const SX_STALE_DAYS = 60;
+
+// Seriale: dokończone a porzucone (w Oglądanych bez ruchu ponad 2 miesiące)
+function sxFinishedVsStaleCard(){
+  const done = db.items.filter(i=>i.type===TYPE_SERIES && i.status===STATUS_WATCHED).length;
+  const stale = db.items.filter(i=>i.type===TYPE_SERIES && i.status===STATUS_WATCHING)
+    .map(it=>({it, last: sxLastWatched(it)}))
+    .filter(x=>x.last && (Date.now() - x.last) > SX_STALE_DAYS*864e5)
+    .sort((a,b)=>a.last-b.last);
+  let html = `<div class="sx-two"><div class="sx-mini"><b>${sxNum(done)}</b><small>dokończone seriale</small></div><div class="sx-mini"><b>${sxNum(stale.length)}</b><small>w Oglądanych bez ruchu ponad 2 mies.</small></div></div>`;
+  if (stale.length) html += `<div class="sx-recs">` + stale.slice(0, 5).map(x=>`<div class="sx-rec">${sxIc("clock")}<div class="sx-rec-l">${escapeHtml(x.it.title)}<small>ostatnio ${sxAgo(x.last)}</small></div></div>`).join("") + `</div>`;
+  if (stale.length > 5) html += `<div class="sx-foot">i ${stale.length - 5} ${polishPlural(stale.length - 5, "inny", "inne", "innych")}</div>`;
+  return sxCard("Dokończone a porzucone", html);
+}
+
+// Seriale: średni czas od pierwszego do ostatniego odcinka (dokończone seriale z datami wszystkich odcinków)
+function sxAvgFinishCard(){
+  const rows = [];
+  for (const it of db.items) {
+    if (it.type !== TYPE_SERIES || it.status !== STATUS_WATCHED) continue;
+    let lo = 0, hi = 0, n = 0, undated = 0;
+    for (const se of it.seasons||[]) for (const e of se.episodes||[]) {
+      if (!e.watched) continue;
+      if (!e.watchedAt) { undated++; continue; }
+      n++; if (!lo || e.watchedAt < lo) lo = e.watchedAt; if (e.watchedAt > hi) hi = e.watchedAt;
+    }
+    if (n >= 3 && !undated) rows.push({it, n, days: Math.max(1, Math.ceil((hi - lo)/864e5))});
+  }
+  if (!rows.length) return sxCard("Średni czas na serial", sxEmpty("Brak dokończonych seriali z datami obejrzenia odcinków."));
+  const avg = Math.round(rows.reduce((a,r)=>a + r.days, 0) / rows.length);
+  const fast = rows.slice().sort((a,b)=>a.days-b.days || b.n-a.n)[0];
+  return sxCard("Średni czas na serial", `<div class="sx-two"><div class="sx-mini"><b>${sxSpan(avg)}</b><small>od pierwszego do ostatniego odcinka</small></div><div class="sx-mini"><b>${sxSpan(fast.days)}</b><small>najszybciej<br>${escapeHtml(fast.it.title)}</small></div></div><div class="sx-foot">Na podstawie ${sxNum(rows.length)} ${polishPlural(rows.length, "serialu", "seriali", "seriali")} z datami wszystkich odcinków</div>`);
+}
+
+// Seriale: rozkład liczby sezonów
+function sxSeasonCountCard(series){
+  const c = [0,0,0,0,0];
+  for (const it of series) {
+    const n = (it.seasons||[]).filter(se=>(se.number||0) > 0).length;
+    if (n > 0) c[Math.min(n, 5) - 1]++;
+  }
+  if (!c.some(Boolean)) return sxCard("Liczba sezonów", sxEmpty("Brak danych o sezonach."));
+  const labels = ["1","2","3","4","5+"];
+  const top = c.indexOf(Math.max(...c));
+  const desc = ["jednosezonowe","dwusezonowe","trzysezonowe","czterosezonowe","z 5 i więcej sezonami"][top];
+  return sxCard("Liczba sezonów", sxVBars(labels.map((l,i)=>({label:l, value:c[i]}))) + `<div class="sx-foot">Najczęściej oglądasz seriale <b>${desc}</b></div>`);
+}
+
+// Filmy: rozkład długości
+function sxMovieLengthCard(movies){
+  const b = [0,0,0,0];
+  for (const m of movies) { const d = m.duration||0; if (d <= 0) continue; b[d < 90 ? 0 : d < 120 ? 1 : d < 150 ? 2 : 3]++; }
+  if (!b.some(Boolean)) return sxCard("Długość filmów", sxEmpty("Brak czasu trwania filmów."));
+  const labels = ["<90","90–120","120–150","150+"];
+  const top = b.indexOf(Math.max(...b));
+  return sxCard("Długość filmów", sxVBars(labels.map((l,i)=>({label:l, value:b[i]}))) + `<div class="sx-foot">Najczęściej <b>${labels[top]} min</b></div>`);
+}
+
 function sxRenderSeries(){
   const el = document.getElementById("sx-series");
   if (!el) return;
@@ -268,6 +342,9 @@ function sxRenderSeries(){
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych seriali."));
   const ageS = sxAgeGroups(series);
   html += sxCard("Grupy wiekowe", ageS ? sxVBars(ageS) : sxEmpty("Brak danych o wieku — użyj „Sprawdź ponownie i zaktualizuj” w Ustawieniach."));
+  html += sxFinishedVsStaleCard();
+  html += sxAvgFinishCard();
+  html += sxSeasonCountCard(series);
   el.innerHTML = html;
 }
 
@@ -287,6 +364,7 @@ function sxRenderMovies(){
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych filmów."));
   const ageM = sxAgeGroups(movies);
   html += sxCard("Grupy wiekowe", ageM ? sxVBars(ageM) : sxEmpty("Brak danych o wieku — użyj „Sprawdź ponownie i zaktualizuj” w Ustawieniach."));
+  html += sxMovieLengthCard(movies);
   el.innerHTML = html;
 }
 

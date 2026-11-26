@@ -1347,3 +1347,5 @@ html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
 .sx-rec-l small{display:block;color:var(--text-muted);font-size:12px;margin-top:1px;}
 .sx-rec > b{font-size:15px;font-weight:800;white-space:nowrap;}
 .sx-bar i.hi{background:#e0a43c;}
+.sx-recs{margin-top:10px;}
+.sx-recs .sx-rec:first-of-type{border-top:1px solid var(--border);padding-top:8px;}
