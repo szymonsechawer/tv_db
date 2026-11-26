@@ -339,9 +339,9 @@ function sxRenderSeries(){
   const most = time.slice().sort((a,b)=>b.n-a.n)[0];
   const rat = sxRatings(series);
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych seriali."));
-  html += sxSeasonCountCard(series);
   const ageS = sxAgeGroups(series);
   html += sxCard("Grupy wiekowe", ageS ? sxVBars(ageS) : sxEmpty("Brak danych o wieku — użyj „Sprawdź ponownie i zaktualizuj” w Ustawieniach."));
+  html += sxSeasonCountCard(series);
   html += sxCard("Odcinki", `<div class="sx-two"><div class="sx-mini"><b>${avg ? sxHmLong(avg) : "—"}</b><small>średnia długość odcinka</small></div><div class="sx-mini"><b>${most && most.n ? sxNum(most.n) : "—"}</b><small>najwięcej obejrzanych odcinków${most && most.n ? `<br>${escapeHtml(most.it.title)}` : ""}</small></div></div>`);
   html += sxFinishedVsStaleCard();
   html += sxAvgFinishCard();
