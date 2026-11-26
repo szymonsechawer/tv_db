@@ -112,7 +112,8 @@ function renderPaneTiles(kind){
     <div class="st-t ${cls}"><small>Ten tydzień</small><b>${fmtNum(week)}</b><div class="st-l">${lines([unit(week), weekRec > 0 ? `najwięcej w tygodniu (${fmtNum(weekRec)})` : ""])}</div></div>
     <div class="st-t ${cls}"><small>Ten rok</small><b>${fmtNum(yearTotal)}</b><div class="st-l">${lines([unit(yearTotal), best >= 0 ? `najwięcej w ${MONTH_NAMES_LOC_PL[best]} (${fmtNum(months[best].count)})` : ""])}</div></div>
     <div class="st-t"><small>Średnia ocena</small><b>${r ? r.avg.toFixed(1).replace(".", ",") : "—"}</b><div class="st-l">${lines([r ? `z ${fmtNum(r.count)} ${r.count===1?"oceny":"ocen"}` : "brak ocen"])}</div></div>
-    ${fourth}${isMov ? "" : watchingProgressTile()}`;
+    ${fourth}`;
+  if (!isMov) { const wp = document.getElementById("stat-watch-progress"); if (wp) wp.innerHTML = watchingProgressTile(); }
   // paski list (gatunki, kraje) względem największej pozycji na liście
   const pane = box.closest(".status-pane");
   if (pane) pane.querySelectorAll(".genre-stats-list").forEach(list=>{
