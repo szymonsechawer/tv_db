@@ -6,7 +6,7 @@ function columnsFor(type, status){
   if (status === STATUS_UPCOMING) return ["title","days"];
   if (status === STATUS_PLANNED) return ["title","priority"];
   if (type === TYPE_SERIES) {
-    if (status === STATUS_WATCHING) return ["title","progress"];
+    if (status === STATUS_WATCHING) return ["title"];
     if (status === STATUS_WATCHED) return ["title","rating"];
     return ["title","date","progress","rating"];
   }
