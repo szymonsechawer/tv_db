@@ -1,6 +1,6 @@
 // ============================================================
 // stats-extra.js — dodatkowe kafelki pod istniejącymi statystykami
-// Ogólne: ulubiony dzień, seria dni
+// Ogólne: ulubiony dzień, seria dni, pora dnia, miesiąc do miesiąca, rekordy
 // Seriale/Filmy: dekady, odcinki/rekordy, oceny
 // ============================================================
 
@@ -80,6 +80,131 @@ function sxCountedSeries(){
   return db.items.filter(i=>i.type===TYPE_SERIES && counted.includes(i.status));
 }
 
+
+// Ikony w stylu Ustawień (jednokolorowe, obrys)
+const SX_IC = {
+  morning:'<path d="M3 18h18M6.5 18a5.5 5.5 0 0 1 11 0"/><path d="M12 9V3M9.5 5.5 12 3l2.5 2.5"/>',
+  day:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  evening:'<path d="M3 18h18M6.5 18a5.5 5.5 0 0 1 11 0"/><path d="M12 3v6M9.5 6.5 12 9l2.5-2.5"/>',
+  night:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  marathon:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M10 9l4 2-4 2z" fill="currentColor"/>',
+  fast:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  long:'<path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9"/>',
+  movies:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>',
+};
+function sxIc(k){ return `<span class="sx-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SX_IC[k]||""}</svg></span>`; }
+const SX_EP_MIN = 45, SX_MOV_MIN = 110;   // gdy brak czasu trwania
+function sxFmtDate(ts){ const d = new Date(ts); return `${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`; }
+function sxSpan(days){
+  if (days < 1) return "1 dzień";
+  if (days < 60) return `${days} ${days===1 ? "dzień" : "dni"}`;
+  if (days < 365) { const m = Math.round(days/30); return `${m} ${polishPlural(m, "miesiąc", "miesiące", "miesięcy")}`; }
+  const y = Math.round(days/365*10)/10;
+  return `${String(y).replace(".", ",")} ${y < 2 ? "roku" : (y < 5 && Number.isInteger(y) ? "lata" : "lat")}`;
+}
+
+// Odcinki z tytułem serialu i filmy - do pory dnia, porównania miesięcy i rekordów
+function sxEntriesDetailed(){
+  const out = [];
+  const counted = [STATUS_WATCHED, STATUS_WATCHING, STATUS_PAUSED];
+  for (const it of db.items) {
+    if (it.type === TYPE_SERIES && counted.includes(it.status)) {
+      for (const se of it.seasons||[]) for (const e of se.episodes||[]) {
+        if (e.watched && e.watchedAt) out.push({ts: e.watchedAt, min: e.duration > 0 ? e.duration : SX_EP_MIN, kind: "ep", item: it});
+      }
+    }
+  }
+  for (const m of collectWatchedEntries("movies")) out.push({ts: m.ts, min: m.duration > 0 ? m.duration : SX_MOV_MIN, kind: "mov"});
+  return out;
+}
+
+function sxDaypartCard(entries){
+  if (!entries.length) return sxCard("Kiedy oglądasz", sxEmpty("Brak dat obejrzenia."));
+  const parts = [["morning","Rano",6,12],["day","Popołudnie",12,18],["evening","Wieczór",18,24],["night","Noc",0,6]];
+  const cnt = [0,0,0,0], hours = new Array(24).fill(0);
+  for (const e of entries) {
+    const h = new Date(e.ts).getHours(); hours[h]++;
+    const i = parts.findIndex(p=>h >= p[2] && h < p[3]); if (i >= 0) cnt[i]++;
+  }
+  const total = cnt.reduce((a,b)=>a+b,0) || 1;
+  const top = Math.max(...cnt);
+  const pct = cnt.map(c=>Math.round(c/total*100));
+  const rows = parts.map((p,i)=>`<div class="sx-hb sx-dp"><span class="sx-hb-t">${sxIc(p[0])}${p[1]}</span><span class="sx-bar"><i class="${cnt[i]===top ? "hi" : ""}" style="width:${Math.max(2, Math.round(cnt[i]/top*100))}%"></i></span><span class="sx-hb-v">${pct[i]}%</span></div>`).join("");
+  const peak = hours.indexOf(Math.max(...hours));
+  const pi = cnt.indexOf(top);
+  const when = ["rano","po południu","wieczorem","w nocy"][pi];
+  return sxCard("Kiedy oglądasz", rows + `<div class="sx-foot">Najczęściej <b>${when}</b>, ok. <b>${peak}:00</b></div>`);
+}
+
+function sxMonthCard(entries){
+  const now = new Date();
+  const curStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const prevStart = new Date(now.getFullYear(), now.getMonth()-1, 1).getTime();
+  // ten sam okres poprzedniego miesiąca (1..dzisiejszy dzień), żeby porównanie było uczciwe
+  const prevDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  const prevEnd = new Date(now.getFullYear(), now.getMonth()-1, Math.min(now.getDate(), prevDays), 23, 59, 59, 999).getTime();
+  const sum = (from, to)=>{
+    const r = {eps:0, min:0, mov:0, started:new Set()};
+    for (const e of entries) {
+      if (e.ts < from || e.ts > to) continue;
+      r.min += e.min;
+      if (e.kind === "mov") r.mov++; else r.eps++;
+    }
+    return r;
+  };
+  const a = sum(curStart, now.getTime()), b = sum(prevStart, prevEnd);
+  // nowe seriale = pierwszy obejrzany odcinek przypada na dany okres
+  const first = new Map();
+  for (const e of entries) if (e.kind === "ep") { const f = first.get(e.item.id); if (!f || e.ts < f) first.set(e.item.id, e.ts); }
+  let ns = 0, nsPrev = 0;
+  for (const ts of first.values()) { if (ts >= curStart) ns++; else if (ts >= prevStart && ts <= prevEnd) nsPrev++; }
+  const diff = (x, y, fmt)=>{
+    const d = x - y;
+    if (Math.round(d) === 0) return `<span class="sx-d eq">= tyle samo</span>`;
+    return `<span class="sx-d ${d > 0 ? "up" : "down"}">${d > 0 ? "▲ +" : "▼ −"}${fmt(Math.abs(d))}</span>`;
+  };
+  const h = (m)=>`${Math.round(m/60)} h`;
+  const mName = SX_MONTHS[now.getMonth()];
+  const tile = (label, val, d)=>`<div class="sx-mini sx-mm"><small>${label}</small><b>${val}</b>${d}</div>`;
+  return sxCard(`${mName.charAt(0).toUpperCase() + mName.slice(1)} a ${SX_MONTHS[(now.getMonth()+11)%12]}`,
+    `<div class="sx-two">${tile("Odcinki", sxNum(a.eps), diff(a.eps, b.eps, sxNum))}${tile("Czas", h(a.min), diff(a.min/60, b.min/60, v=>`${Math.round(v)} h`))}${tile("Filmy", sxNum(a.mov), diff(a.mov, b.mov, sxNum))}${tile("Nowe seriale", sxNum(ns), diff(ns, nsPrev, sxNum))}</div>` +
+    `<div class="sx-foot">Porównanie z 1–${Math.min(now.getDate(), prevDays)} ${SX_MONTHS_GEN[(now.getMonth()+11)%12]}</div>`);
+}
+
+function sxRecordsCard(entries){
+  const rows = [];
+  // Maraton jednego dnia (odcinki)
+  const day = new Map();
+  for (const e of entries) if (e.kind === "ep") {
+    const k = dayKeyLocal(e.ts); let d = day.get(k); if (!d) { d = {n:0, ts:e.ts, by:new Map()}; day.set(k, d); }
+    d.n++; d.by.set(e.item.title, (d.by.get(e.item.title)||0) + 1);
+  }
+  let bestDay = null; for (const d of day.values()) if (!bestDay || d.n > bestDay.n) bestDay = d;
+  if (bestDay) {
+    const main = [...bestDay.by.entries()].sort((x,y)=>y[1]-x[1])[0][0];
+    rows.push(["marathon", "Maraton jednego dnia", `${sxNum(bestDay.n)} odc.`, `${main} · ${sxFmtDate(bestDay.ts)}`]);
+  }
+  // Najszybciej skończony i najdłużej oglądany serial (od pierwszego do ostatniego odcinka)
+  const spans = [];
+  for (const it of db.items) {
+    if (it.type !== TYPE_SERIES || ![STATUS_WATCHED, STATUS_WATCHING, STATUS_PAUSED].includes(it.status)) continue;
+    let lo = 0, hi = 0, n = 0;
+    for (const se of it.seasons||[]) for (const e of se.episodes||[]) if (e.watched && e.watchedAt) { n++; if (!lo || e.watchedAt < lo) lo = e.watchedAt; if (e.watchedAt > hi) hi = e.watchedAt; }
+    if (n >= 5) spans.push({it, n, days: Math.max(1, Math.ceil((hi - lo)/864e5)), done: it.status === STATUS_WATCHED});
+  }
+  const fast = spans.filter(x=>x.done).sort((a,b)=>a.days-b.days || b.n-a.n)[0];
+  if (fast) rows.push(["fast", "Najszybciej skończony", sxSpan(fast.days), `${fast.it.title} · ${fast.n} odc.`]);
+  const long = spans.slice().sort((a,b)=>b.days-a.days)[0];
+  if (long) rows.push(["long", "Najdłużej oglądany", sxSpan(long.days), long.it.title]);
+  // Najwięcej filmów jednego dnia
+  const mday = new Map();
+  for (const e of entries) if (e.kind === "mov") { const k = dayKeyLocal(e.ts); const d = mday.get(k) || {n:0, ts:e.ts}; d.n++; mday.set(k, d); }
+  let bm = null; for (const d of mday.values()) if (!bm || d.n > bm.n) bm = d;
+  if (bm && bm.n > 1) rows.push(["movies", "Filmy jednego dnia", `${bm.n} ${polishPlural(bm.n, "film", "filmy", "filmów")}`, sxFmtDate(bm.ts)]);
+  if (!rows.length) return sxCard("Twoje rekordy", sxEmpty("Brak dat obejrzenia."));
+  return sxCard("Twoje rekordy", rows.map(([ic, label, val, sub])=>`<div class="sx-rec">${sxIc(ic)}<div class="sx-rec-l">${escapeHtml(label)}<small>${escapeHtml(sub)}</small></div><b>${escapeHtml(val)}</b></div>`).join(""));
+}
+
 function sxRenderGeneral(s){
   const el = document.getElementById("sx-general");
   if (!el) return;
@@ -113,6 +238,11 @@ function sxRenderGeneral(s){
   html += sxCard("Seria dni", entries.length
     ? `<div class="sx-two"><div class="sx-mini"><b>${dni(cur)}</b><small>obecna seria oglądania</small></div><div class="sx-mini"><b>${dni(best)}</b><small>najdłuższa seria${bestEnd ? `<br>(${SX_MONTHS[bestEnd.getMonth()]} ${bestEnd.getFullYear()})` : ""}</small></div></div>`
     : sxEmpty("Brak dat obejrzenia."));
+
+  const detailed = sxEntriesDetailed();
+  html += sxDaypartCard(detailed);
+  html += sxMonthCard(detailed);
+  html += sxRecordsCard(detailed);
 
   el.innerHTML = html;
 }
