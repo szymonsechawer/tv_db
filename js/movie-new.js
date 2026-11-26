@@ -84,6 +84,7 @@ function renderMovieNewTable(){
     const year = String(it.premiere_date||"").slice(0,4);
     tr.innerHTML = `<td class="col-title"><span class="mn-t"></span>${year ? `<span class="gs-y">${escapeHtml(year)}</span>` : ""}</td><td class="col-mn"><span class="mn-p"></span></td>`;
     tr.querySelector(".mn-t").textContent = it.title;
+    { const o = buildOrigTitleEl(it); if (o) tr.querySelector(".mn-t").after(o); }
     tr.querySelector(".mn-p").textContent = movieNewProvidersText(it.watch_providers);
     addDoubleActivation(tr, ()=>openMovieNewDialog(it));
     tbody.appendChild(tr);

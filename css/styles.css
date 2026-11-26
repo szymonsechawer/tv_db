@@ -1319,3 +1319,8 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 #pane-stats-general .sx-all{--st-c:#3ba55d;}
 .st-t.st-avg b{color:#4cc06e;}
 html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
+
+/* Tytuł oryginalny pod polskim */
+.title-orig{font-size:12px;color:var(--text-muted);font-weight:500;line-height:1.25;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.title-block{min-width:0;}
+table.data td.col-title{max-width:0;width:100%;}

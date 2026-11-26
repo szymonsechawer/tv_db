@@ -94,6 +94,7 @@ function renderGlobalSearch(){
     tr.innerHTML = `<td class="col-title"><span class="gs-t"></span>${year ? `<span class="gs-y">${escapeHtml(year)}</span>` : ""}</td>
       <td class="col-gs"><span class="gs-kind">${isSeries ? "Serial" : "Film"}</span><span class="gs-st gs-${escapeHtml(st)}">${escapeHtml(GS_STATUS[st] || STATUS_LABELS[st] || "")}</span></td>`;
     tr.querySelector(".gs-t").textContent = it.title || "";
+    { const o = buildOrigTitleEl(it); if (o) tr.querySelector(".gs-t").after(o); }
     tr.addEventListener("click", ()=>goToItemInList(it));
     body.appendChild(tr);
   }
