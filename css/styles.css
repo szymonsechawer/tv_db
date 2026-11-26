@@ -1319,3 +1319,12 @@ html[data-theme="jasny"] .fl-dd-list{box-shadow:0 12px 30px rgba(0,0,0,.18);}
 #pane-stats-general .sx-all{--st-c:#3ba55d;}
 .st-t.st-avg b{color:#4cc06e;}
 html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
+/* Postęp w Oglądanych */
+.st-wp .wp-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.st-wp .wp-row b{color:#3b8fd9;}
+.st-wp .wp-row span{color:var(--text-muted);font-size:13px;font-weight:600;}
+.st-wp .wp-row em{font-style:normal;color:var(--text-light);font-weight:800;}
+.wp-bar{height:10px;border-radius:5px;background:rgba(127,127,127,.22);overflow:hidden;margin:8px 0 6px;}
+.wp-bar i{display:block;height:100%;background:#3b8fd9;border-radius:5px;}
+.st-tiles-one:empty{display:none;}
+.st-tiles-one{margin-bottom:8px;}

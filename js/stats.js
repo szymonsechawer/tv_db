@@ -58,6 +58,26 @@ function updateStats(){
 // Seriale / Filmy: kafelki u góry + paski list względem największej wartości
 // ============================================================
 const MONTH_NAMES_LOC_PL = ["styczniu","lutym","marcu","kwietniu","maju","czerwcu","lipcu","sierpniu","wrześniu","październiku","listopadzie","grudniu"];
+// Postęp w Oglądanych: ile wyemitowanych odcinków seriali z listy Oglądane już obejrzane
+function watchingProgressTile(){
+  let watched = 0, total = 0;
+  for (const it of db.items) {
+    if (it.type !== TYPE_SERIES || it.status !== STATUS_WATCHING) continue;
+    for (const se of it.seasons||[]) for (const e of se.episodes||[]) {
+      if (e.watched) { watched++; total++; }
+      else if (!isEpisodeUnaired(e)) total++;
+    }
+  }
+  if (!total) return "";
+  const pct = watched / total * 100;
+  const left = total - watched;
+  const fmtP = (v)=> (v > 0 && v < 1) ? "<1" : String(Math.round(v));
+  return `<div class="st-t st-w st-wp"><small>Postęp w Oglądanych</small>
+    <div class="wp-row"><b>${fmtP(pct)}%</b><span>obejrzane</span></div>
+    <div class="wp-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
+    <div class="st-l"><span>${fmtNum(watched)} z ${fmtNum(total)} wyemitowanych odcinków</span></div></div>`;
+}
+
 function renderPaneTiles(kind){
   const isMov = kind === "movies";
   const box = document.getElementById(isMov ? "stat-tiles-movies" : "stat-tiles-series");
@@ -93,6 +113,7 @@ function renderPaneTiles(kind){
     <div class="st-t ${cls}"><small>Ten rok</small><b>${fmtNum(yearTotal)}</b><div class="st-l">${lines([unit(yearTotal), best >= 0 ? `najwięcej w ${MONTH_NAMES_LOC_PL[best]} (${fmtNum(months[best].count)})` : ""])}</div></div>
     <div class="st-t"><small>Średnia ocena</small><b>${r ? r.avg.toFixed(1).replace(".", ",") : "—"}</b><div class="st-l">${lines([r ? `z ${fmtNum(r.count)} ${r.count===1?"oceny":"ocen"}` : "brak ocen"])}</div></div>
     ${fourth}`;
+  if (!isMov) { const wp = document.getElementById("stat-watch-progress"); if (wp) wp.innerHTML = watchingProgressTile(); }
   // paski list (gatunki, kraje) względem największej pozycji na liście
   const pane = box.closest(".status-pane");
   if (pane) pane.querySelectorAll(".genre-stats-list").forEach(list=>{
