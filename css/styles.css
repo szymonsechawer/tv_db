@@ -1331,3 +1331,8 @@ table.data th.col-progress,table.data td.col-progress{width:1%;}
 table.data tbody td.col-progress{padding-left:4px;padding-right:6px;}
 table.data .progress-cell{min-width:0;padding:4px 6px;}
 table.data .progress-cell .prog-toprow{gap:6px;font-size:11px;}
+/* Oglądane: kwadratowa ramka postępu (kod odcinka nad licznikiem) */
+#subcontent-series table.data .progress-cell{width:78px;min-width:78px;padding:6px 6px 7px;gap:5px;}
+#subcontent-series table.data .progress-cell .prog-toprow{flex-direction:column;align-items:center;gap:1px;}
+#subcontent-series table.data .progress-cell .prog-next{font-size:12.5px;}
+#subcontent-series table.data .progress-cell .prog-counts{font-size:10.5px;}
