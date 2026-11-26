@@ -73,9 +73,9 @@ function watchingProgressTile(){
   const left = total - watched;
   const fmtP = (v)=> (v > 0 && v < 1) ? "<1" : String(Math.round(v));
   return `<div class="st-t st-w st-wp"><small>Postęp w Oglądanych</small>
-    <div class="wp-row"><b>${fmtP(pct)}%</b><span>obejrzane · brakuje <em>${fmtP(100-pct)}%</em></span></div>
+    <div class="wp-row"><b>${fmtP(pct)}%</b><span>obejrzane</span></div>
     <div class="wp-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
-    <div class="st-l"><span>${fmtNum(watched)} z ${fmtNum(total)} wyemitowanych odcinków · zostało ${fmtNum(left)} odc.</span></div></div>`;
+    <div class="st-l"><span>${fmtNum(watched)} z ${fmtNum(total)} wyemitowanych odcinków</span></div></div>`;
 }
 
 function renderPaneTiles(kind){
