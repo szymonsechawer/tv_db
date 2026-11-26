@@ -354,12 +354,12 @@ function sxRenderMovies(){
   const movies = db.items.filter(i=>i.type===TYPE_MOVIE && i.status===STATUS_WATCHED);
   const withDur = movies.filter(m=>m.duration > 0).sort((a,b)=>b.duration-a.duration);
   let html = "";
-  const dec = sxDecades(movies);
-  html += sxCard("Filmy wg dekady premiery", dec ? sxVBars(dec) : sxEmpty("Brak dat premiery."));
   if (withDur.length) {
     const lo = withDur[withDur.length-1], hi = withDur[0];
     html += sxCard("Rekordy długości", `<div class="sx-two"><div class="sx-mini"><b>${sxHmLong(hi.duration)}</b><small>najdłuższy<br>${escapeHtml(hi.title)}</small></div><div class="sx-mini"><b>${sxHmLong(lo.duration)}</b><small>najkrótszy<br>${escapeHtml(lo.title)}</small></div></div>`);
   } else html += sxCard("Rekordy długości", sxEmpty("Brak czasu trwania filmów."));
+  const dec = sxDecades(movies);
+  html += sxCard("Filmy wg dekady premiery", dec ? sxVBars(dec) : sxEmpty("Brak dat premiery."));
   const rat = sxRatings(movies);
   html += sxCard("Rozkład ocen", rat ? sxVBars(rat) : sxEmpty("Brak ocenionych filmów."));
   const ageM = sxAgeGroups(movies);
