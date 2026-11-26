@@ -1331,15 +1331,9 @@ html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
 /* Seriale · Oglądane: sekcja "Kontynuuj" (ostatnio oglądany) */
 .rw-box{flex:none;margin:0 0 8px;}
 .rw-head{font-size:12.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:2px 4px 6px;}
-.rw-card.progress-cell{min-width:0;gap:0;padding:10px 12px;background:var(--bg-entry);border:1px solid var(--border);border-radius:12px;user-select:none;-webkit-user-select:none;}
-.rw-card .rw-title{font-weight:600;font-size:14px;line-height:1.25;color:var(--text-light);white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:manual;}
+.rw-card{padding:10px 12px 12px;background:var(--bg-entry);border:1px solid var(--accent-hover);border-radius:12px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
+.rw-card .rw-title{font-size:17px;font-weight:700;line-height:1.25;color:var(--text-light);white-space:normal;word-break:normal;overflow-wrap:normal;}
 .rw-card .rw-year{font-size:12px;color:var(--text-muted);margin-top:1px;}
-.rw-card .prog-toprow{margin-top:8px;}
-.rw-card .progress-bar-track{margin-top:5px;}
-.rw-card.rw-big{border-color:var(--accent-hover);margin-bottom:6px;}
-.rw-card.rw-big .rw-title{font-size:17px;font-weight:700;}
-.rw-card.rw-big .prog-toprow{font-size:13px;}
-.rw-card.rw-big .progress-bar-track{height:7px;}
-.rw-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.rw-row .rw-card{justify-content:flex-start;}
-.rw-row .rw-card .prog-toprow{gap:6px;margin-top:auto;padding-top:8px;}
+.rw-card .rw-prog{min-width:0;margin-top:9px;border:1px solid var(--border);border-radius:10px;}
+.rw-card .rw-prog .prog-toprow{font-size:13px;}
+.rw-card .rw-prog .progress-bar-track{height:7px;}

@@ -1,7 +1,7 @@
 // ============================================================
 // recent-watching.js — Seriale · Oglądane: sekcja "Kontynuuj" nad listą
-// z ostatnio oglądanym serialem. Cały kafel
-// działa jak komórka postępu: podwójne dotknięcie odhacza kolejny odcinek.
+// z ostatnio oglądanym serialem. Działa jak zwykły rekord: podwójne
+// dotknięcie tytułu otwiera informacje, a ramki postępu odhacza odcinek.
 // ============================================================
 
 function recentWatchingItems(limit){
@@ -24,7 +24,9 @@ function buildRecentCard(item, big){
   for (const s of item.seasons || []) for (const e of s.episodes || []) { total++; if (e.watched) watched++; }
   const pct = total ? Math.round((watched / total) * 100) : 0;
   const card = document.createElement("div");
-  card.className = "rw-card progress-cell" + (big ? " rw-big" : "");
+  card.className = "rw-card" + (big ? " rw-big" : "");
+  const prog = document.createElement("div");
+  prog.className = "progress-cell rw-prog";
   const title = document.createElement("div");
   title.className = "rw-title";
   title.textContent = item.title || "";
@@ -46,16 +48,21 @@ function buildRecentCard(item, big){
   fill.className = "progress-bar-fill";
   fill.style.width = pct + "%";
   track.appendChild(fill);
-  card.append(title, year, top, track);
+  prog.append(top, track);
+  card.append(title, year, prog);
+  addDoubleActivation(card, ()=>openViewDialog(item.id));
   if (p.next && p.next !== "✓") {
-    card.classList.add("prog-tappable");
-    card.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
-    addDoubleActivation(card, async ()=>{
-      if (card.classList.contains("prog-busy")) return;
-      card.classList.add("prog-busy");
-      try { await markNextFromList(item.id, card); }
-      finally { card.classList.remove("prog-busy"); }
+    prog.classList.add("prog-tappable");
+    prog.title = p.nextTitle ? `Odhacz: ${p.nextTitle}` : "Odhacz kolejny odcinek";
+    prog.addEventListener("click", (e)=>e.stopPropagation());
+    prog.addEventListener("dblclick", (e)=>e.stopPropagation());
+    addDoubleActivation(prog, async ()=>{
+      if (prog.classList.contains("prog-busy")) return;
+      prog.classList.add("prog-busy");
+      try { await markNextFromList(item.id, prog); }
+      finally { prog.classList.remove("prog-busy"); }
     });
+    prog.addEventListener("touchend", (e)=>e.stopPropagation());
   }
   return card;
 }
