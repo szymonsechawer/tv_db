@@ -122,6 +122,7 @@ function applyNewInfoLayout(overlay, ctx){
       det += row("Sezony", esc(String(c.seasons.length)));
       det += row("Odcinki", esc(String(eps)));
     }
+    if (c.tmdb_rating > 0) det += row("Ocena TMDb", `${esc(formatTmdbRating(c.tmdb_rating))}${c.tmdb_votes > 0 ? ` <span class="vl-muted">· ${esc(fmtNum(c.tmdb_votes))} ${polishPlural(c.tmdb_votes, "głos", "głosy", "głosów")}</span>` : ""}`);
     const pc = c.production_countries||[], oc = c.origin_country||[];
     if (pc.length) det += row(pc.length > 1 ? "Kraje produkcji" : "Kraj produkcji", esc(pc.join(", ")));
     if (oc.length && oc.join(",") !== pc.join(",")) det += row("Kraj pochodzenia", esc(oc.join(", ")));
@@ -305,7 +306,7 @@ function applyNewInfoLayout(overlay, ctx){
             ${c.original_title ? `<div class="vd-orig">${escapeHtml(c.original_title)}</div>` : ""}
             ${meta.length ? `<div class="vd-meta">${meta.map(m=>`<span>${escapeHtml(m)}</span>`).join(" · ")}</div>` : ""}
             ${(c.genres||[]).length ? `<div class="vd-genres">${c.genres.map(g=>`<span>${escapeHtml(g)}</span>`).join("")}</div>` : ""}
-            ${r ? `<div class="vd-rate">Ocena: <b>${formatRating(r).replace(".", ",")}</b></div>` : ""}
+            ${(r || c.tmdb_rating > 0) ? `<div class="vd-rate">${r ? `Ocena: <b>${formatRating(r).replace(".", ",")}</b>` : ""}${c.tmdb_rating > 0 ? `<span class="vd-tmdb">TMDb <b>${formatTmdbRating(c.tmdb_rating)}</b></span>` : ""}</div>` : ""}
           </div>
         </div>
       </div>

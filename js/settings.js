@@ -205,12 +205,13 @@ async function refreshAllEpisodeTitles(){
         }
       }
 
-      if ((!item.production_companies || !item.production_companies.length) || !item.trailer_key) {
+      if ((!item.production_companies || !item.production_companies.length) || !item.trailer_key || tmdbRatingStale(item)) {
         try {
           let extraChanged = false;
-          if (!item.production_companies || !item.production_companies.length) {
+          if (!item.production_companies || !item.production_companies.length || tmdbRatingStale(item)) {
             const extras = await tmdbFetchExtras(item.type, tid);
-            if (extras && extras.companies.length) { item.production_companies = extras.companies; extraChanged = true; }
+            if (extras && extras.companies.length && (!item.production_companies || !item.production_companies.length)) { item.production_companies = extras.companies; extraChanged = true; }
+            if (extras && applyTmdbVote(item, extras.vote)) extraChanged = true;
           }
           if (!item.trailer_key) {
             const trailerKey = await tmdbFetchTrailerKey(item.type, tid);

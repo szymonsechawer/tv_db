@@ -431,7 +431,7 @@ function openViewDialog(idOrItem, opts){
 
     async function fetchExtrasIfNeeded(){
       const cur = findItem(id) || item;
-      if (cur.production_companies && cur.production_companies.length && cur.trailer_key && cur.watch_providers) return;
+      if (cur.production_companies && cur.production_companies.length && cur.trailer_key && cur.watch_providers && !tmdbRatingStale(cur)) return;
       try {
         let tid = cur.tmdb_id;
         if (!tid) {
@@ -443,6 +443,7 @@ function openViewDialog(idOrItem, opts){
         try {
           const extras = await tmdbFetchExtras(cur.type, tid);
           if (extras && extras.companies.length) { cur.production_companies = extras.companies; changed = true; }
+          if (extras) { if (applyTmdbVote(cur, extras.vote)) changed = true; else saveToLocalStorage(); }
         } catch(err) { /* brak danych ogólnych - kontynuuj */ }
         try {
           const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);
@@ -455,6 +456,8 @@ function openViewDialog(idOrItem, opts){
         if (changed) {
           saveToLocalStorage();
           refreshExtras();
+          const rr = overlay.querySelector("#view-rating-row");   // odśwież nagłówek (ocena TMDb)
+          if (rr) rr.setAttribute("data-tmdb", String(cur.tmdb_rating||""));
         }
       } catch(err) {
         // cicho ignoruj błąd pobierania dodatkowych informacji - nie blokuje okna informacji
@@ -856,6 +859,7 @@ function openViewDialog(idOrItem, opts){
         try {
           const extras = await tmdbFetchExtras(cur.type, tid);
           if (extras && extras.companies.length) { cur.production_companies = extras.companies; parts.push("wytwórnię"); }
+          if (extras && applyTmdbVote(cur, extras.vote)) parts.push("ocenę TMDb");
         } catch(err) { /* brak dodatkowych danych nie blokuje reszty */ }
         try {
           const trailerKey = await tmdbFetchTrailerKey(cur.type, tid);

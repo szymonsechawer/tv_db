@@ -275,7 +275,10 @@ async function tmdbFetchExtras(type, id){
     const networks = data.networks.map(n=>n && n.name).filter(Boolean);
     for (const n of networks) { if (!companies.includes(n)) companies.push(n); }
   }
-  return {companies};
+  const vote = (Number(data.vote_count) > 0 && Number(data.vote_average) > 0)
+    ? {avg: Math.round(Number(data.vote_average) * 10) / 10, count: Number(data.vote_count)}
+    : null;
+  return {companies, vote};
 }
 
 // Pobiera budżet produkcji (w dolarach) dla filmu/serialu o danym id TMDb.

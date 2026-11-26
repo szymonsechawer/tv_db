@@ -1328,3 +1328,8 @@ html[data-theme="jasny"] .st-t.st-avg b{color:#23863f;}
 .wp-bar i{display:block;height:100%;background:#3b8fd9;border-radius:5px;}
 .st-tiles-one:empty{display:none;}
 .st-tiles-one{margin-bottom:8px;}
+/* Ocena widzów z TMDb w oknie informacji */
+.vd-rate .vd-tmdb{color:var(--text-muted);font-weight:400;}
+.vd-rate b + .vd-tmdb{margin-left:10px;}
+.vd-rate .vd-tmdb b{color:var(--text-light);}
+.vl-v .vl-muted{color:var(--text-muted);font-weight:400;}

@@ -384,3 +384,22 @@ function inheritMainRatingToSeasons(item, exceptSeason){
 function applySeasonRatingsToItem(item){
   if (hasSeasonRatings(item)) item.rating = seasonRatingsAvg(item.seasons);
 }
+
+// Ocena widzów z TMDb (vote_average): zapisywana w tmdb_rating / tmdb_votes,
+// odświeżana co 30 dni (oceny na TMDb się zmieniają).
+const TMDB_RATING_MAX_AGE = 30 * 864e5;
+function tmdbRatingStale(it){
+  return !it || !it.tmdb_rating_at || (Date.now() - it.tmdb_rating_at) > TMDB_RATING_MAX_AGE;
+}
+function applyTmdbVote(it, vote){
+  if (!it) return false;
+  const prev = `${it.tmdb_rating||""}|${it.tmdb_votes||""}`;
+  if (vote) { it.tmdb_rating = vote.avg; it.tmdb_votes = vote.count; }
+  else { delete it.tmdb_rating; delete it.tmdb_votes; }
+  it.tmdb_rating_at = Date.now();
+  return prev !== `${it.tmdb_rating||""}|${it.tmdb_votes||""}`;
+}
+function formatTmdbRating(v){
+  const n = Number(v);
+  return n > 0 ? n.toFixed(1).replace(".", ",") : "";
+}
